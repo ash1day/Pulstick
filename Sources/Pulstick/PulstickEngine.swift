@@ -18,7 +18,18 @@ enum TimeSignature: String, CaseIterable, Identifiable {
 }
 
 final class PulstickEngine: ObservableObject {
-    @Published var bpm: Double = 120
+    @Published var bpm: Double = 120 {
+        didSet {
+            let clamped = bpm.clamped(to: 40...240)
+            if bpm != clamped {
+                bpm = clamped
+                return
+            }
+            if bpm != oldValue {
+                restartTimerIfPlaying()
+            }
+        }
+    }
     @Published var isPlaying: Bool = false
     @Published var timeSignature: TimeSignature = .fourFour
     @Published var currentBeat: Int = 0
@@ -118,17 +129,10 @@ final class PulstickEngine: ObservableObject {
 
     func incrementBPM() {
         bpm = min(bpm + 1, 240)
-        restartTimerIfPlaying()
     }
 
     func decrementBPM() {
         bpm = max(bpm - 1, 40)
-        restartTimerIfPlaying()
-    }
-
-    func bpmChanged() {
-        bpm = bpm.clamped(to: 40...240)
-        restartTimerIfPlaying()
     }
 
     func tapTempo() {
@@ -156,8 +160,7 @@ final class PulstickEngine: ObservableObject {
         let averageInterval = totalInterval / Double(tapTimes.count - 1)
         let newBPM = 60.0 / averageInterval
 
-        bpm = newBPM.clamped(to: 40...240)
-        restartTimerIfPlaying()
+        bpm = newBPM
     }
 
     func setTimeSignature(_ sig: TimeSignature) {

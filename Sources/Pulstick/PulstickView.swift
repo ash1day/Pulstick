@@ -95,14 +95,8 @@ struct PulstickView: View {
             }
             .buttonStyle(.bordered)
 
-            Slider(value: $engine.bpm, in: 40...240, step: 1) { editing in
-                if !editing {
-                    engine.bpmChanged()
-                }
-            }
-            .onChange(of: engine.bpm) { _ in
-                engine.bpmChanged()
-            }
+            CustomSlider(value: $engine.bpm, range: 40...240)
+                .frame(height: 20)
 
             Button {
                 engine.incrementBPM()
@@ -203,6 +197,54 @@ struct PulstickView: View {
         withAnimation(.easeOut(duration: 0.3)) {
             pulseScale = 1.4
             pulseOpacity = 0.0
+        }
+    }
+}
+
+struct CustomSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+
+    private let trackHeight: CGFloat = 4
+    private let thumbSize: CGFloat = 18
+
+    var body: some View {
+        GeometryReader { geo in
+            let width = geo.size.width - thumbSize
+            let fraction = (value - range.lowerBound) / (range.upperBound - range.lowerBound)
+            let offset = width * CGFloat(fraction)
+
+            ZStack(alignment: .leading) {
+                // Track background
+                Capsule()
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(height: trackHeight)
+                    .padding(.horizontal, thumbSize / 2)
+
+                // Track fill
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: offset + thumbSize / 2, height: trackHeight)
+                    .padding(.leading, thumbSize / 2)
+
+                // Thumb
+                Circle()
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                    .frame(width: thumbSize, height: thumbSize)
+                    .offset(x: offset)
+            }
+            .frame(height: geo.size.height)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        let fraction = Double((drag.location.x - thumbSize / 2) / width)
+                        let clamped = min(max(fraction, 0), 1)
+                        let stepped = (clamped * (range.upperBound - range.lowerBound) + range.lowerBound).rounded()
+                        value = min(max(stepped, range.lowerBound), range.upperBound)
+                    }
+            )
         }
     }
 }
