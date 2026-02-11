@@ -14,7 +14,7 @@ A minimal metronome that lives in your macOS menu bar.
 
 ## Requirements
 
-- macOS 13 (Ventura) or later
+- macOS 15 (Sequoia) or later
 
 ## Build
 

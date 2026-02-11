@@ -18,7 +18,7 @@ struct PulstickView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .frame(width: 280)
-        .onChange(of: engine.currentBeat) { _ in
+        .onChange(of: engine.currentBeat) {
             triggerPulse()
         }
     }
@@ -208,7 +208,6 @@ struct PulstickView: View {
 }
 
 // MARK: - Pointing Hand Cursor
-// macOS 13 では .cursor() modifier が使えないため、
 // onHover + NSCursor で pointer カーソルを実現
 
 struct PointingHandCursor: ViewModifier {
