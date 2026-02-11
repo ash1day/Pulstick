@@ -49,42 +49,9 @@
         </div>
         <p class="hero-note">Requires macOS 15 (Sequoia) or later</p>
 
-        <!-- App Mockup -->
-        <div class="mockup-wrapper" aria-hidden="true">
-          <div class="mockup">
-            <div class="mockup-menubar">
-              <span>Mon 10:32 AM</span>
-              <div class="menubar-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3"/>
-                  <line x1="12" y1="5" x2="12" y2="3"/>
-                  <line x1="12" y1="21" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="3" y2="12"/>
-                  <line x1="21" y1="12" x2="19" y2="12"/>
-                </svg>
-              </div>
-            </div>
-            <div class="mockup-body">
-              <div class="mockup-bpm" id="mockup-bpm">120<span>BPM</span></div>
-              <div class="mockup-beats" id="mockup-beats">
-                <div class="beat-dot accent"></div>
-                <div class="beat-dot"></div>
-                <div class="beat-dot"></div>
-                <div class="beat-dot"></div>
-              </div>
-              <div class="mockup-slider">
-                <div class="mockup-slider-fill"></div>
-                <div class="mockup-slider-thumb"></div>
-              </div>
-              <div class="mockup-controls">
-                <div class="mockup-btn-small">TAP</div>
-                <div class="mockup-btn">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
-                </div>
-                <div class="mockup-btn-small">4/4</div>
-              </div>
-            </div>
-          </div>
+        <!-- App Screenshot -->
+        <div class="screenshot-wrapper">
+          <img src="screenshot.png" alt="Pulstick app screenshot showing BPM control, time signature buttons, and play controls" class="screenshot" width="390" />
         </div>
       </div>
     </section>
@@ -188,37 +155,6 @@
       <p class="footer-copy">Pulstick. A minimal metronome for macOS.</p>
     </div>
   </footer>
-
-  <!-- Mockup beat animation -->
-  <script>
-    (function () {
-      var beats = document.querySelectorAll('#mockup-beats .beat-dot');
-      if (!beats.length) return;
-
-      var matchMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
-      if (matchMedia.matches) return;
-
-      var current = 0;
-      var interval = 500; /* 120 BPM */
-
-      function tick() {
-        beats.forEach(function (dot, i) {
-          if (i === 0) {
-            dot.className = 'beat-dot accent';
-          } else {
-            dot.className = 'beat-dot';
-          }
-        });
-        if (current > 0) {
-          beats[current].classList.add('active');
-        }
-        current = (current + 1) % beats.length;
-      }
-
-      tick();
-      setInterval(tick, interval);
-    })();
-  </script>
 
 </body>
 </html>
