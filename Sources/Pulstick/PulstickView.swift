@@ -7,24 +7,12 @@ struct PulstickView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            // Beat indicator dots
             beatIndicator
-
-            // BPM display with pulse
             bpmDisplay
-
-            // BPM slider with +/- buttons
             bpmSlider
-
-            // Time signature picker
             timeSignaturePicker
-
-            // Controls row: Tap + Play/Stop
             controlsRow
-
             Divider()
-
-            // Quit + shortcut hint
             footerRow
         }
         .padding(.horizontal, 20)
@@ -36,6 +24,8 @@ struct PulstickView: View {
     }
 
     // MARK: - Beat Indicator
+    // ドットをタップしてアクセントのon/offを切り替え可能。
+    // アクセント付きはオレンジ色・大きめ、再生中は現在拍がスケールアップ。
 
     private var beatIndicator: some View {
         HStack(spacing: 6) {
@@ -46,6 +36,7 @@ struct PulstickView: View {
                     .frame(width: isAccent ? 10 : 8, height: isAccent ? 10 : 8)
                     .scaleEffect(engine.isPlaying && engine.currentBeat == beat ? 1.3 : 1.0)
                     .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
+                    .pointingHandCursor()
                     .onTapGesture {
                         engine.toggleAccent(beat)
                     }
@@ -63,10 +54,10 @@ struct PulstickView: View {
     }
 
     // MARK: - BPM Display
+    // ビートごとにリング状のパルスアニメーションが拡大→フェードアウトする
 
     private var bpmDisplay: some View {
         ZStack {
-            // Pulse ring
             Circle()
                 .stroke(Color.accentColor.opacity(pulseOpacity), lineWidth: 2)
                 .frame(width: 80, height: 80)
@@ -85,6 +76,8 @@ struct PulstickView: View {
     }
 
     // MARK: - BPM Slider
+    // macOS 標準の Slider はトラックが二重描画されるバグがあるため、
+    // CustomSlider で独自描画している
 
     private var bpmSlider: some View {
         HStack(spacing: 8) {
@@ -96,9 +89,11 @@ struct PulstickView: View {
                     .frame(width: 26, height: 26)
             }
             .buttonStyle(.bordered)
+            .pointingHandCursor()
 
             CustomSlider(value: $engine.bpm, range: 40...240)
                 .frame(height: 20)
+                .pointingHandCursor()
 
             Button {
                 engine.incrementBPM()
@@ -108,6 +103,7 @@ struct PulstickView: View {
                     .frame(width: 26, height: 26)
             }
             .buttonStyle(.bordered)
+            .pointingHandCursor()
         }
     }
 
@@ -144,6 +140,7 @@ struct PulstickView: View {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
+        .pointingHandCursor()
     }
 
     // MARK: - Controls
@@ -159,6 +156,7 @@ struct PulstickView: View {
             }
             .controlSize(.large)
             .buttonStyle(.bordered)
+            .pointingHandCursor()
 
             Button {
                 engine.toggle()
@@ -174,6 +172,7 @@ struct PulstickView: View {
             .buttonStyle(.borderedProminent)
             .tint(engine.isPlaying ? .red : .accentColor)
             .keyboardShortcut(.space, modifiers: [])
+            .pointingHandCursor()
         }
     }
 
@@ -191,6 +190,7 @@ struct PulstickView: View {
             .buttonStyle(.plain)
             .foregroundColor(.secondary)
             .font(.system(size: 11))
+            .pointingHandCursor()
         }
     }
 
@@ -207,6 +207,32 @@ struct PulstickView: View {
     }
 }
 
+// MARK: - Pointing Hand Cursor
+// macOS 13 では .cursor() modifier が使えないため、
+// onHover + NSCursor で pointer カーソルを実現
+
+struct PointingHandCursor: ViewModifier {
+    func body(content: Content) -> some View {
+        content.onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+}
+
+extension View {
+    func pointingHandCursor() -> some View {
+        modifier(PointingHandCursor())
+    }
+}
+
+// MARK: - Custom Slider
+// macOS の SwiftUI 標準 Slider はポップオーバー内でトラックが二重描画される
+// 問題があるため、GeometryReader + DragGesture で独自実装。
+
 struct CustomSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
@@ -221,19 +247,16 @@ struct CustomSlider: View {
             let offset = width * CGFloat(fraction)
 
             ZStack(alignment: .leading) {
-                // Track background
                 Capsule()
                     .fill(Color.secondary.opacity(0.2))
                     .frame(height: trackHeight)
                     .padding(.horizontal, thumbSize / 2)
 
-                // Track fill
                 Capsule()
                     .fill(Color.accentColor)
                     .frame(width: offset + thumbSize / 2, height: trackHeight)
                     .padding(.leading, thumbSize / 2)
 
-                // Thumb
                 Circle()
                     .fill(Color.white)
                     .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
