@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pulstick — Minimal Menu Bar Metronome for macOS</title>
+  <meta name="description" content="Pulstick is a minimal metronome that lives in your macOS menu bar. One-click access, tap tempo, accent beats, and a clean Dock-free experience.">
+  <meta name="theme-color" content="#e85d3a" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#f06b45" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <!-- Header -->
+  <header class="site-header" role="banner">
+    <div class="container">
+      <div class="site-logo">
+        <div class="logo-dot" aria-hidden="true"></div>
+        Pulstick
+      </div>
+      <a href="https://github.com/ash1day/Pulstick/releases" class="header-cta">
+        Download
+      </a>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="container">
+        <div class="hero-badge">macOS Menu Bar App</div>
+        <h1 id="hero-heading">Pulstick</h1>
+        <p class="hero-tagline">
+          A minimal metronome that lives in your menu bar.
+          One click away, always ready.
+        </p>
+        <div class="hero-actions">
+          <a href="https://github.com/ash1day/Pulstick/releases" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download for macOS
+          </a>
+          <a href="https://github.com/ash1day/Pulstick" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+            View on GitHub
+          </a>
+        </div>
+        <p class="hero-note">Requires macOS 13 (Ventura) or later</p>
+
+        <!-- App Mockup -->
+        <div class="mockup-wrapper" aria-hidden="true">
+          <div class="mockup">
+            <div class="mockup-menubar">
+              <span>Mon 10:32 AM</span>
+              <div class="menubar-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3"/>
+                  <line x1="12" y1="5" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="19" y2="12"/>
+                </svg>
+              </div>
+            </div>
+            <div class="mockup-body">
+              <div class="mockup-bpm" id="mockup-bpm">120<span>BPM</span></div>
+              <div class="mockup-beats" id="mockup-beats">
+                <div class="beat-dot accent"></div>
+                <div class="beat-dot"></div>
+                <div class="beat-dot"></div>
+                <div class="beat-dot"></div>
+              </div>
+              <div class="mockup-slider">
+                <div class="mockup-slider-fill"></div>
+                <div class="mockup-slider-thumb"></div>
+              </div>
+              <div class="mockup-controls">
+                <div class="mockup-btn-small">TAP</div>
+                <div class="mockup-btn">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
+                </div>
+                <div class="mockup-btn-small">4/4</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features" aria-labelledby="features-heading">
+      <div class="container">
+        <h2 class="section-title" id="features-heading">Everything you need, nothing you don't</h2>
+        <div class="features-grid">
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="4" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><line x1="6.5" y1="7" x2="6.5" y2="10"/><line x1="17.5" y1="7" x2="17.5" y2="10"/></svg>
+            </div>
+            <h3>Menu Bar Resident</h3>
+            <p>One-click access from your menu bar. No need to switch windows or hunt through your Dock.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h3>BPM 40 -- 240</h3>
+            <p>Wide tempo range covering everything from slow practice to fast exercises. Precise slider and step buttons.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <h3>Tap Tempo</h3>
+            <p>Tap to set the tempo naturally. Match any song or rhythm by feel, not by numbers.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="19" cy="12" r="3"/></svg>
+            </div>
+            <h3>Accent Beats</h3>
+            <p>Set time signatures with accented downbeats. Choose from 4/4, 3/4, and 6/8.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="6" x2="6" y2="18"/><line x1="18" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <h3>Dock-Free</h3>
+            <p>Runs silently without a Dock icon. Your workspace stays clean and uncluttered.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <h3>Lightweight</h3>
+            <p>Built natively for macOS with minimal resource usage. No Electron, no bloat.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section class="install" id="install" aria-labelledby="install-heading">
+      <div class="container">
+        <h2 class="section-title" id="install-heading">Get started in seconds</h2>
+        <div class="install-steps">
+
+          <div class="install-step">
+            <div class="step-number">1</div>
+            <h3>Download</h3>
+            <p>Grab the latest release from GitHub Releases.</p>
+          </div>
+
+          <div class="install-step">
+            <div class="step-number">2</div>
+            <h3>Install</h3>
+            <p>Move <code>Pulstick.app</code> to your Applications folder.</p>
+          </div>
+
+          <div class="install-step">
+            <div class="step-number">3</div>
+            <h3>Launch</h3>
+            <p>Open Pulstick. The metronome icon appears in your menu bar. Done.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://github.com/ash1day/Pulstick">GitHub</a>
+        <a href="https://github.com/ash1day/Pulstick/releases">Releases</a>
+        <a href="https://github.com/ash1day/Pulstick/blob/main/LICENSE">License</a>
+      </nav>
+      <p class="footer-copy">Pulstick. A minimal metronome for macOS.</p>
+    </div>
+  </footer>
+
+  <!-- Mockup beat animation -->
+  <script>
+    (function () {
+      var beats = document.querySelectorAll('#mockup-beats .beat-dot');
+      if (!beats.length) return;
+
+      var matchMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (matchMedia.matches) return;
+
+      var current = 0;
+      var interval = 500; /* 120 BPM */
+
+      function tick() {
+        beats.forEach(function (dot, i) {
+          if (i === 0) {
+            dot.className = 'beat-dot accent';
+          } else {
+            dot.className = 'beat-dot';
+          }
+        });
+        if (current > 0) {
+          beats[current].classList.add('active');
+        }
+        current = (current + 1) % beats.length;
+      }
+
+      tick();
+      setInterval(tick, interval);
+    })();
+  </script>
+
+</body>
+</html>
