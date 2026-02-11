@@ -39,25 +39,27 @@ struct PulstickView: View {
 
     private var beatIndicator: some View {
         HStack(spacing: 6) {
-            ForEach(0..<engine.timeSignature.beatsPerMeasure, id: \.self) { beat in
+            ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
+                let isAccent = engine.accentBeats.contains(beat)
                 Circle()
                     .fill(beatDotColor(for: beat))
-                    .frame(width: beat == 0 ? 10 : 8, height: beat == 0 ? 10 : 8)
+                    .frame(width: isAccent ? 10 : 8, height: isAccent ? 10 : 8)
                     .scaleEffect(engine.isPlaying && engine.currentBeat == beat ? 1.3 : 1.0)
                     .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
+                    .onTapGesture {
+                        engine.toggleAccent(beat)
+                    }
             }
         }
-        .frame(height: 16)
+        .frame(height: 20)
     }
 
     private func beatDotColor(for beat: Int) -> Color {
-        if !engine.isPlaying {
-            return Color.secondary.opacity(0.3)
+        let isAccent = engine.accentBeats.contains(beat)
+        if engine.isPlaying && engine.currentBeat == beat {
+            return isAccent ? Color.orange : Color.accentColor
         }
-        if engine.currentBeat == beat {
-            return beat == 0 ? Color.orange : Color.accentColor
-        }
-        return Color.secondary.opacity(0.3)
+        return isAccent ? Color.orange.opacity(0.5) : Color.secondary.opacity(0.3)
     }
 
     // MARK: - BPM Display
@@ -111,33 +113,37 @@ struct PulstickView: View {
 
     // MARK: - Time Signature
 
+    private let presets: [(label: String, beats: Int)] = [
+        ("4/4", 4), ("3/4", 3), ("6/8", 6), ("9/8", 9)
+    ]
+
     private var timeSignaturePicker: some View {
         HStack(spacing: 4) {
-            ForEach(TimeSignature.allCases) { sig in
-                Button {
-                    engine.setTimeSignature(sig)
-                } label: {
-                    Text(sig.rawValue)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
+            ForEach(presets, id: \.beats) { preset in
+                beatButton(label: preset.label, beats: preset.beats, selected: engine.beatsPerMeasure == preset.beats) {
+                    engine.setBeats(preset.beats)
                 }
-                .buttonStyle(.plain)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(engine.timeSignature == sig
-                              ? Color.accentColor.opacity(0.15)
-                              : Color.clear)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(engine.timeSignature == sig
-                                ? Color.accentColor.opacity(0.4)
-                                : Color.secondary.opacity(0.2),
-                                lineWidth: 1)
-                )
             }
         }
+    }
+
+    private func beatButton(label: String, beats: Int, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(selected ? Color.accentColor.opacity(0.15) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
+        )
     }
 
     // MARK: - Controls

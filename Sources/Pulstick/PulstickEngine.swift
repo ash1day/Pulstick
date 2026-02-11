@@ -1,22 +1,6 @@
 import AVFoundation
 import Combine
 
-enum TimeSignature: String, CaseIterable, Identifiable {
-    case fourFour = "4/4"
-    case threeFour = "3/4"
-    case sixEight = "6/8"
-
-    var id: String { rawValue }
-
-    var beatsPerMeasure: Int {
-        switch self {
-        case .fourFour: return 4
-        case .threeFour: return 3
-        case .sixEight: return 6
-        }
-    }
-}
-
 final class PulstickEngine: ObservableObject {
     @Published var bpm: Double = 120 {
         didSet {
@@ -31,8 +15,9 @@ final class PulstickEngine: ObservableObject {
         }
     }
     @Published var isPlaying: Bool = false
-    @Published var timeSignature: TimeSignature = .fourFour
+    @Published var beatsPerMeasure: Int = 4
     @Published var currentBeat: Int = 0
+    @Published var accentBeats: Set<Int> = [0]
 
     private var audioEngine: AVAudioEngine
     private var playerNode: AVAudioPlayerNode
@@ -163,10 +148,17 @@ final class PulstickEngine: ObservableObject {
         bpm = newBPM
     }
 
-    func setTimeSignature(_ sig: TimeSignature) {
-        timeSignature = sig
-        if isPlaying {
-            currentBeat = 0
+    func setBeats(_ beats: Int) {
+        beatsPerMeasure = max(1, min(beats, 16))
+        accentBeats = [0]
+        currentBeat = 0
+    }
+
+    func toggleAccent(_ beat: Int) {
+        if accentBeats.contains(beat) {
+            accentBeats.remove(beat)
+        } else {
+            accentBeats.insert(beat)
         }
     }
 
@@ -186,11 +178,11 @@ final class PulstickEngine: ObservableObject {
     }
 
     private func advanceBeat() {
-        currentBeat = (currentBeat + 1) % timeSignature.beatsPerMeasure
+        currentBeat = (currentBeat + 1) % beatsPerMeasure
     }
 
     private func playClick() {
-        let isAccent = currentBeat == 0
+        let isAccent = accentBeats.contains(currentBeat)
         guard let buffer = isAccent ? accentBuffer : normalBuffer else { return }
         playerNode.stop()
         playerNode.play()
