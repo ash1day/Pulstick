@@ -29,8 +29,11 @@ final class PulstickEngine: ObservableObject {
     private var accentBuffer: AVAudioPCMBuffer?
     private var normalBuffer: AVAudioPCMBuffer?
     private var timerSource: DispatchSourceTimer?
-    /// メインスレッドから独立した高優先度キューでタイマーを駆動し、
-    /// UI負荷やシステム負荷の影響を受けにくくする
+    /// メインスレッドとは別のキューでタイマーを駆動する。
+    /// メインスレッドは UI 描画で占有されるため、そこにタイマーを載せると
+    /// 描画負荷に引きずられてビートが遅延する可能性がある。
+    /// .userInteractive は OS に最高優先度の CPU 割り当てを要求し、
+    /// 他アプリのバックグラウンド処理（Spotlight 等）よりタイマー発火を優先させる。
     private let timerQueue = DispatchQueue(label: "com.pulstick.metronome", qos: .userInteractive)
 
     private let sampleRate: Double = 44100
@@ -74,7 +77,9 @@ final class PulstickEngine: ObservableObject {
         for i in 0..<Int(frameCount) {
             let t = Double(i) / sampleRate
             let sine = sin(2.0 * .pi * frequency * t)
-            // Attack/Release エンベロープで波形の開始・終了時のプチノイズを防ぐ
+            // サイン波をいきなり開始/終了すると波形が不連続になりプチノイズが鳴る。
+            // Attack(2ms) で徐々に立ち上げ、Release(8ms) で徐々に減衰させることで滑らかにする。
+            // Release を Attack より長くしているのは、立ち下がりの方が耳につきやすいため。
             let envelope: Double
             let attackFrames = Int(sampleRate * 0.002)
             let releaseStart = Int(frameCount) - Int(sampleRate * 0.008)
@@ -182,7 +187,11 @@ final class PulstickEngine: ObservableObject {
     /// 音とビート表示のズレを防ぐ。
     private func scheduleTimer() {
         let interval = 60.0 / bpm
+        // .strict: macOS は省電力のために複数タイマーの発火をまとめる（timer coalescing）が、
+        // メトロノームでは数ms のズレも体感できるため、まとめずに即発火させる。
         let source = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
+        // leeway は OS がタイマー発火を遅延させてよい許容幅。
+        // デフォルトだと数十ms 遅れうるため、1ms に制限して精度を確保する。
         source.schedule(
             deadline: .now() + interval,
             repeating: interval,
@@ -190,8 +199,9 @@ final class PulstickEngine: ObservableObject {
         )
         source.setEventHandler { [weak self] in
             guard let self else { return }
-            // 音の再生判定はタイマーキュー上で同期的に行い、
-            // UI更新（currentBeat）だけメインスレッドに非同期で送る
+            // 音の再生はタイマーキュー上で即実行する。
+            // メインスレッドに送ると UI 処理の順番待ちで音が遅延するため。
+            // 人間は視覚より聴覚のズレに敏感なので、音を優先し UI 更新だけ非同期で送る。
             let nextBeat = (self.currentBeat + 1) % self.beatsPerMeasure
             let isAccent = self.accentBeats.contains(nextBeat)
             self.playClick(accent: isAccent)
@@ -205,6 +215,8 @@ final class PulstickEngine: ObservableObject {
 
     private func playClick(accent: Bool) {
         guard let buffer = accent ? accentBuffer : normalBuffer else { return }
+        // 前回のバッファ再生が残っていると音が重なるため、一度停止してからスケジュールする。
+        // stop() → play() を挟まないと scheduleBuffer が無視されるケースがある。
         playerNode.stop()
         playerNode.play()
         playerNode.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)

@@ -1,3 +1,4 @@
+import ServiceManagement
 import SwiftUI
 
 struct PulstickView: View {
@@ -178,11 +179,25 @@ struct PulstickView: View {
 
     // MARK: - Footer
 
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+
     private var footerRow: some View {
         HStack {
-            Text("Space: Play/Stop")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary.opacity(0.6))
+            Toggle("Launch at Login", isOn: $launchAtLogin)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .onChange(of: launchAtLogin) {
+                    do {
+                        if launchAtLogin {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        launchAtLogin = SMAppService.mainApp.status == .enabled
+                    }
+                }
             Spacer()
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
