@@ -1,3 +1,4 @@
+import PulstickCore
 import ServiceManagement
 import SwiftUI
 
@@ -18,40 +19,79 @@ struct PulstickView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .frame(width: 280)
+        .frame(width: 320)
         .onChange(of: engine.currentBeat) {
             triggerPulse()
         }
     }
 
     // MARK: - Beat Indicator
-    // ドットをタップしてアクセントのon/offを切り替え可能。
-    // アクセント付きはオレンジ色・大きめ、再生中は現在拍がスケールアップ。
+    // 強（アクセント）: 塗りつぶし円・オレンジ、弱: 輪郭のみ・グレー。
+    // タップで強弱を切り替え。−/＋ボタンで拍を削除・追加。
 
     private var beatIndicator: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
-                let isAccent = engine.accentBeats.contains(beat)
-                Circle()
-                    .fill(beatDotColor(for: beat))
-                    .frame(width: isAccent ? 10 : 8, height: isAccent ? 10 : 8)
-                    .scaleEffect(engine.isPlaying && engine.currentBeat == beat ? 1.3 : 1.0)
-                    .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
-                    .pointingHandCursor()
-                    .onTapGesture {
-                        engine.toggleAccent(beat)
-                    }
+        HStack(spacing: 4) {
+            Button {
+                engine.removeBeat()
+            } label: {
+                Image(systemName: "minus.circle")
+                    .font(.system(size: 15))
+                    .foregroundColor(engine.beatsPerMeasure > 1 ? .secondary : .secondary.opacity(0.25))
             }
-        }
-        .frame(height: 20)
-    }
+            .buttonStyle(.plain)
+            .disabled(engine.beatsPerMeasure <= 1)
+            .pointingHandCursor()
 
-    private func beatDotColor(for beat: Int) -> Color {
-        let isAccent = engine.accentBeats.contains(beat)
-        if engine.isPlaying && engine.currentBeat == beat {
-            return isAccent ? Color.orange : Color.accentColor
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
+                        let isAccent = engine.accentBeats.contains(beat)
+                        let isCurrent = engine.isPlaying && engine.currentBeat == beat
+                        VStack(spacing: 2) {
+                            ZStack {
+                                Circle()
+                                    .fill(isAccent
+                                          ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
+                                          : Color.clear)
+                                Circle()
+                                    .stroke(
+                                        isAccent
+                                            ? Color.clear
+                                            : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.35)),
+                                        lineWidth: 1.5
+                                    )
+                            }
+                            .frame(width: 20, height: 20)
+                            .scaleEffect(isCurrent ? 1.25 : 1.0)
+                            .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
+
+                            Text(isAccent ? "強" : "弱")
+                                .font(.system(size: 8, weight: .medium, design: .rounded))
+                                .foregroundColor(isAccent ? .orange.opacity(0.8) : .secondary.opacity(0.5))
+                        }
+                        .frame(width: 24)
+                        .contentShape(Rectangle())
+                        .pointingHandCursor()
+                        .onTapGesture {
+                            engine.toggleAccent(beat)
+                        }
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+
+            Button {
+                engine.addBeat()
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 15))
+                    .foregroundColor(engine.beatsPerMeasure < 16 ? .secondary : .secondary.opacity(0.25))
+            }
+            .buttonStyle(.plain)
+            .disabled(engine.beatsPerMeasure >= 16)
+            .pointingHandCursor()
         }
-        return isAccent ? Color.orange.opacity(0.5) : Color.secondary.opacity(0.3)
+        .frame(height: 46)
     }
 
     // MARK: - BPM Display
@@ -109,27 +149,40 @@ struct PulstickView: View {
     }
 
     // MARK: - Time Signature
-
-    private let presets: [(label: String, beats: Int)] = [
-        ("4/4", 4), ("3/4", 3), ("6/8", 6), ("9/8", 9)
-    ]
+    // 各プリセットを小さな○で表現。強拍は大きめ・不透明、弱拍は小さめ・薄め。
+    // 右クリックで「現在のパターンで上書き」または「デフォルトに戻す」が可能。
 
     private var timeSignaturePicker: some View {
         HStack(spacing: 4) {
-            ForEach(presets, id: \.beats) { preset in
-                beatButton(label: preset.label, beats: preset.beats, selected: engine.beatsPerMeasure == preset.beats) {
-                    engine.setBeats(preset.beats)
-                }
+            ForEach(engine.presets.indices, id: \.self) { index in
+                presetButton(preset: engine.presets[index], index: index, selected: isPresetSelected(at: index))
             }
         }
     }
 
-    private func beatButton(label: String, beats: Int, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
+    private func isPresetSelected(at index: Int) -> Bool {
+        let preset = engine.presets[index]
+        return engine.beatsPerMeasure == preset.beats && engine.accentBeats == preset.accentSet
+    }
+
+    private func presetButton(preset: BeatPreset, index: Int, selected: Bool) -> some View {
+        Button {
+            engine.applyPreset(at: index)
+        } label: {
+            HStack(spacing: 2) {
+                ForEach(0..<preset.beats, id: \.self) { i in
+                    let isAccent = preset.accents.contains(i)
+                    Circle()
+                        .fill(
+                            isAccent
+                                ? (selected ? Color.orange : Color.orange.opacity(0.5))
+                                : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
+                        )
+                        .frame(width: isAccent ? 7 : 5, height: isAccent ? 7 : 5)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
@@ -141,6 +194,14 @@ struct PulstickView: View {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
+        .contextMenu {
+            Button("現在のパターンで上書き") {
+                engine.saveCurrentAsPreset(at: index)
+            }
+            Button("デフォルトに戻す") {
+                engine.resetPreset(at: index)
+            }
+        }
         .pointingHandCursor()
     }
 

@@ -1,10 +1,32 @@
 import AVFoundation
 import Combine
 
+public struct BeatPreset: Codable, Equatable {
+    public var beats: Int
+    public var accents: [Int]
+
+    public var accentSet: Set<Int> { Set(accents) }
+
+    public init(beats: Int, accents: [Int]) {
+        self.beats = beats
+        self.accents = accents
+    }
+
+    public static let defaults: [BeatPreset] = [
+        BeatPreset(beats: 4, accents: [0]),
+        BeatPreset(beats: 3, accents: [0]),
+        BeatPreset(beats: 6, accents: [0, 3]),
+        BeatPreset(beats: 9, accents: [0, 3, 6]),
+    ]
+}
+
 /// メトロノームのオーディオ再生とタイミング制御を担当するエンジン。
 /// AVAudioEngine でクリック音をプログラム生成し、DispatchSourceTimer で正確なビート間隔を維持する。
-final class PulstickEngine: ObservableObject {
-    @Published var bpm: Double = 120 {
+public final class PulstickEngine: ObservableObject {
+    @Published public var presets: [BeatPreset] = []
+    private let presetsKey = "pulstick.presets"
+
+    @Published public var bpm: Double = 120 {
         // didSet 内で clamp して再代入すると didSet が再発火するため、
         // 値が変わった場合のみ return で抜けてループを防ぐ
         didSet {
@@ -18,11 +40,11 @@ final class PulstickEngine: ObservableObject {
             }
         }
     }
-    @Published var isPlaying: Bool = false
-    @Published var beatsPerMeasure: Int = 4
-    @Published var currentBeat: Int = 0
+    @Published public var isPlaying: Bool = false
+    @Published public var beatsPerMeasure: Int = 4
+    @Published public var currentBeat: Int = 0
     /// ユーザーが選択したアクセント拍の位置。タップで自由にon/off可能
-    @Published var accentBeats: Set<Int> = [0]
+    @Published public var accentBeats: Set<Int> = [0]
 
     private var audioEngine: AVAudioEngine
     private var playerNode: AVAudioPlayerNode
@@ -45,7 +67,7 @@ final class PulstickEngine: ObservableObject {
     private let maxTapCount = 4
     private let tapTimeout: TimeInterval = 2.0
 
-    init() {
+    public init() {
         audioEngine = AVAudioEngine()
         playerNode = AVAudioPlayerNode()
         audioEngine.attach(playerNode)
@@ -56,11 +78,50 @@ final class PulstickEngine: ObservableObject {
         accentBuffer = generateClickBuffer(format: format, frequency: accentFrequency)
         normalBuffer = generateClickBuffer(format: format, frequency: normalFrequency)
 
+        loadPresets()
+
         do {
             try audioEngine.start()
         } catch {
             print("Failed to start audio engine: \(error)")
         }
+    }
+
+    private func loadPresets() {
+        if let data = UserDefaults.standard.data(forKey: presetsKey),
+           let saved = try? JSONDecoder().decode([BeatPreset].self, from: data),
+           saved.count == BeatPreset.defaults.count
+        {
+            presets = saved
+        } else {
+            presets = BeatPreset.defaults
+        }
+    }
+
+    private func persistPresets() {
+        if let data = try? JSONEncoder().encode(presets) {
+            UserDefaults.standard.set(data, forKey: presetsKey)
+        }
+    }
+
+    public func applyPreset(at index: Int) {
+        guard index < presets.count else { return }
+        let preset = presets[index]
+        beatsPerMeasure = preset.beats
+        accentBeats = preset.accentSet
+        currentBeat = 0
+    }
+
+    public func saveCurrentAsPreset(at index: Int) {
+        guard index < presets.count else { return }
+        presets[index] = BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted())
+        persistPresets()
+    }
+
+    public func resetPreset(at index: Int) {
+        guard index < BeatPreset.defaults.count else { return }
+        presets[index] = BeatPreset.defaults[index]
+        persistPresets()
     }
 
     /// サイン波にエンベロープ（attack 2ms → sustain → release 8ms）を掛けて
@@ -98,7 +159,7 @@ final class PulstickEngine: ObservableObject {
         return buffer
     }
 
-    func toggle() {
+    public func toggle() {
         if isPlaying {
             stop()
         } else {
@@ -106,7 +167,7 @@ final class PulstickEngine: ObservableObject {
         }
     }
 
-    func start() {
+    public func start() {
         guard !isPlaying else { return }
         isPlaying = true
         currentBeat = 0
@@ -119,7 +180,7 @@ final class PulstickEngine: ObservableObject {
         scheduleTimer()
     }
 
-    func stop() {
+    public func stop() {
         isPlaying = false
         timerSource?.cancel()
         timerSource = nil
@@ -127,17 +188,17 @@ final class PulstickEngine: ObservableObject {
         currentBeat = 0
     }
 
-    func incrementBPM() {
+    public func incrementBPM() {
         bpm = min(bpm + 1, 240)
     }
 
-    func decrementBPM() {
+    public func decrementBPM() {
         bpm = max(bpm - 1, 40)
     }
 
     /// 直近の最大4回のタップ間隔の平均からBPMを算出する。
     /// 2秒以上間隔が空くとタップ履歴をリセット。
-    func tapTempo() {
+    public func tapTempo() {
         let now = Date()
 
         if let lastTap = tapTimes.last, now.timeIntervalSince(lastTap) > tapTimeout {
@@ -161,13 +222,29 @@ final class PulstickEngine: ObservableObject {
         bpm = 60.0 / averageInterval
     }
 
-    func setBeats(_ beats: Int) {
+    public func setBeats(_ beats: Int) {
         beatsPerMeasure = max(1, min(beats, 16))
         accentBeats = [0]
         currentBeat = 0
     }
 
-    func toggleAccent(_ beat: Int) {
+    public func addBeat() {
+        guard beatsPerMeasure < 16 else { return }
+        beatsPerMeasure += 1
+        // 追加した拍はデフォルトで弱（accentBeats に追加しない）
+    }
+
+    public func removeBeat() {
+        guard beatsPerMeasure > 1 else { return }
+        let last = beatsPerMeasure - 1
+        accentBeats.remove(last)
+        beatsPerMeasure -= 1
+        if currentBeat >= beatsPerMeasure {
+            currentBeat = 0
+        }
+    }
+
+    public func toggleAccent(_ beat: Int) {
         if accentBeats.contains(beat) {
             accentBeats.remove(beat)
         } else {
