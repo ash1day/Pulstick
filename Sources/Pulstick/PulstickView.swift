@@ -47,28 +47,22 @@ struct PulstickView: View {
                     ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
                         let isAccent = engine.accentBeats.contains(beat)
                         let isCurrent = engine.isPlaying && engine.currentBeat == beat
-                        VStack(spacing: 2) {
-                            ZStack {
-                                Circle()
-                                    .fill(isAccent
-                                          ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
-                                          : Color.clear)
-                                Circle()
-                                    .stroke(
-                                        isAccent
-                                            ? Color.clear
-                                            : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.35)),
-                                        lineWidth: 1.5
-                                    )
-                            }
-                            .frame(width: 20, height: 20)
-                            .scaleEffect(isCurrent ? 1.25 : 1.0)
-                            .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
-
-                            Text(isAccent ? "強" : "弱")
-                                .font(.system(size: 8, weight: .medium, design: .rounded))
-                                .foregroundColor(isAccent ? .orange.opacity(0.8) : .secondary.opacity(0.5))
+                        ZStack {
+                            Circle()
+                                .fill(isAccent
+                                      ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
+                                      : Color.clear)
+                            Circle()
+                                .stroke(
+                                    isAccent
+                                        ? Color.clear
+                                        : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.35)),
+                                    lineWidth: 1.5
+                                )
                         }
+                        .frame(width: 20, height: 20)
+                        .scaleEffect(isCurrent ? 1.25 : 1.0)
+                        .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
                         .frame(width: 24)
                         .contentShape(Rectangle())
                         .pointingHandCursor()
@@ -78,6 +72,7 @@ struct PulstickView: View {
                     }
                 }
                 .padding(.horizontal, 2)
+                .padding(.vertical, 4)
             }
 
             Button {
@@ -91,7 +86,7 @@ struct PulstickView: View {
             .disabled(engine.beatsPerMeasure >= 16)
             .pointingHandCursor()
         }
-        .frame(height: 46)
+        .frame(height: 52)
     }
 
     // MARK: - BPM Display
@@ -166,26 +161,24 @@ struct PulstickView: View {
     }
 
     private func presetButton(preset: BeatPreset, index: Int, selected: Bool) -> some View {
-        Button {
-            engine.applyPreset(at: index)
-        } label: {
-            HStack(spacing: 2) {
-                ForEach(0..<preset.beats, id: \.self) { i in
-                    let isAccent = preset.accents.contains(i)
-                    Circle()
-                        .fill(
-                            isAccent
-                                ? (selected ? Color.orange : Color.orange.opacity(0.5))
-                                : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
-                        )
-                        .frame(width: isAccent ? 7 : 5, height: isAccent ? 7 : 5)
-                }
+        HStack(spacing: 2) {
+            ForEach(0..<preset.beats, id: \.self) { i in
+                let isAccent = preset.accents.contains(i)
+                Circle()
+                    .fill(
+                        isAccent
+                            ? (selected ? Color.orange : Color.orange.opacity(0.5))
+                            : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
+                    )
+                    .frame(width: isAccent ? 7 : 5, height: isAccent ? 7 : 5)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
+        .onTapGesture {
+            engine.applyPreset(at: index)
+        }
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(selected ? Color.accentColor.opacity(0.15) : Color.clear)
