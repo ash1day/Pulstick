@@ -12,6 +12,7 @@ struct PulstickView: View {
             beatIndicator
             bpmDisplay
             bpmSlider
+            volumeControls
             timeSignaturePicker
             controlsRow
             Divider()
@@ -42,8 +43,9 @@ struct PulstickView: View {
             .disabled(engine.beatsPerMeasure <= 1)
             .pointingHandCursor()
 
+            GeometryReader { geo in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(alignment: .center, spacing: 6) {
                     ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
                         let isAccent = engine.accentBeats.contains(beat)
                         let isCurrent = engine.isPlaying && engine.currentBeat == beat
@@ -72,8 +74,9 @@ struct PulstickView: View {
                     }
                 }
                 .padding(.horizontal, 2)
-                .padding(.vertical, 4)
+                .frame(minWidth: geo.size.width, minHeight: geo.size.height, alignment: .center)
             }
+            } // GeometryReader
 
             Button {
                 engine.addBeat()
@@ -140,6 +143,27 @@ struct PulstickView: View {
             }
             .buttonStyle(.bordered)
             .pointingHandCursor()
+        }
+    }
+
+    // MARK: - Volume Controls
+
+    private var volumeControls: some View {
+        VStack(spacing: 6) {
+            volumeRow(label: "強", value: $engine.accentVolume, color: .orange)
+            volumeRow(label: "弱", value: $engine.normalVolume, color: .secondary)
+        }
+    }
+
+    private func volumeRow(label: String, value: Binding<Double>, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundColor(color)
+                .frame(width: 16, alignment: .center)
+            CustomSlider(value: value, range: 0...1)
+                .frame(height: 20)
+                .pointingHandCursor()
         }
     }
 

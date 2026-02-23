@@ -46,8 +46,16 @@ public final class PulstickEngine: ObservableObject {
     /// ユーザーが選択したアクセント拍の位置。タップで自由にon/off可能
     @Published public var accentBeats: Set<Int> = [0]
 
+    @Published public var accentVolume: Double = 1.0 {
+        didSet { accentPlayerNode.volume = Float(accentVolume) }
+    }
+    @Published public var normalVolume: Double = 0.7 {
+        didSet { normalPlayerNode.volume = Float(normalVolume) }
+    }
+
     private var audioEngine: AVAudioEngine
-    private var playerNode: AVAudioPlayerNode
+    private var accentPlayerNode: AVAudioPlayerNode
+    private var normalPlayerNode: AVAudioPlayerNode
     private var accentBuffer: AVAudioPCMBuffer?
     private var normalBuffer: AVAudioPCMBuffer?
     private var timerSource: DispatchSourceTimer?
@@ -69,11 +77,17 @@ public final class PulstickEngine: ObservableObject {
 
     public init() {
         audioEngine = AVAudioEngine()
-        playerNode = AVAudioPlayerNode()
-        audioEngine.attach(playerNode)
+        accentPlayerNode = AVAudioPlayerNode()
+        normalPlayerNode = AVAudioPlayerNode()
+        audioEngine.attach(accentPlayerNode)
+        audioEngine.attach(normalPlayerNode)
 
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-        audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: format)
+        audioEngine.connect(accentPlayerNode, to: audioEngine.mainMixerNode, format: format)
+        audioEngine.connect(normalPlayerNode, to: audioEngine.mainMixerNode, format: format)
+
+        accentPlayerNode.volume = 1.0
+        normalPlayerNode.volume = 0.7
 
         accentBuffer = generateClickBuffer(format: format, frequency: accentFrequency)
         normalBuffer = generateClickBuffer(format: format, frequency: normalFrequency)
@@ -172,7 +186,7 @@ public final class PulstickEngine: ObservableObject {
         isPlaying = true
         currentBeat = 0
 
-        if !playerNode.engine!.isRunning {
+        if !audioEngine.isRunning {
             try? audioEngine.start()
         }
 
@@ -184,7 +198,8 @@ public final class PulstickEngine: ObservableObject {
         isPlaying = false
         timerSource?.cancel()
         timerSource = nil
-        playerNode.stop()
+        accentPlayerNode.stop()
+        normalPlayerNode.stop()
         currentBeat = 0
     }
 
@@ -291,12 +306,17 @@ public final class PulstickEngine: ObservableObject {
     }
 
     private func playClick(accent: Bool) {
-        guard let buffer = accent ? accentBuffer : normalBuffer else { return }
-        // 前回のバッファ再生が残っていると音が重なるため、一度停止してからスケジュールする。
-        // stop() → play() を挟まないと scheduleBuffer が無視されるケースがある。
-        playerNode.stop()
-        playerNode.play()
-        playerNode.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        if accent {
+            guard let buffer = accentBuffer else { return }
+            accentPlayerNode.stop()
+            accentPlayerNode.play()
+            accentPlayerNode.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        } else {
+            guard let buffer = normalBuffer else { return }
+            normalPlayerNode.stop()
+            normalPlayerNode.play()
+            normalPlayerNode.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        }
     }
 
     deinit {
