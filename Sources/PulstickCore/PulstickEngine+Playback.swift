@@ -80,7 +80,8 @@ extension PulstickEngine {
         }
         practiceTimer = item
         let remaining = max(0, limit - Date().timeIntervalSince(startedAt))
-        DispatchQueue.main.asyncAfter(deadline: .now() + remaining, execute: item)
+        // スリープ中も時間が進むよう、起動時間ではなく実時間（wallDeadline）で指定する
+        DispatchQueue.main.asyncAfter(wallDeadline: .now() + remaining, execute: item)
     }
 
     /// 小節の終わりごとにメインスレッドで呼ばれる

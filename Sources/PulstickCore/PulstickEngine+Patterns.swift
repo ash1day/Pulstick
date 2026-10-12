@@ -19,8 +19,8 @@ extension PulstickEngine {
     public func applySong(_ song: Song) {
         bpm = song.bpm
         beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
-        accentBeats = validAccents(song.pattern.accents)
-        restBeats = validAccents(song.pattern.rests)
+        accentBeats = validBeatIndices(song.pattern.accents)
+        restBeats = validBeatIndices(song.pattern.rests)
         subdivision = song.subdivision
         // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
         if isPlaying {
@@ -38,8 +38,8 @@ extension PulstickEngine {
         speedTrainerProgress.restart()
     }
 
-    /// 保存データや曲から読んだアクセント位置のうち、いまの拍数の範囲にあるものだけを残す
-    func validAccents(_ accents: [Int]) -> Set<Int> {
+    /// 保存データや曲から読んだ拍の位置（アクセント・休符）のうち、いまの拍数の範囲にあるものだけを残す
+    func validBeatIndices(_ accents: [Int]) -> Set<Int> {
         Set(accents.filter { (0..<beatsPerMeasure).contains($0) })
     }
 
@@ -128,6 +128,8 @@ extension PulstickEngine {
         if accentBeats.contains(beat) {
             accentBeats.remove(beat)
         } else {
+            // 強と休みを同時に持たせない
+            restBeats.remove(beat)
             accentBeats.insert(beat)
         }
     }

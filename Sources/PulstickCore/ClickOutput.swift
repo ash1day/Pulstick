@@ -2,7 +2,7 @@ import AVFoundation
 
 /// クリック音の出力先。エンジンのロジックを音を鳴らさずにテストできるよう分離している
 public protocol ClickOutput: AnyObject {
-    /// 再生開始前に呼ばれる。出力デバイスの準備が必要ならここで行う
+    /// 再生開始前にメインスレッドから呼ばれる。出力デバイスの準備が必要ならここで行う
     func prepare()
     /// タイマーキュー上から呼ばれる
     func play(_ click: ClickKind)
@@ -88,9 +88,15 @@ public final class AudioClickOutput: ClickOutput {
         audioEngine.stop()
     }
 
+    /// メインスレッドから呼ぶ（再生開始時と、出力先の変更でエンジンが止まった後）。
+    /// node.play() はエンジンが動いていないと例外で落ちるため、ここ以外では呼ばない
     public func prepare() {
         if !audioEngine.isRunning {
             try? audioEngine.start()
+        }
+        guard audioEngine.isRunning else { return }
+        for node in [accentPlayerNode, normalPlayerNode, subdivisionPlayerNode] where !node.isPlaying {
+            node.play()
         }
     }
 
@@ -101,12 +107,10 @@ public final class AudioClickOutput: ClickOutput {
         case .subdivision: subdivisionPlayerNode
         }
         guard let buffer = bufferLock.withLock({ buffers[click] }) else { return }
-        // 出力先の変更でエンジンが止まってから再始動するまでの間に node.play() を呼ぶと、
-        // Objective-C の例外でアプリが落ちる。その間の拍は鳴らさずに見送る
-        guard audioEngine.isRunning else { return }
-        node.stop()
-        node.play()
-        node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        // ノードは prepare() で鳴らしっぱなしにしてあるので、ここでは .interrupts で前の音を打ち切って
+        // すぐ鳴らすだけにする。タイマーキューから node.play() を呼ばないことで、出力先の変更で
+        // エンジンが止まった瞬間と重なっても例外で落ちない
+        node.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
     }
 
     public func stopAll() {

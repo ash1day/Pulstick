@@ -221,10 +221,10 @@ public final class PulstickEngine: ObservableObject {
             beatsPerMeasure = saved.clamped(to: Self.beatsRange)
         }
         if let saved = defaults.object(forKey: Keys.accents) as? [Int] {
-            accentBeats = validAccents(saved)
+            accentBeats = validBeatIndices(saved)
         }
         if let saved = defaults.object(forKey: Keys.rests) as? [Int] {
-            restBeats = validAccents(saved)
+            restBeats = validBeatIndices(saved)
         }
         if let saved = defaults.object(forKey: Keys.accentVolume) as? Double {
             accentVolume = saved.clamped(to: 0...1)

@@ -228,21 +228,33 @@ struct WeekBars: View {
                     }
                 }
                 .frame(height: height, alignment: .bottom)
-                .help(Text("\(dayName(index)) \(Int(value / 60)) min"))
+                // 棒ごとのツールチップが優先されるので、7 日間の合計もここに添える
+                .help(Text("\(dayName(index)) \(Int(value / 60)) min") + Text(verbatim: " · ") + weekTotal)
             }
         }
-        .help(Text("Last 7 days: \(Self.duration(seconds.reduce(0, +)))"))
+        .help(weekTotal)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Last 7 days"))
         .accessibilityValue(Text(seconds.indices.map { "\(dayName($0)) \(Int(seconds[$0] / 60))" }.joined(separator: ", ")))
     }
 
+    private var weekTotal: Text {
+        Text("Last 7 days: \(Self.duration(seconds.reduce(0, +)))")
+    }
+
+    private static let hoursFormatter = makeFormatter([.hour, .minute])
+    private static let minutesFormatter = makeFormatter([.minute])
+
+    private static func makeFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = units
+        formatter.unitsStyle = .short
+        return formatter
+    }
+
     /// "2時間15分" / "2 hr, 15 min" のように、言語に合わせて時間をまとめて表す
     static func duration(_ seconds: Double) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-        formatter.unitsStyle = .short
-        return formatter.string(from: seconds) ?? ""
+        (seconds >= 3600 ? hoursFormatter : minutesFormatter).string(from: seconds) ?? ""
     }
 
     private func dayName(_ index: Int) -> String {

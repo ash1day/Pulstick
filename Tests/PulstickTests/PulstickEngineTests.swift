@@ -107,6 +107,15 @@ struct RestBeatTests {
         #expect(!engine.restBeats.contains(1))
     }
 
+    @Test func accentingARestBeatClearsTheRest() {
+        let engine = makeEngine()
+        engine.setBeats(4)
+        engine.cycleBeat(1); engine.cycleBeat(1)  // 2 拍目を休みに
+        engine.toggleAccent(1)
+        #expect(engine.accentBeats.contains(1))
+        #expect(!engine.restBeats.contains(1))
+    }
+
     @Test func restBeatsSurviveRelaunchAndPresets() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
@@ -465,6 +474,15 @@ struct BeatSequencerRestTests {
         #expect(seq.advance() == Tick(beat: 1, click: .normal, startsMeasure: false))
         #expect(seq.advance() == Tick(beat: 2, click: .normal, startsMeasure: false, isRest: true))
         #expect(seq.advance() == Tick(beat: 3, click: .normal, startsMeasure: false))
+    }
+
+    @Test func subdivisionsInsideARestBeatAreSilentToo() {
+        var seq = BeatSequencer(beatsPerMeasure: 2, accents: [], subdivision: .eighth)
+        seq.rests = [0]
+        _ = seq.reset()
+        #expect(seq.advance().isRest)   // 1 拍目のウラ
+        #expect(!seq.advance().isRest)  // 2 拍目
+        #expect(!seq.advance().isRest)  // 2 拍目のウラ
     }
 }
 

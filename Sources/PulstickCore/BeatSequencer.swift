@@ -48,7 +48,8 @@ public struct BeatSequencer {
     public mutating func advance() -> Tick {
         step += 1
         if step < subdivision.rawValue {
-            return Tick(beat: beat, click: .subdivision, startsMeasure: false)
+            // 休符にした拍は、その拍の中の細分音も鳴らさない
+            return Tick(beat: beat, click: .subdivision, startsMeasure: false, isRest: rests.contains(beat))
         }
         step = 0
         beat = (beat + 1) % beatsPerMeasure

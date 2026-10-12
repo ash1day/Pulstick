@@ -6,6 +6,7 @@ import SwiftUI
 enum Welcome {
     private static let shownKey = "pulstick.welcomeShown"
     private static var window: NSWindow?
+    private static var closeObserver: NSObjectProtocol?
 
     @MainActor
     static func showIfFirstLaunch(defaults: UserDefaults = .standard) {
@@ -22,9 +23,20 @@ enum Welcome {
         )
         window.title = "Pulstick"
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: WelcomeView { window.close() })
+        // ウインドウ → ビュー → 閉じる処理 → ウインドウ の循環参照を作らないよう弱参照で閉じる
+        window.contentView = NSHostingView(rootView: WelcomeView { [weak window] in window?.close() })
         window.center()
         self.window = window
+        // 閉じたら保持をやめて解放する
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: window, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                if let closeObserver { NotificationCenter.default.removeObserver(closeObserver) }
+                closeObserver = nil
+                Welcome.window = nil
+            }
+        }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
