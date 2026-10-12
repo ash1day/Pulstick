@@ -154,8 +154,10 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
-    /// [ ] で前後の曲へ動くときの起点。選んだ曲がなく、いまの曲も分からないときに使う
-    var setlistAnchorID: UUID?
+    /// 起動時に戻した選択が、終了時の設定と一致していなかったか。
+    /// その場合は曲を選び直すまで、設定が完全に一致するときだけ「いまの曲」とみなす
+    /// （次の起動での関係ない練習を、その曲の練習として数えないため）。[ ] の起点には使う
+    var selectedSongIsTentative = false
 
     /// 曲ごとの練習時間のうち、この再生でまだ確定していない分
     var songPractice = SongPracticeTracker()
@@ -276,13 +278,8 @@ public final class PulstickEngine: ObservableObject {
         if let saved = (defaults.object(forKey: Keys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),
            let song = songs.first(where: { $0.id == saved })
         {
-            // 設定がその曲のままなら「いまの曲」として戻す。違う練習をしたまま終了していたら、
-            // 次の起動でその練習まで曲として数えないよう、[ ] の起点としてだけ覚えておく
-            if matchesCurrentSettings(song) {
-                selectedSongID = saved
-            } else {
-                setlistAnchorID = saved
-            }
+            selectedSongID = saved
+            selectedSongIsTentative = !matchesCurrentSettings(song)
         }
     }
 

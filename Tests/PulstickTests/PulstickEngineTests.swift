@@ -579,6 +579,22 @@ struct SongTests {
         #expect(second.currentSong == nil)  // 次に起動したとき、別の 4/4 の練習をその曲として数えない
     }
 
+    @Test func theSetlistPositionSurvivesSeveralLaunchesOfUnrelatedPractice() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        for (name, bpm) in [("A", 100.0), ("B", 120), ("C", 140)] {
+            first.bpm = bpm
+            first.saveCurrentAsSong(named: name)
+        }
+        first.applySong(first.songs[1])
+        first.bpm = 80  // 曲と関係ない練習をして終了、を 2 回
+        _ = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        let third = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(third.currentSong == nil)
+        third.applyAdjacentSong(1)  // それでも B の次から
+        #expect(third.bpm == 140)
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

@@ -16,8 +16,7 @@ struct PresetPicker: View {
 
     private func presetButton(_ index: Int) -> some View {
         let preset = engine.presets[index]
-        let selected = engine.beatsPerMeasure == preset.beats && engine.accentBeats == preset.accentSet
-            && engine.restBeats == preset.restSet
+        let selected = engine.matchesCurrentPattern(preset)
         // 拍数が多いプリセットはボタン幅に収まるよう○を小さくする
         let dense = preset.beats > 6
         let accentSize: CGFloat = dense ? 5 : 7

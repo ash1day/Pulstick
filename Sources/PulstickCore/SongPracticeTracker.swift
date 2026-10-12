@@ -23,10 +23,13 @@ public struct SongPracticeTracker {
         since = now
     }
 
-    /// どの曲でもない設定を弾いていた時間を、いま名前を付けた曲として引き取る
-    public mutating func adopt(_ id: UUID) {
-        guard activeSongID == nil else { return }
+    /// どの曲でもない設定を弾いていた時間を、いま名前を付けた曲として引き取る。
+    /// 別の曲を数えていた場合は何もせず false を返す（呼び出し側で switchTo する）
+    @discardableResult
+    public mutating func adopt(_ id: UUID) -> Bool {
+        guard activeSongID == nil else { return false }
         activeSongID = id
+        return true
     }
 
     /// 数えていた曲が削除されたとき、その曲の未確定分と数えている途中の時間を別の曲（または無し）に付け替える

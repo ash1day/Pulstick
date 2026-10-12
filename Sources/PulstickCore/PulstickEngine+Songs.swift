@@ -18,11 +18,11 @@ extension PulstickEngine {
             songs.append(song)
         }
         selectedSongID = song.id
+        selectedSongIsTentative = false
         guard isPlaying, songPractice.activeSongID != song.id else { return }
-        if songPractice.activeSongID == nil {
-            // どの曲でもない設定を弾いていた時間は、いま名前を付けたこの曲の練習として引き取る
-            songPractice.adopt(song.id)
-        } else {
+        // どの曲でもない設定を弾いていた時間は、いま名前を付けたこの曲の練習として引き取る。
+        // 別の曲を数えていたなら、そこで区切ってこの曲に切り替える
+        if !songPractice.adopt(song.id) {
             switchSongPractice(to: song.id)
         }
     }
@@ -30,16 +30,17 @@ extension PulstickEngine {
     public func applySong(_ song: Song) {
         // 先に選択しておくと、パターンの反映時に曲の切り替えが 1 回で済む
         selectedSongID = song.id
+        selectedSongIsTentative = false
         batchPatternChange {
             bpm = song.bpm
-            beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
-            accentBeats = validBeatIndices(song.pattern.accents)
-            restBeats = validBeatIndices(song.pattern.rests)
+            applyPattern(song.pattern)
             subdivision = song.subdivision
         }
         // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
         if isPlaying {
             restartSession()
+            // 通常はパターンの反映時（followCurrentSongIfPlaying）に切り替わっている。
+            // 保存データが壊れていて反映時に値が丸められ、曲と一致しなくなった場合のための念押し
             if songPractice.activeSongID != song.id {
                 switchSongPractice(to: song.id)
             }
@@ -62,18 +63,19 @@ extension PulstickEngine {
 
     /// いま使っている曲。
     /// 1. 選んだ曲の拍子と細分が変わっていなければ、その曲（テンポがトレーナーや矢印キーで上下して
-    ///    別の曲の BPM と重なっても乗り換えない）
+    ///    別の曲の BPM と重なっても乗り換えない）。ただし起動時に戻した仮の選択は、設定が完全に一致するときだけ
     /// 2. そうでなければ、設定が完全に一致する最初の曲
     public var currentSong: Song? {
-        if let selected = songs.first(where: { $0.id == selectedSongID }), matchesCurrentPattern(selected) {
+        if let selected = songs.first(where: { $0.id == selectedSongID }),
+           selectedSongIsTentative ? matchesCurrentSettings(selected) : matchesCurrentPattern(selected)
+        {
             return selected
         }
         return songs.first(where: matchesCurrentSettings)
     }
 
     private func matchesCurrentPattern(_ song: Song) -> Bool {
-        song.pattern.beats == beatsPerMeasure && song.pattern.accentSet == accentBeats
-            && song.pattern.restSet == restBeats && song.subdivision == subdivision
+        matchesCurrentPattern(song.pattern) && song.subdivision == subdivision
     }
 
     /// セットリストの中で曲を前後に動かす。端より先には動かさない
@@ -92,7 +94,7 @@ extension PulstickEngine {
     public func applyAdjacentSong(_ offset: Int) {
         guard !songs.isEmpty else { return }
         // 一致する曲がなくても、選んだ曲があればそこから動く（保存データが壊れていて一致しえない曲でも先へ進める）
-        let anchor = currentSong?.id ?? selectedSongID ?? setlistAnchorID
+        let anchor = currentSong?.id ?? selectedSongID
         guard let current = songs.firstIndex(where: { $0.id == anchor }) else {
             applySong(songs[0])
             return
@@ -113,8 +115,10 @@ extension PulstickEngine {
 
     /// 再生中に拍子などを変えて「いまの曲」が変わったら、数える曲を切り替える
     func followCurrentSongIfPlaying() {
-        guard isPlaying, currentSong?.id != songPractice.activeSongID else { return }
-        switchSongPractice(to: currentSong?.id)
+        guard isPlaying else { return }
+        let current = currentSong?.id
+        guard current != songPractice.activeSongID else { return }
+        switchSongPractice(to: current)
     }
 
     /// 数える曲を切り替える。再生がすでに記録に値する長さなら、それまでの分を即座に保存する

@@ -64,7 +64,7 @@ struct TransportRow: View {
             TimelineView(.periodic(from: startedAt, by: 1)) { context in
                 let elapsed = context.date.timeIntervalSince(startedAt)
                 // 練習タイマーは再生中に選び直すとそこから数えるので、残り時間はタイマーの起点から求める
-                let timerElapsed = context.date.timeIntervalSince(engine.practiceTimerStartedAt ?? startedAt)
+                let timerElapsed = engine.practiceTimerStartedAt.map { context.date.timeIntervalSince($0) } ?? elapsed
                 Label {
                     Text(ElapsedTime.format(engine.stopAfter.map { $0 - timerElapsed } ?? elapsed))
                         .monospacedDigit()

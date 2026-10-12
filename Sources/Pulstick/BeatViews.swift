@@ -97,20 +97,15 @@ struct BeatIndicator: View {
 /// 数字をクリックすると直接入力できる（スライダーで 40→180 を探すのは手間なため）
 struct BPMDisplay: View {
     @ObservedObject var engine: PulstickEngine
-    @ObservedObject var clock: BeatClock
+    /// 拍ごとに変わるパルスと無音小節の表示だけが購読する（この本体は拍ごとに再描画しない）
+    let clock: BeatClock
     @Binding var isEditing: Bool
     @State private var draft = ""
     @FocusState private var fieldFocused: Bool
-    @State private var pulseScale: CGFloat = 1.0
-    @State private var pulseOpacity: Double = 0.0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(Color.accentColor.opacity(pulseOpacity), lineWidth: 2)
-                .frame(width: 80, height: 80)
-                .scaleEffect(pulseScale)
+            PulseRing(clock: clock, isPlaying: engine.isPlaying)
 
             VStack(spacing: 0) {
                 if isEditing {
@@ -136,27 +131,13 @@ struct BPMDisplay: View {
                         .help("Click to type a tempo")
                         .pointerStyle(.horizontalText)
                 }
-                Group {
-                    if clock.isInSilentBar {
-                        Label("Silent bar · keep counting", systemImage: "speaker.slash.fill")
-                    } else if let song = engine.currentSong {
-                        // リハーサル中に [ ] で切り替えても、いまどの曲かが分かるように
-                        Text("\(song.name) · \(TempoMarking.name(for: engine.bpm))")
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: 220)
-                    } else {
-                        Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
-                    }
-                }
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundColor(.secondary)
+                // 小見出しは親で一度だけ作って値として渡す（拍ごとの再描画で曲の検索などをやり直さない）
+                SubtitleLabel(clock: clock, normal: subtitle)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.secondary)
             }
         }
         .frame(height: 84)
-        .onChange(of: clock.current) {
-            triggerPulse()
-        }
         .onAppear {
             // 入力中の状態で表示されたとき（テストなど）も、入力欄にフォーカスを当てる
             if isEditing {
@@ -164,6 +145,19 @@ struct BPMDisplay: View {
                 if draft.isEmpty { draft = "\(Int(engine.bpm))" }
                 fieldFocused = true
             }
+        }
+    }
+
+    /// 通常時の小見出し。いまの曲があれば曲名（リハーサル中に [ ] で切り替えても分かるように）
+    @ViewBuilder
+    private var subtitle: some View {
+        if let song = engine.currentSong {
+            Text("\(song.name) · \(TempoMarking.name(for: engine.bpm))")
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: 220)
+        } else {
+            Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
         }
     }
 
@@ -180,14 +174,43 @@ struct BPMDisplay: View {
         }
         isEditing = false
     }
+}
 
-    private func triggerPulse() {
-        guard engine.isPlaying, !reduceMotion else { return }
-        pulseScale = 1.0
-        pulseOpacity = 0.6
-        withAnimation(.easeOut(duration: 0.3)) {
-            pulseScale = 1.4
-            pulseOpacity = 0.0
+/// ビートごとにリング状のパルスが拡大→フェードアウトする
+private struct PulseRing: View {
+    @ObservedObject var clock: BeatClock
+    let isPlaying: Bool
+    @State private var scale: CGFloat = 1.0
+    @State private var opacity: Double = 0.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Circle()
+            .stroke(Color.accentColor.opacity(opacity), lineWidth: 2)
+            .frame(width: 80, height: 80)
+            .scaleEffect(scale)
+            .onChange(of: clock.current) {
+                guard isPlaying, !reduceMotion else { return }
+                scale = 1.0
+                opacity = 0.6
+                withAnimation(.easeOut(duration: 0.3)) {
+                    scale = 1.4
+                    opacity = 0.0
+                }
+            }
+    }
+}
+
+/// 無音小節の間だけ「数え続けて」を出し、それ以外は親から渡された小見出しを出す
+private struct SubtitleLabel<Normal: View>: View {
+    @ObservedObject var clock: BeatClock
+    let normal: Normal
+
+    var body: some View {
+        if clock.isInSilentBar {
+            Label("Silent bar · keep counting", systemImage: "speaker.slash.fill")
+        } else {
+            normal
         }
     }
 }

@@ -2,6 +2,20 @@ import Foundation
 
 // テンポ・拍・アクセント・休符・プリセットの操作（曲は PulstickEngine+Songs.swift）
 extension PulstickEngine {
+    /// 拍のパターンを反映する。プリセットと曲で共通。
+    /// 保存データが壊れていても拍数 0（ゼロ除算）や範囲外の拍にならないよう検証する。
+    /// 拍数を先に決めてから、その範囲でアクセントと休符を絞り込む
+    func applyPattern(_ pattern: BeatPreset) {
+        beatsPerMeasure = pattern.beats.clamped(to: Self.beatsRange)
+        accentBeats = validBeatIndices(pattern.accents)
+        restBeats = validBeatIndices(pattern.rests)
+    }
+
+    /// いまの拍のパターンがこのパターンと同じか（プリセットの選択表示や曲の判定に使う）
+    public func matchesCurrentPattern(_ pattern: BeatPreset) -> Bool {
+        pattern.beats == beatsPerMeasure && pattern.accentSet == accentBeats && pattern.restSet == restBeats
+    }
+
     var currentPattern: BeatPreset {
         BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted(), rests: Array(restBeats).sorted())
     }
@@ -21,10 +35,7 @@ extension PulstickEngine {
         guard index < presets.count else { return }
         let preset = presets[index]
         batchPatternChange {
-            // 保存データが壊れていても拍数 0（ゼロ除算）や範囲外の拍にならないよう、曲と同じく検証する
-            beatsPerMeasure = preset.beats.clamped(to: Self.beatsRange)
-            accentBeats = validBeatIndices(preset.accents)
-            restBeats = validBeatIndices(preset.rests)
+            applyPattern(preset)
         }
     }
 
