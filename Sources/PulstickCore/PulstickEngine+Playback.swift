@@ -190,18 +190,20 @@ extension PulstickEngine {
         if countsMeasure, tick.startsMeasure {
             measureIndex += 1
         }
-        let silent = activeGap?.isMuted(measure: measureIndex) ?? false
-        if !silent, !activeMute, !tick.isRest {
-            output.play(tick.click)
+        let plan = TickPlan.plan(
+            for: tick, measureIndex: measureIndex, countsMeasure: countsMeasure, gap: activeGap, muted: activeMute
+        )
+        if let sound = plan.sound {
+            output.play(sound)
         }
         guard tick.click != .subdivision else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.isPlaying, self.playbackGeneration == generation else { return }
             self.beatClock.current = tick.beat
-            if self.beatClock.isInSilentBar != silent {
-                self.beatClock.isInSilentBar = silent
+            if self.beatClock.isInSilentBar != plan.isSilentBar {
+                self.beatClock.isInSilentBar = plan.isSilentBar
             }
-            if countsMeasure, tick.startsMeasure {
+            if plan.completesPracticeMeasure {
                 self.handleMeasureCompleted()
             }
         }

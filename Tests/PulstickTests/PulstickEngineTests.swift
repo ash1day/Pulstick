@@ -1654,3 +1654,40 @@ struct LaunchTests {
         #expect(store.writes == before)  // 復元で保存し直さない
     }
 }
+
+// MARK: - TickPlan
+
+@Suite("TickPlan")
+struct TickPlanTests {
+    private func beat(_ index: Int, starts: Bool = false, rest: Bool = false, click: ClickKind = .normal) -> Tick {
+        Tick(beat: index, click: click, startsMeasure: starts, isRest: rest)
+    }
+
+    @Test func countInSoundsEveryBeatAsAccentEvenRests() {
+        let plan = TickPlan.plan(for: beat(1, rest: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false)
+        #expect(plan == TickPlan(sound: .accent, isCountingIn: true))
+    }
+
+    @Test func countInSkipsSubdivisionsAndRespectsMute() {
+        #expect(TickPlan.plan(for: beat(0, click: .subdivision), measureIndex: -1, countsMeasure: true, gap: nil, muted: false).sound == nil)
+        #expect(TickPlan.plan(for: beat(0, starts: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: true).sound == nil)
+    }
+
+    @Test func enteringTheFirstPracticeBarIsNotACompletedBar() {
+        let plan = TickPlan.plan(for: beat(0, starts: true, click: .accent), measureIndex: 0, countsMeasure: true, gap: nil, muted: false)
+        #expect(plan == TickPlan(sound: .accent))
+    }
+
+    @Test func enteringTheSecondPracticeBarCompletesOne() {
+        let plan = TickPlan.plan(for: beat(0, starts: true, click: .accent), measureIndex: 1, countsMeasure: true, gap: nil, muted: false)
+        #expect(plan == TickPlan(sound: .accent, completesPracticeMeasure: true))
+    }
+
+    @Test func restsAndSilentBarsDoNotSound() {
+        #expect(TickPlan.plan(for: beat(2, rest: true), measureIndex: 0, countsMeasure: true, gap: nil, muted: false).sound == nil)
+        let gap = GapTrainer(playBars: 1, muteBars: 1)
+        let silent = TickPlan.plan(for: beat(0, starts: true), measureIndex: 1, countsMeasure: true, gap: gap, muted: false)
+        #expect(silent.sound == nil)
+        #expect(silent.isSilentBar)
+    }
+}
