@@ -78,9 +78,16 @@ struct PulstickView: View {
         .disabled(isEditingBPM || isShowingSongs)
     }
 
-    /// いま押されている修飾キー。キー処理中なら処理中のイベント、なければハードウェアの状態から読む
-    private static func currentModifiers() -> EventModifiers {
-        let flags = NSApp?.currentEvent?.modifierFlags ?? NSEvent.modifierFlags
-        return flags.contains(.shift) ? .shift : []
+    /// ショートカットを起こしたキー入力の修飾キー。キー入力の処理中でなければ（古いイベントやキーボードの
+    /// 実際の状態を拾わないよう）修飾なしとみなす
+    static func currentModifiers() -> EventModifiers {
+        guard let event = NSApp?.currentEvent, event.type == .keyDown else { return [] }
+        var modifiers: EventModifiers = []
+        let flags = event.modifierFlags
+        if flags.contains(.shift) { modifiers.insert(.shift) }
+        if flags.contains(.option) { modifiers.insert(.option) }
+        if flags.contains(.control) { modifiers.insert(.control) }
+        if flags.contains(.command) { modifiers.insert(.command) }
+        return modifiers
     }
 }

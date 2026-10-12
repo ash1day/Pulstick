@@ -96,8 +96,7 @@
 "In this window" = "このウインドウで";
 "Play / Stop" = "再生 / 停止";
 "Tap tempo" = "タップテンポ";
-"Tempo ±1" = "テンポ ±1";
-"Tempo ±5" = "テンポ ±5";
+"Tempo ±1 (⇧: ±5)" = "テンポ ±1（⇧ で ±5）";
 "Mute / unmute" = "ミュート切り替え";
 "Choose a preset" = "プリセットを選ぶ";
 
@@ -125,3 +124,4 @@
 /* Same in Japanese, listed so the coverage test knows they are intentional */
 "%lld BPM" = "%lld BPM";
 "%@ · BPM" = "%@ · BPM";
+"%@ · %@" = "%1$@ · %2$@";

@@ -92,7 +92,7 @@ extension PulstickEngine {
     public func applyAdjacentSong(_ offset: Int) {
         guard !songs.isEmpty else { return }
         // 一致する曲がなくても、選んだ曲があればそこから動く（保存データが壊れていて一致しえない曲でも先へ進める）
-        let anchor = currentSong?.id ?? selectedSongID
+        let anchor = currentSong?.id ?? selectedSongID ?? setlistAnchorID
         guard let current = songs.firstIndex(where: { $0.id == anchor }) else {
             applySong(songs[0])
             return

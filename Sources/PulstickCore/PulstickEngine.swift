@@ -154,6 +154,9 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
+    /// [ ] で前後の曲へ動くときの起点。選んだ曲がなく、いまの曲も分からないときに使う
+    var setlistAnchorID: UUID?
+
     /// 曲ごとの練習時間のうち、この再生でまだ確定していない分
     var songPractice = SongPracticeTracker()
     /// 練習時間の計測に使う時計。テストでは差し替えて時間経過を再現する
@@ -271,9 +274,15 @@ public final class PulstickEngine: ObservableObject {
         practiceLog = defaults.codable(forKey: Keys.practiceLog, default: practiceLog)
         songs = defaults.codable([Song].self, forKey: Keys.songs) ?? []
         if let saved = (defaults.object(forKey: Keys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),
-           songs.contains(where: { $0.id == saved })
+           let song = songs.first(where: { $0.id == saved })
         {
-            selectedSongID = saved
+            // 設定がその曲のままなら「いまの曲」として戻す。違う練習をしたまま終了していたら、
+            // 次の起動でその練習まで曲として数えないよう、[ ] の起点としてだけ覚えておく
+            if matchesCurrentSettings(song) {
+                selectedSongID = saved
+            } else {
+                setlistAnchorID = saved
+            }
         }
     }
 

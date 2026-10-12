@@ -39,6 +39,9 @@ struct KeyboardShortcutTests {
         // ⇧ の判定。ウインドウ経由では修飾キーの実際の押下状態を再現できないので関数で確かめる
         #expect(PopoverShortcut.tempoStep(.shift) == 5)
         #expect(PopoverShortcut.tempoStep([]) == 1)
+        // ⌥↑ や ⌃↑ などはテンポを変えない
+        #expect(PopoverShortcut.tempoStep(.option) == nil)
+        #expect(PopoverShortcut.tempoStep([.shift, .control]) == nil)
     }
 
     @Test func arrowDownLowersTheTempoByOne() async throws {
@@ -166,4 +169,5 @@ struct KeyboardShortcutTests {
         _ = press("\r", keyCode: 36, in: window)
         #expect(dismissed)
     }
+
 }

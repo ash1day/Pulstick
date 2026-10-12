@@ -569,6 +569,16 @@ struct SongTests {
         #expect(second.bpm == 140)
     }
 
+    @Test func aRestoredChoiceIsOnlyCurrentWhenTheSettingsStillMatch() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.bpm = 132
+        first.saveCurrentAsSong(named: "Autumn Leaves")
+        first.bpm = 80  // 曲とは関係ない練習をしたまま終了
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.currentSong == nil)  // 次に起動したとき、別の 4/4 の練習をその曲として数えない
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

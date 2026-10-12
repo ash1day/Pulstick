@@ -141,7 +141,7 @@ struct BPMDisplay: View {
                         Label("Silent bar · keep counting", systemImage: "speaker.slash.fill")
                     } else if let song = engine.currentSong {
                         // リハーサル中に [ ] で切り替えても、いまどの曲かが分かるように
-                        Text(verbatim: "\(song.name) · \(TempoMarking.name(for: engine.bpm))")
+                        Text("\(song.name) · \(TempoMarking.name(for: engine.bpm))")
                             .lineLimit(1)
                             .truncationMode(.middle)
                             .frame(maxWidth: 220)
@@ -160,7 +160,8 @@ struct BPMDisplay: View {
         .onAppear {
             // 入力中の状態で表示されたとき（テストなど）も、入力欄にフォーカスを当てる
             if isEditing {
-                draft = "\(Int(engine.bpm))"
+                // 表示が作り直されても、打ちかけの文字は消さない
+                if draft.isEmpty { draft = "\(Int(engine.bpm))" }
                 fieldFocused = true
             }
         }

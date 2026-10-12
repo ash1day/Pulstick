@@ -20,11 +20,12 @@ struct PopoverShortcut {
         }
     }
 
-    /// ⇧ を押していれば 5、そうでなければ 1。
-    /// SwiftUI のショートカットは修飾なしで登録した矢印キーを ⇧ 付きにも一致させてしまうため、
+    /// ⇧ を押していれば 5、何も押していなければ 1。⌘・⌥・⌃ が付いていたら反応しない（nil）。
+    /// SwiftUI のショートカットは修飾なしで登録した矢印キーを修飾付きにも一致させてしまうため、
     /// ⇧↑ を別に登録せず、押されたときの修飾キーで刻みを決める
-    static func tempoStep(_ modifiers: EventModifiers) -> Double {
-        modifiers.contains(.shift) ? 5 : 1
+    static func tempoStep(_ modifiers: EventModifiers) -> Double? {
+        guard modifiers.isDisjoint(with: [.command, .option, .control]) else { return nil }
+        return modifiers.contains(.shift) ? 5 : 1
     }
 
     /// 一覧に出すキーの表記（"↑ ↓" のように複数のキーをまとめてよい）
@@ -37,12 +38,14 @@ struct PopoverShortcut {
             PopoverShortcut(display: "Space", label: "Play / Stop", bindings: [
                 Binding(key: .space) { $0.toggle() },
             ]),
-            PopoverShortcut(display: "↑ ↓", label: "Tempo ±1", bindings: [
-                Binding(key: .upArrow) { engine, modifiers in engine.incrementBPM(by: tempoStep(modifiers)) },
-                Binding(key: .downArrow) { engine, modifiers in engine.decrementBPM(by: tempoStep(modifiers)) },
+            PopoverShortcut(display: "↑ ↓", label: "Tempo ±1 (⇧: ±5)", bindings: [
+                Binding(key: .upArrow) { engine, modifiers in
+                    if let step = tempoStep(modifiers) { engine.incrementBPM(by: step) }
+                },
+                Binding(key: .downArrow) { engine, modifiers in
+                    if let step = tempoStep(modifiers) { engine.decrementBPM(by: step) }
+                },
             ]),
-            // ⇧↑ ⇧↓ は上の ↑ ↓ が修飾キーを見て処理する。一覧に出すためだけの行
-            PopoverShortcut(display: "⇧↑ ⇧↓", label: "Tempo ±5", bindings: []),
             PopoverShortcut(display: "T", label: "Tap tempo", bindings: [
                 Binding(key: "t") { $0.tapTempo() },
             ]),

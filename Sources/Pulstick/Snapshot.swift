@@ -28,9 +28,6 @@ enum Snapshot {
             engine.speedTrainerEnabled = args.contains("--trainer")
             engine.gapTrainerEnabled = args.contains("--gap")
             engine.isMuted = args.contains("--muted")
-            if args.contains("--song") {
-                engine.saveCurrentAsSong(named: "Autumn Leaves")
-            }
             if args.contains("--rests") {
                 // 見本: 2 拍目と 4 拍目だけ鳴らすジャズの練習
                 engine.setBeats(4)
@@ -38,6 +35,10 @@ enum Snapshot {
                 engine.cycleBeat(2); engine.cycleBeat(2)
             }
             if args.contains("--timer") { engine.stopAfter = 15 * 60 }
+            // 拍のパターンを変えるオプションの後で保存し、いまの曲として表示されるようにする
+            if args.contains("--song") {
+                engine.saveCurrentAsSong(named: "Autumn Leaves")
+            }
             let showSongs = args.contains("--songs")
             if showSongs {
                 for (name, bpm, beats) in [("Autumn Leaves", 132.0, 4), ("Blue Bossa", 150, 4), ("Waltz for Debby", 96, 3)] {
