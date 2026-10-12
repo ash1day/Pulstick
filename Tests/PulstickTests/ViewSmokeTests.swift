@@ -43,6 +43,16 @@ struct ViewSmokeTests {
         #expect(image.size.height > plain.size.height)
     }
 
+    /// 「コントラストを上げる」とダークモードでは輪郭や塗りの分岐が変わるので、その組み合わせでも描けること
+    @Test func popoverRendersInDarkModeWithIncreasedContrast() throws {
+        let trainer = engine { $0.speedTrainerEnabled = true }
+        let view = PulstickView(engine: trainer, hotKeys: nil)
+            .environment(\.colorScheme, .dark)
+            .environment(\._colorSchemeContrast, .increased)
+        let image = try #require(render(view))
+        #expect(image.size.height > 300)
+    }
+
     @Test func songListRendersEmptyAndFilled() throws {
         let empty = try #require(render(SongList(engine: engine()) {}))
         let filled = engine { e in
