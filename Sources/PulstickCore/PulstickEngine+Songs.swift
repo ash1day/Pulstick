@@ -101,7 +101,7 @@ extension PulstickEngine {
             // 呼び出したときと同じ値になるよう、テンポは整数に丸め、拍のパターンも検証しておく
             // （ずれていると、呼び出した後に「いまの曲」として一致しなくなる）
             let bpm = entry.bpm.rounded().clamped(to: Self.bpmRange)
-            let pattern = Self.sanitized(entry.pattern)
+            let pattern = entry.pattern.sanitized
             if let index = updated.firstIndex(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
                 updated[index].name = name
                 updated[index].bpm = bpm
@@ -119,12 +119,6 @@ extension PulstickEngine {
     }
 
     /// 拍数を範囲に収め、アクセントと休符をその拍数の範囲に絞る（保存データや共有テキストが壊れていても使えるように）
-    static func sanitized(_ pattern: BeatPreset) -> BeatPreset {
-        let beats = pattern.beats.clamped(to: beatsRange)
-        let valid = { (indices: [Int]) in Array(Set(indices.filter { (0..<beats).contains($0) })).sorted() }
-        return BeatPreset(beats: beats, accents: valid(pattern.accents), rests: valid(pattern.rests))
-    }
-
     private func songIndex(named name: String) -> Int? {
         songs.firstIndex { $0.name.caseInsensitiveCompare(name) == .orderedSame }
     }

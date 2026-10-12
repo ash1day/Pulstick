@@ -52,17 +52,15 @@ struct StoredSettings {
         if let saved = store.object(forKey: SettingsKeys.bpm) as? Double, saved.isFinite {
             bpm = saved.clamped(to: PulstickEngine.bpmRange)
         }
-        if let saved = store.object(forKey: SettingsKeys.beats) as? Int {
-            beatsPerMeasure = saved.clamped(to: PulstickEngine.beatsRange)
-        }
-        // 拍数を先に決めてから、その範囲にあるアクセントと休符だけを残す
-        let beatRange = 0..<beatsPerMeasure
-        if let saved = store.object(forKey: SettingsKeys.accents) as? [Int] {
-            accentBeats = Set(saved.filter(beatRange.contains))
-        }
-        if let saved = store.object(forKey: SettingsKeys.rests) as? [Int] {
-            restBeats = Set(saved.filter(beatRange.contains))
-        }
+        // 拍数・アクセント・休符は組で検証する（拍数の範囲にあるアクセントと休符だけを残す）
+        let pattern = BeatPreset(
+            beats: store.object(forKey: SettingsKeys.beats) as? Int ?? beatsPerMeasure,
+            accents: store.object(forKey: SettingsKeys.accents) as? [Int] ?? Array(accentBeats),
+            rests: store.object(forKey: SettingsKeys.rests) as? [Int] ?? Array(restBeats)
+        ).sanitized
+        beatsPerMeasure = pattern.beats
+        accentBeats = pattern.accentSet
+        restBeats = pattern.restSet
         if let raw = store.object(forKey: SettingsKeys.subdivision) as? Int, let saved = Subdivision(rawValue: raw) {
             subdivision = saved
         }

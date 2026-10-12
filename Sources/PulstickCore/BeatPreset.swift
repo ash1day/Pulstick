@@ -22,6 +22,14 @@ public struct BeatPreset: Codable, Equatable {
         rests = try container.decodeIfPresent([Int].self, forKey: .rests) ?? []
     }
 
+    /// 保存データや貼り付けたセットリストが壊れていても使えるよう、拍数を範囲に収め、
+    /// その拍数の中にあるアクセントと休符だけを（重複なく昇順で）残したもの。拍数 0 のゼロ除算も防ぐ
+    var sanitized: BeatPreset {
+        let beats = beats.clamped(to: PulstickEngine.beatsRange)
+        let valid = { (indices: [Int]) in Array(Set(indices.filter { (0..<beats).contains($0) })).sorted() }
+        return BeatPreset(beats: beats, accents: valid(accents), rests: valid(rests))
+    }
+
     public static let defaults: [BeatPreset] = [
         BeatPreset(beats: 4, accents: [0]),
         BeatPreset(beats: 3, accents: [0]),
