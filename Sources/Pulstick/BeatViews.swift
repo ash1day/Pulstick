@@ -17,6 +17,7 @@ struct BeatIndicator: View {
                 engine.removeBeat()
             }
             .help("Remove a beat")
+            .accessibilityLabel(Text("Remove a beat"))
 
             // 16拍でもスクロールせず全拍が見えるよう、幅に合わせて○を縮める
             GeometryReader { geo in
@@ -41,6 +42,7 @@ struct BeatIndicator: View {
                 engine.addBeat()
             }
             .help("Add a beat")
+            .accessibilityLabel(Text("Add a beat"))
         }
         .frame(height: 44)
     }
@@ -223,6 +225,7 @@ struct BPMSlider: View {
         HStack(spacing: 8) {
             stepButton("minus") { engine.decrementBPM() }
                 .help("Slower (↓, ⇧↓ for −5)")
+                .accessibilityLabel(Text("Slower"))
 
             CustomSlider(value: $engine.bpm, range: PulstickEngine.bpmRange)
                 .frame(height: 20)
@@ -231,6 +234,7 @@ struct BPMSlider: View {
 
             stepButton("plus") { engine.incrementBPM() }
                 .help("Faster (↑, ⇧↑ for +5)")
+                .accessibilityLabel(Text("Faster"))
         }
     }
 

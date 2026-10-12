@@ -132,3 +132,5 @@
 "Target tempo" = "目標テンポ";
 "Bars to play" = "鳴らす小節数";
 "Bars to mute" = "休む小節数";
+"Slower" = "遅く";
+"Faster" = "速く";
