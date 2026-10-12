@@ -49,6 +49,7 @@ extension PulstickEngine {
     }
 
     public func tapTempo(at now: Date = Date()) {
+        lastTapAt = now
         if let tapped = tapTempoEstimator.tap(at: now) {
             bpm = tapped
         }

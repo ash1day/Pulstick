@@ -17,6 +17,18 @@ struct TransportRow: View {
             }
             .controlSize(.large)
             .buttonStyle(.bordered)
+            // 1 回目のタップや、キーボードの T で叩いたときはテンポが変わらず押した手応えもないので、受け付けたことを光で返す
+            .keyframeAnimator(initialValue: 0.0, trigger: engine.lastTapAt) { button, glow in
+                button.overlay(
+                    Capsule()
+                        .stroke(Color.accentColor, lineWidth: 2)
+                        .opacity(glow)
+                        .allowsHitTesting(false)
+                )
+            } keyframes: { _ in
+                LinearKeyframe(1, duration: 0.02)
+                CubicKeyframe(0, duration: 0.3)
+            }
             .help(hotKeys?.isTapAvailable == true
                   ? "Tap along to set the tempo (T, or ⌃⌥T from any app)"
                   : "Tap along to set the tempo (T)")

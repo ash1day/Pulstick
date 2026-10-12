@@ -213,6 +213,14 @@ struct TapTempoTests {
         engine.tapTempo(at: t0.addingTimeInterval(3))  // 2秒以上空いたので最初のタップ扱い
         #expect(engine.bpm == 100)
     }
+
+    /// 1 回目はテンポが変わらないので、叩いたことを画面に返すために時刻を残す（キーボードの T でも同じ）
+    @Test func firstTapIsRecordedForFeedback() {
+        let engine = makeEngine()
+        let t0 = Date()
+        engine.tapTempo(at: t0)
+        #expect(engine.lastTapAt == t0)
+    }
 }
 
 // MARK: - PulstickEngine: 曲ごとの設定

@@ -219,6 +219,8 @@ public final class PulstickEngine: ObservableObject {
     let timerQueue = DispatchQueue(label: "com.pulstick.metronome", qos: .userInteractive)
 
     var tapTempoEstimator = TapTempo()
+    /// 最後にタップした時刻。1 回目はテンポが変わらないので、叩いたことを画面に返すために使う
+    @Published public internal(set) var lastTapAt: Date?
 
     let defaults: SettingsStore
 
