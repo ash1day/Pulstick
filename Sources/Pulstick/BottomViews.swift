@@ -276,13 +276,13 @@ struct WeekBars: View {
                 }
                 .frame(height: height, alignment: .bottom)
                 // 棒ごとのツールチップが優先されるので、7 日間の合計もここに添える
-                .help(Text("\(dayName(index)) \(Int(value / 60)) min") + Text(verbatim: " · ") + weekTotal)
+                .help(Text(verbatim: "\(dayName(index)) \(PracticeTime.format(value))") + Text(verbatim: " · ") + weekTotal)
             }
         }
         .help(weekTotal)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Last 7 days"))
-        .accessibilityValue(Text(seconds.indices.map { "\(dayName($0)) \(Int(seconds[$0] / 60))" }.joined(separator: ", ")))
+        .accessibilityValue(Text(verbatim: seconds.indices.map { "\(dayName($0)) \(PracticeTime.format(seconds[$0]))" }.joined(separator: ", ")))
     }
 
     private var weekTotal: Text {

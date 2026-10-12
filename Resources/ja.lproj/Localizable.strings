@@ -77,7 +77,6 @@
 "Wood" = "ウッド";
 "Tick" = "チック";
 "Last 7 days" = "直近 7 日間";
-"%@ %lld min" = "%1$@ %2$lld 分";
 
 /* Songs */
 "Songs" = "曲";
