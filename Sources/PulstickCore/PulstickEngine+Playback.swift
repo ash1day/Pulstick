@@ -44,9 +44,20 @@ extension PulstickEngine {
         }
     }
 
+    /// 次の段で上がる BPM。目標で頭打ちになる最後の段は、残りの分だけ
+    public var nextTempoIncrease: Int {
+        Int((min(bpm + Double(speedTrainer.bpmIncrement), Double(speedTrainer.targetBPM)) - bpm).rounded())
+    }
+
+    /// トレーナーがテンポを開始時から変えていて、↶（R キー）で戻せる状態か
+    public var canReturnToSessionStartBPM: Bool {
+        guard speedTrainerEnabled, let start = sessionStartBPM else { return false }
+        return bpm != start
+    }
+
     /// スピードトレーナーで上げたテンポを再生開始時の値に戻す
     public func returnToSessionStartBPM() {
-        guard let start = sessionStartBPM else { return }
+        guard canReturnToSessionStartBPM, let start = sessionStartBPM else { return }
         bpm = start
         restartSession()
     }

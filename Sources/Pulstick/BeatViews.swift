@@ -165,7 +165,7 @@ struct BPMDisplay: View {
             if engine.speedTrainerEnabled {
                 TempoStepCountdown(
                     clock: engine.beatClock,
-                    increment: engine.speedTrainer.bpmIncrement,
+                    increment: engine.nextTempoIncrease,
                     returnsToStart: engine.bpm >= Double(engine.speedTrainer.targetBPM)
                 )
             }

@@ -1248,6 +1248,33 @@ struct EngineSpeedTrainerTests {
         #expect(engine.beatClock.barsUntilTempoStep == nil)
     }
 
+    @Test func theAnnouncedStepIsCappedAtTheTarget() {
+        // 158 → 160 の最後の段は +5 ではなく +2 と予告する
+        let engine = makeEngine()
+        engine.bpm = 158
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 4, bpmIncrement: 5, targetBPM: 160)
+        #expect(engine.nextTempoIncrease == 2)
+        engine.bpm = 100
+        #expect(engine.nextTempoIncrease == 5)
+    }
+
+    @Test func goingBackToTheStartTempoOnlyWorksWhileTheTrainerHasRaisedIt() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 4, bpmIncrement: 5, targetBPM: 200)
+        engine.start()
+        engine.bpm = 110
+        engine.returnToSessionStartBPM()  // トレーナーがオフなら、手で変えたテンポはそのまま
+        #expect(engine.bpm == 110)
+        engine.speedTrainerEnabled = true
+        engine.returnToSessionStartBPM()
+        #expect(engine.bpm == 100)
+        engine.handleMeasureCompleted()
+        engine.returnToSessionStartBPM()  // まだ上がっていなければ、数えている小節を巻き戻さない
+        #expect(engine.beatClock.barsUntilTempoStep == 3)
+        engine.stop()
+    }
+
     @Test func keepsBPMWhenDisabled() {
         let engine = makeEngine()
         engine.bpm = 100

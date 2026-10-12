@@ -65,7 +65,7 @@ struct SpeedTrainerSection: View {
                     .help("Reached the target tempo")
                     .accessibilityLabel(Text("Reached the target tempo"))
             }
-            if engine.speedTrainerEnabled, let start = engine.sessionStartBPM, engine.bpm != start {
+            if engine.canReturnToSessionStartBPM, let start = engine.sessionStartBPM {
                 Button {
                     engine.returnToSessionStartBPM()
                 } label: {
