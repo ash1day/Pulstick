@@ -55,7 +55,7 @@ struct PopoverShortcut {
             PopoverShortcut(display: "S", label: "Speed trainer on / off", bindings: [
                 Binding(key: "s") { $0.speedTrainerEnabled.toggle() },
             ]),
-            PopoverShortcut(display: "R", label: "Go back to the tempo you started at", bindings: [
+            PopoverShortcut(display: "R", label: "Back to the start tempo", bindings: [
                 Binding(key: "r") { $0.returnToSessionStartBPM() },
             ]),
             PopoverShortcut(display: "1–\(presetCount)", label: "Choose a preset", bindings: (0..<presetCount).map { index in

@@ -20,6 +20,13 @@ struct ShortcutHelp: View {
                     row(shortcut.display, shortcut.label)
                 }
             }
+            // 練習タイマーや週の目標などは右クリックの中にあり、見た目からは分からないので、ここで案内する
+            section("Right-click") {
+                rightClickTip("Play", "Practice timer, count-in")
+                rightClickTip("Today’s minutes", "Weekly goal, copy the last 7 days")
+                rightClickTip("A preset", "Save the current pattern")
+                rightClickTip("A song", "Practise slower, ramp up")
+            }
         }
         .padding(12)
         .frame(width: 220)
@@ -32,6 +39,16 @@ struct ShortcutHelp: View {
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
             content()
+        }
+    }
+
+    private func rightClickTip(_ target: LocalizedStringKey, _ action: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(target)
+                .font(.system(size: 11, weight: .semibold))
+            Text(action)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
         }
     }
 

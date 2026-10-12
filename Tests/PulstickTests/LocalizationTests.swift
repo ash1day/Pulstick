@@ -81,6 +81,8 @@ struct LocalizationTests {
             #"(?:title|help|label): "((?:[^"\\]|\\.)*)""#,
             #"LocalizedStringKey\("((?:[^"\\]|\\.)*)"\)"#,
             #"case \([a-z]+, [a-z]+\): "((?:[^"\\]|\\.)*)""#,
+            #"rightClickTip\("((?:[^"\\]|\\.)*)""#,
+            #"rightClickTip\("(?:[^"\\]|\\.)*", "((?:[^"\\]|\\.)*)""#,
         ]
         let japanese = try japaneseStrings()
         var missing: [String] = []

@@ -25,6 +25,7 @@
 "Gradually raise the tempo while playing" = "演奏しながら少しずつテンポを上げます";
 "Go back to the tempo you started at" = "開始時のテンポに戻す";
 "Speed trainer on / off" = "スピードトレーナーのオン / オフ";
+"Back to the start tempo" = "開始時のテンポに戻す";
 "trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 "trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 "tempo.announcement" = "テンポ %lld";
@@ -177,3 +178,13 @@
 "No Pulstick setlist on the clipboard" = "クリップボードに Pulstick のセットリストがありません";
 "Couldn't copy the setlist" = "セットリストをコピーできませんでした";
 "This setlist needs a newer version of Pulstick" = "このセットリストを読むには、新しい版の Pulstick が必要です";
+
+/* Right-click tips in the shortcut list */
+"Right-click" = "右クリック";
+"Practice timer, count-in" = "練習タイマー、カウントイン";
+"Today’s minutes" = "今日の練習時間";
+"Weekly goal, copy the last 7 days" = "週の目標、直近 7 日の記録のコピー";
+"A preset" = "プリセット";
+"Save the current pattern" = "いまのパターンを保存";
+"A song" = "曲";
+"Practise slower, ramp up" = "遅めのテンポで練習、徐々に上げる";
