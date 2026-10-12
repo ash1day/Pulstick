@@ -75,31 +75,8 @@ struct ViewSmokeTests {
         #expect(!PracticeTime.format(45 * 60).contains("0"))  // "0 hr 45 min" のようにしない
     }
 
-    @Test func theWeekReportListsEachDayForSendingToATeacher() {
-        // 教室の先生に 1 週間の練習を送れるよう、合計と日ごとの時間を文章にする
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        let day = { (d: Int, h: Int) in calendar.date(from: DateComponents(year: 2026, month: 10, day: d, hour: h))! }
-        var log = PracticeLog()
-        log.record(from: day(10, 9), to: day(10, 9).addingTimeInterval(140 * 60), calendar: calendar)
-        log.record(from: day(12, 10), to: day(12, 10).addingTimeInterval(25 * 60), calendar: calendar)
-        let text = PracticeReport.text(
-            log: log, endingAt: day(12, 20), goalSeconds: 2 * 3600, calendar: calendar, locale: Locale(identifier: "en_US")
-        )
-        #expect(text == """
-        Practice in the last 7 days: 2h 45m (goal: 2h)
-        Tue, 10/6: –
-        Wed, 10/7: –
-        Thu, 10/8: –
-        Fri, 10/9: –
-        Sat, 10/10: 2h 20m
-        Sun, 10/11: –
-        Mon, 10/12: 25m
-        """)
-    }
-
-    @Test func practiceTimeIsShortEnoughForTheGoalRow() {
-        // 目標の行は「実績 / 目標」を 1 行に並べるので、短い書き方にする
+    @Test func practiceTimeIsShortEnoughForTooltips() {
+        // グラフのツールチップや曲の練習時間に添えるので、短い書き方にする
         #expect(PracticeTime.format(2 * 3600 + 45 * 60, locale: Locale(identifier: "en_US")) == "2h 45m")
         #expect(PracticeTime.format(2 * 3600 + 45 * 60, locale: Locale(identifier: "ja_JP")) == "2時間45分")
     }

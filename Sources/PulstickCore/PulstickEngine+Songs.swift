@@ -232,13 +232,8 @@ extension PulstickEngine {
         return current.timeIntervalSince(max(startedAt, calendar.startOfDay(for: current)))
     }
 
-    /// 直近 7 日（今日を含む）の練習時間。再生中でまだ記録していない今日の分も含める
-    public func practiceSecondsThisWeek(calendar: Calendar = .current) -> TimeInterval {
-        practiceLogIncludingCurrentSession(calendar: calendar).recentDays(7, endingAt: now(), calendar: calendar).reduce(0, +)
-    }
-
     /// 練習ログに、再生中でまだ記録していない分を（停止したときと同じく日付ごとに分けて）足したもの。
-    /// 今日の分数・連続日数・7 日間のグラフ・週の目標は、すべてここから求めて数字を揃える
+    /// 今日の分数と 7 日間のグラフは、どちらもここから求めて数字を揃える
     public func practiceLogIncludingCurrentSession(calendar: Calendar = .current) -> PracticeLog {
         var log = practiceLog
         if isLongEnoughToLog, let startedAt = playStartedAt {

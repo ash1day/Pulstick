@@ -33,19 +33,5 @@ public struct PracticeLog: Codable, Equatable {
         }
     }
 
-    /// 今日（今日まだ練習していなければ昨日）から遡って、練習した日が何日続いているか
-    /// - Parameter practisingNow: 再生中なら、まだ記録されていない今日も練習した日として数える
-    public func streak(endingAt today: Date, practisingNow: Bool = false, calendar: Calendar = .current) -> Int {
-        var day = today
-        var count = 0
-        if seconds(on: day, calendar: calendar) == 0 {
-            if practisingNow { count += 1 }
-            day = calendar.date(byAdding: .day, value: -1, to: day)!
-        }
-        while seconds(on: day, calendar: calendar) > 0 {
-            count += 1
-            day = calendar.date(byAdding: .day, value: -1, to: day)!
-        }
-        return count
-    }
+
 }

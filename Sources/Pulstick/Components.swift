@@ -201,7 +201,7 @@ private struct ChipStyle: ViewModifier {
 
 // MARK: - Practice Time
 
-/// 練習時間を "2時間15分" / "2h 15m" のように言語に合わせて短く表す（目標の行で「実績 / 目標」を 1 行に収めるため）
+/// 練習時間を "2時間15分" / "2h 15m" のように言語に合わせて短く表す
 enum PracticeTime {
     static func format(_ seconds: Double, locale: Locale? = nil) -> String {
         let formatter = DateComponentsFormatter()

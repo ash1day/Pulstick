@@ -20,7 +20,6 @@ enum SettingsKeys {
     static let songs = "pulstick.songs"
     static let selectedSong = "pulstick.selectedSong"
     static let countInBars = "pulstick.countInBars"
-    static let weeklyGoalMinutes = "pulstick.weeklyGoalMinutes"
 }
 
 /// 起動時に読む保存済みの設定。読み込みと検証（範囲外・壊れた値の補正）だけを行う。
@@ -44,7 +43,6 @@ struct StoredSettings {
     /// 保存されていた選択。曲が残っているときだけ値を持つ
     var selectedSongID: UUID?
     var countInBars = 0
-    var weeklyGoalMinutes = 0
 
     init() {}
 
@@ -85,9 +83,6 @@ struct StoredSettings {
         }
         if let saved = store.object(forKey: SettingsKeys.countInBars) as? Int {
             countInBars = saved.clamped(to: PulstickEngine.countInRange)
-        }
-        if let saved = store.object(forKey: SettingsKeys.weeklyGoalMinutes) as? Int {
-            weeklyGoalMinutes = PulstickEngine.nearestWeeklyGoal(saved)
         }
         songs = store.codable([Song].self, forKey: SettingsKeys.songs) ?? []
         if let saved = (store.object(forKey: SettingsKeys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),

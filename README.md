@@ -18,7 +18,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Silent bars: play N bars, then mute M bars to check you hold the tempo yourself
 - Menu bar shows the BPM while playing; the Play button shows practice time
 - Practice timer and count-in: right-click Play to stop automatically after 5–60 minutes, or to hear one or two bars before you start
-- Practice log: minutes practised today, your streak of consecutive days, a 7-day chart and an optional weekly goal. Right-click the summary to set the goal or copy the last 7 days as text
+- Practice log: minutes practised today and a 7-day chart (right-click to reset)
 - Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo, <kbd>⌃⌥,</kbd> / <kbd>⌃⌥.</kbd> previous/next song
 - Settings are remembered between launches
 - English and Japanese UI (follows the system language), VoiceOver labels, and Reduce Motion / Increase Contrast support
@@ -38,7 +38,7 @@ Requires Xcode (the SwiftUI macros are not in the Command Line Tools alone). `bu
 ```bash
 ./dev.sh                     # rebuild and relaunch the app
 swift test                   # unit tests (silent: they never play audio)
-.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome] [--rests] [--song] [--goal] [--countdown]
+.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome] [--rests] [--song] [--countdown]
                              # render the popover to a PNG without launching the app
 ./scripts/update-screenshots.sh  # refresh the landing page screenshots (English and Japanese)
 ```

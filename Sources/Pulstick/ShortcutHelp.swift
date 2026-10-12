@@ -20,10 +20,10 @@ struct ShortcutHelp: View {
                     row(shortcut.display, shortcut.label)
                 }
             }
-            // 練習タイマーや週の目標などは右クリックの中にあり、見た目からは分からないので、ここで案内する
+            // 練習タイマーや記録のリセットなどは右クリックの中にあり、見た目からは分からないので、ここで案内する
             section("Right-click") {
                 rightClickTip("Play", "Practice timer, count-in")
-                rightClickTip("Today’s minutes", "Weekly goal, copy the last 7 days")
+                rightClickTip("Today’s minutes", "Reset the practice history")
                 rightClickTip("A preset", "Save the current pattern")
                 rightClickTip("A song", "Practise slower, ramp up")
             }

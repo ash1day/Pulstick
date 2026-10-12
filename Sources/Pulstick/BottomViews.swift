@@ -136,67 +136,34 @@ struct VolumeRow: View {
     }
 }
 
-/// 今日の練習時間と連続日数。再生中のセッションも含めて 30 秒ごとに更新する。
-/// まだ練習していなくても表示する（右クリックで週の目標を先に決められるように）
+/// 今日の練習時間と 7 日間のグラフ。再生中のセッションも含めて 30 秒ごとに更新する
 struct PracticeSummary: View {
     @ObservedObject var engine: PulstickEngine
     @State private var isConfirmingReset = false
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            let now = context.date
-            // 停止したときと同じ規則で再生中の分も足したログから、すべての数字を求める
-            let log = engine.practiceLogIncludingCurrentSession()
-            let today = log.seconds(on: now)
-            let streak = log.streak(endingAt: now)
-            let week = log.recentDays(7, endingAt: now)
-            VStack(spacing: 6) {
+        if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty {
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                let now = context.date
+                // 停止したときと同じ規則で再生中の分も足したログから、今日の分数とグラフを求める
+                let log = engine.practiceLogIncludingCurrentSession()
                 HStack(spacing: 10) {
-                    Label("Today \(Int(today / 60)) min", systemImage: "clock")
-                    if streak > 1 {
-                        Label("\(streak)-day streak", systemImage: "flame")
-                    }
+                    Label("Today \(Int(log.seconds(on: now) / 60)) min", systemImage: "clock")
                     Spacer()
-                    WeekBars(seconds: week, endingAt: now)
+                    WeekBars(seconds: log.recentDays(7, endingAt: now), endingAt: now)
                 }
-                if engine.weeklyGoalMinutes > 0 {
-                    // 棒グラフと同じ合計を使い、グラフと目標の数字が食い違わないようにする
-                    WeeklyGoalProgress(seconds: week.reduce(0, +), goalSeconds: Double(engine.weeklyGoalMinutes * 60))
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .help("Practice time is counted while the metronome plays")
+                .contextMenu {
+                    // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
+                    Button("Reset Practice History…") { isConfirmingReset = true }
                 }
-            }
-            .font(.system(size: 11))
-            .foregroundColor(.secondary)
-            .help("Practice time is counted while the metronome plays")
-            .contextMenu {
-                // 教室で「週に 2 時間」のように目標を出されている人向け
-                Picker("Weekly Goal", selection: $engine.weeklyGoalMinutes) {
-                    ForEach(PulstickEngine.weeklyGoalOptions, id: \.self) { minutes in
-                        if minutes == 0 {
-                            Text("No Goal").tag(0)
-                        } else {
-                            let hours = minutes / 60
-                            Text("\(hours) h a Week").tag(minutes)
-                        }
-                    }
+                .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
+                    Button("Reset", role: .destructive) { engine.resetPracticeHistory() }
+                } message: {
+                    Text("This clears today's minutes, the 7-day chart and each song's practice time and best tempo. Your songs stay.")
                 }
-                .pickerStyle(.inline)
-                Divider()
-                // 先生やバンドのメンバーに、1 週間の練習をメッセージで送れるように
-                Button("Copy the Last 7 Days") {
-                    let text = PracticeReport.text(
-                        log: engine.practiceLogIncludingCurrentSession(), endingAt: Date(),
-                        goalSeconds: Double(engine.weeklyGoalMinutes * 60)
-                    )
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(text, forType: .string)
-                }
-                // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
-                Button("Reset Practice History…") { isConfirmingReset = true }
-            }
-            .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
-                Button("Reset", role: .destructive) { engine.resetPracticeHistory() }
-            } message: {
-                Text("This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay.")
             }
         }
     }
@@ -292,66 +259,5 @@ struct WeekBars: View {
     private func dayName(_ index: Int) -> String {
         let date = Calendar.current.date(byAdding: .day, value: index - (seconds.count - 1), to: endingAt)!
         return date.formatted(.dateTime.weekday(.abbreviated))
-    }
-}
-
-/// 週の目標に対する進み具合。暦の週は人や国で区切りが違うので、7 日間グラフと同じく直近 7 日で数える。
-/// 単一の量なので単色のバーで示し、達成したらチェックを付ける
-struct WeeklyGoalProgress: View {
-    let seconds: Double
-    let goalSeconds: Double
-
-    var body: some View {
-        let ratio = min(seconds / goalSeconds, 1)
-        let reached = seconds >= goalSeconds
-        HStack(spacing: 8) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.2))
-                    // 練習がまだなければ塗らない（少しでも色が付くと進んでいるように見えるため）
-                    if ratio > 0 {
-                        Capsule()
-                            .fill(reached ? Color.green : Color.accentColor)
-                            .frame(width: max(4, geo.size.width * ratio))
-                    }
-                }
-            }
-            .frame(height: 4)
-            Text("Last 7 days \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))")
-                .lineLimit(1)
-                .fixedSize()
-            if reached {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("Weekly goal"))
-        .accessibilityValue(Text("Last 7 days \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))"))
-    }
-}
-
-/// 直近 7 日の練習を、先生やバンドのメンバーに送れる文章にする
-enum PracticeReport {
-    static func text(
-        log: PracticeLog, endingAt now: Date, goalSeconds: Double, calendar: Calendar = .current, locale: Locale = .current
-    ) -> String {
-        let week = log.recentDays(7, endingAt: now, calendar: calendar)
-        let total = PracticeTime.format(week.reduce(0, +), locale: locale)
-        let header = goalSeconds > 0
-            ? String(localized: "report.header.goal", defaultValue: "Practice in the last 7 days: \(total) (goal: \(PracticeTime.format(goalSeconds, locale: locale)))")
-            : String(localized: "report.header", defaultValue: "Practice in the last 7 days: \(total)")
-        let dayFormatter = DateFormatter()
-        dayFormatter.locale = locale
-        dayFormatter.calendar = calendar
-        dayFormatter.timeZone = calendar.timeZone
-        dayFormatter.setLocalizedDateFormatFromTemplate("EEEMd")
-        let days = week.enumerated().map { offset, seconds in
-            let date = calendar.date(byAdding: .day, value: offset - (week.count - 1), to: now)!
-            // 練習しなかった日も行を残し、どの日が空いたか分かるようにする
-            let time = seconds > 0 ? PracticeTime.format(seconds, locale: locale) : "–"
-            return "\(dayFormatter.string(from: date)): \(time)"
-        }
-        return ([header] + days).joined(separator: "\n")
     }
 }

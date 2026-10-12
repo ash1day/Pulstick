@@ -2,7 +2,7 @@ import AppKit
 import PulstickCore
 import SwiftUI
 
-/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome] [--rests] [--song] [--goal] [--countdown]` でポップオーバーの中身を PNG に書き出して終了する。
+/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome] [--rests] [--song] [--countdown]` でポップオーバーの中身を PNG に書き出して終了する。
 /// 開発中の見た目確認と LP 用スクリーンショットのための仕組み。
 enum Snapshot {
     static func runIfRequested() {
@@ -14,7 +14,7 @@ enum Snapshot {
         MainActor.assumeIsolated {
             let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
             if args.contains("--log") {
-                // 見本用の練習記録: 今日を含め 4 日連続、その前に 1 日休み、さらに前にも練習
+                // 見本用の練習記録: 今日を含めて数日分（グラフに空いた日も出るよう 1 日休みを挟む）
                 var log = PracticeLog()
                 for (daysAgo, minutes) in [(0, 25.0), (1, 40), (2, 15), (3, 30), (5, 20), (6, 35)] {
                     let end = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
@@ -29,7 +29,6 @@ enum Snapshot {
             if args.contains("--countdown") { engine.seedTempoStepCountdown(3) }
             engine.gapTrainerEnabled = args.contains("--gap")
             engine.isMuted = args.contains("--muted")
-            if args.contains("--goal") { engine.weeklyGoalMinutes = 120 }
             if args.contains("--rests") {
                 // 見本: 2 拍目と 4 拍目だけ鳴らすジャズの練習
                 engine.setBeats(4)

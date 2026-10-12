@@ -7,12 +7,6 @@ public final class PulstickEngine: ObservableObject {
     public static let bpmRange: ClosedRange<Double> = 30...300
     public static let beatsRange: ClosedRange<Int> = 1...16
     public static let countInRange: ClosedRange<Int> = 0...2
-    /// 週の目標の選択肢（分）。0 は目標なし
-    public static let weeklyGoalOptions = [0, 60, 120, 180, 300]
-
-    static func nearestWeeklyGoal(_ minutes: Int) -> Int {
-        weeklyGoalOptions.min { abs($0 - minutes) < abs($1 - minutes) } ?? 0
-    }
 
     /// batchPatternChange の入れ子の深さ。0 より大きい間は、拍のパターン変更の反映を後回しにする
     var patternBatchDepth = 0
@@ -143,7 +137,7 @@ public final class PulstickEngine: ObservableObject {
     var songPractice = SongPracticeTracker()
     /// 練習時間の計測に使う時計。テストでは差し替えて時間経過を再現する
     var now: () -> Date = Date.init
-    /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
+    /// これより短い再生は練習として記録しない（うっかり押しただけで記録が付かないように）
     var minimumLoggedSession: TimeInterval = 5
 
     /// 練習タイマー。設定すると、再生開始からこの秒数で自動的に止まる。nil なら止まらない
@@ -160,19 +154,6 @@ public final class PulstickEngine: ObservableObject {
 
     /// 練習が始まったか。カウントインがあれば、それが終わるまでは false（練習として記録しない）
     var practiceHasBegun = false
-
-    /// 週の練習目標（分）。0 なら目標なし
-    @Published public var weeklyGoalMinutes = 0 {
-        didSet {
-            // メニューで選択中の項目が分からなくならないよう、いちばん近い選択肢に揃える
-            let snapped = Self.nearestWeeklyGoal(weeklyGoalMinutes)
-            guard weeklyGoalMinutes == snapped else {
-                weeklyGoalMinutes = snapped
-                return
-            }
-            defaults.set(weeklyGoalMinutes, forKey: SettingsKeys.weeklyGoalMinutes)
-        }
-    }
 
     /// 再生開始時に鳴らす予備の小節数（0 ならすぐ始める）。楽器を構える間や録音の入りのため
     @Published public var countInBars = 0 {
@@ -266,7 +247,6 @@ public final class PulstickEngine: ObservableObject {
         _songs = Published(initialValue: stored.songs)
         _selectedSongID = Published(initialValue: stored.selectedSongID)
         _countInBars = Published(initialValue: stored.countInBars)
-        _weeklyGoalMinutes = Published(initialValue: stored.weeklyGoalMinutes)
         // 終了時の設定がその曲のままでなければ、仮の選択（[ ] の起点）として戻す
         if let selected = songs.first(where: { $0.id == selectedSongID }) {
             selectedSongIsTentative = !matchesCurrentSettings(selected)

@@ -29,9 +29,6 @@
 "trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 "trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 "tempo.announcement" = "テンポ %lld";
-"report.header" = "直近 7 日の練習: %@";
-"report.header.goal" = "直近 7 日の練習: %1$@（目標 %2$@）";
-"Copy the Last 7 Days" = "直近 7 日の記録をコピー";
 
 /* Silent bars. %1$@ = bars played, %2$@ = bars muted */
 "Silent Bars" = "サイレント小節";
@@ -60,7 +57,6 @@
 
 /* Practice summary */
 "Today %lld min" = "今日 %lld 分";
-"%lld-day streak" = "%lld 日連続";
 "Practice time is counted while the metronome plays" = "メトロノームを鳴らしている時間を練習時間として記録します";
 
 /* Accessibility */
@@ -147,9 +143,9 @@
 
 /* Reset practice history */
 "Reset Practice History…" = "練習記録をリセット…";
+"This clears today's minutes, the 7-day chart and each song's practice time and best tempo. Your songs stay." = "今日の練習時間、7 日間のグラフ、曲ごとの練習時間と最高テンポを消します。曲そのものは残ります。";
 "Reset practice history?" = "練習記録をリセットしますか？";
 "Reset" = "リセット";
-"This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay." = "今日の練習時間、連続日数、7 日間のグラフ、曲ごとの練習時間と最高テンポを消します。曲そのものは残ります。";
 "Best ♩=%lld" = "最高 ♩=%lld";
 "Practise at %@" = "%@ のテンポで練習";
 "Ramp Up from 70%% to ♩=%lld" = "70%% から ♩=%lld まで上げていく";
@@ -162,13 +158,6 @@
 "2-bar count-in" = "カウントイン 2 小節";
 "1 Bar" = "1 小節";
 "2 Bars" = "2 小節";
-
-/* Weekly goal */
-"Weekly Goal" = "週の目標";
-"Weekly goal" = "週の目標";
-"No Goal" = "目標なし";
-"%lld h a Week" = "週 %lld 時間";
-"Last 7 days %@ / %@" = "直近 7 日 %1$@ / %2$@";
 
 /* Setlist sharing */
 "Copy the setlist to share it with your band" = "セットリストをコピーしてバンドのメンバーと共有";
@@ -183,7 +172,7 @@
 "Right-click" = "右クリック";
 "Practice timer, count-in" = "練習タイマー、カウントイン";
 "Today’s minutes" = "今日の練習時間";
-"Weekly goal, copy the last 7 days" = "週の目標、直近 7 日の記録のコピー";
+"Reset the practice history" = "練習の記録をリセット";
 "A preset" = "プリセット";
 "Save the current pattern" = "いまのパターンを保存";
 "A song" = "曲";

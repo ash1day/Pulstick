@@ -443,17 +443,7 @@ struct SongTests {
         #expect(engine.songs[0].bestBPM == nil)
     }
 
-    @Test func weeklyGoalIsRememberedAndKeptInRange() {
-        let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
-        first.weeklyGoalMinutes = 120
-        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
-        #expect(second.weeklyGoalMinutes == 120)
-        second.weeklyGoalMinutes = -5
-        #expect(second.weeklyGoalMinutes == 0)
-    }
-
-    @Test func weekProgressIncludesTheSessionPlayingNow() {
+    @Test func theWeekChartIncludesTheSessionPlayingNow() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
         var log = PracticeLog()
@@ -461,11 +451,11 @@ struct SongTests {
         engine.seedPracticeLog(log)
         engine.start()
         clock.advance(600)
-        #expect(engine.practiceSecondsThisWeek() == 1800 + 600)
+        #expect(engine.practiceLogIncludingCurrentSession().recentDays(7, endingAt: clock.date).reduce(0, +) == 1800 + 600)
         engine.stop()
     }
 
-    @Test func weekProgressCountsASessionPlayingAcrossMidnight() {
+    @Test func theWeekChartCountsASessionPlayingAcrossMidnight() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
         let clock = TestClock()
@@ -473,7 +463,8 @@ struct SongTests {
         let engine = makeEngine(clock: clock)
         engine.start()
         clock.advance(50 * 60)  // 0:20 まで弾き続けている
-        #expect(engine.practiceSecondsThisWeek(calendar: calendar) == 50 * 60)
+        let week = engine.practiceLogIncludingCurrentSession(calendar: calendar).recentDays(7, endingAt: clock.date, calendar: calendar)
+        #expect(week.reduce(0, +) == 50 * 60)
         engine.stop()
     }
 
@@ -490,20 +481,14 @@ struct SongTests {
         engine.stop()
     }
 
-    @Test func weekProgressLeavesOutDaysOlderThanSeven() {
+    @Test func theWeekChartLeavesOutDaysOlderThanSeven() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
         var log = PracticeLog()
         let eightDaysAgo = clock.date.addingTimeInterval(-8 * 86_400)
         log.record(from: eightDaysAgo, to: eightDaysAgo.addingTimeInterval(3600))
         engine.seedPracticeLog(log)
-        #expect(engine.practiceSecondsThisWeek() == 0)
-    }
-
-    @Test func weeklyGoalSnapsToAMenuOption() {
-        let engine = makeEngine()
-        engine.weeklyGoalMinutes = 100
-        #expect(PulstickEngine.weeklyGoalOptions.contains(engine.weeklyGoalMinutes))
+        #expect(engine.practiceLogIncludingCurrentSession().recentDays(7, endingAt: clock.date).reduce(0, +) == 0)
     }
 
     @Test func stoppingDuringTheCountInRecordsNoPractice() async throws {
@@ -1679,15 +1664,6 @@ struct PracticeLogTests {
         #expect(log.seconds(on: date(13, 12), calendar: calendar) == 20 * 60)
     }
 
-    @Test func streakCountsConsecutiveDaysEndingToday() {
-        var log = PracticeLog()
-        for day in [9, 10, 11, 12] {
-            log.record(from: date(day, 20), to: date(day, 20, 10), calendar: calendar)
-        }
-        log.record(from: date(7, 20), to: date(7, 20, 10), calendar: calendar)  // 8日が空くので数えない
-        #expect(log.streak(endingAt: date(12, 22), calendar: calendar) == 4)
-    }
-
     @Test func recentDaysListsOldestFirstWithZerosForMissedDays() {
         var log = PracticeLog()
         log.record(from: date(10, 20), to: date(10, 20, 30), calendar: calendar)
@@ -1695,18 +1671,6 @@ struct PracticeLogTests {
         #expect(log.recentDays(3, endingAt: date(12, 22), calendar: calendar) == [1800, 0, 600])
     }
 
-    @Test func practisingRightNowCountsTodayInTheStreak() {
-        var log = PracticeLog()
-        log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
-        #expect(log.streak(endingAt: date(12, 8), practisingNow: true, calendar: calendar) == 2)
-    }
-
-    @Test func streakStillCountsWhenTodayHasNoPracticeYet() {
-        var log = PracticeLog()
-        log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
-        #expect(log.streak(endingAt: date(12, 8), calendar: calendar) == 1)
-        #expect(log.streak(endingAt: date(13, 8), calendar: calendar) == 0)
-    }
 }
 
 // MARK: - ClickSynth
