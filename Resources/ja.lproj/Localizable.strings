@@ -44,7 +44,6 @@
 "Play (Space)" = "再生（Space）";
 
 /* Volume & footer */
-"Click volume" = "クリック音量";
 "Accent volume" = "強拍の音量";
 "Beat volume" = "弱拍の音量";
 "Launch at Login" = "ログイン時に起動";
@@ -85,3 +84,8 @@
 "Delete" = "削除";
 "Delete %@" = "%@ を削除";
 "♩=%lld · %lld beats" = "♩=%1$lld · %2$lld 拍";
+
+/* Mute */
+"Mute" = "ミュート";
+"Unmute" = "ミュートを解除";
+"Mute the click (the beat display keeps going)" = "クリック音を消す（拍の表示は続きます）";

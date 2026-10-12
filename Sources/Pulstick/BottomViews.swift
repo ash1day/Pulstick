@@ -70,12 +70,19 @@ struct VolumeRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "speaker.wave.2.fill")
+            // 録音に合わせるときや音を出せない場所では、音だけ止めて拍の表示で練習できる
+            Image(systemName: engine.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .help("Click volume")
-            volumeSlider(value: $engine.accentVolume, accent: true)
-            volumeSlider(value: $engine.normalVolume, accent: false)
+                .foregroundColor(engine.isMuted ? .orange : .secondary)
+                .frame(width: 16)
+                .help(engine.isMuted ? "Unmute" : "Mute the click (the beat display keeps going)")
+                .accessibleToggle($engine.isMuted, label: Text("Mute"))
+            Group {
+                volumeSlider(value: $engine.accentVolume, accent: true)
+                volumeSlider(value: $engine.normalVolume, accent: false)
+            }
+            .saturation(engine.isMuted ? 0 : 1)
+            .opacity(engine.isMuted ? 0.6 : 1)
         }
     }
 

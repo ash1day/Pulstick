@@ -39,9 +39,13 @@ struct MenuBarLabel: View {
         Group {
             if engine.isPlaying {
                 HStack(spacing: 3) {
-                    Image(systemName: "metronome.fill")
+                    Image(systemName: engine.isMuted ? "speaker.slash.fill" : "metronome.fill")
                     Text("\(Int(engine.bpm))")
                         .monospacedDigit()
+                    // 音が出ていないときだけ拍番号を出す（毎拍の再描画はこの間だけにとどめる）
+                    if engine.isMuted {
+                        MenuBarBeat(clock: engine.beatClock)
+                    }
                 }
             } else {
                 Image(systemName: "metronome")
@@ -49,5 +53,15 @@ struct MenuBarLabel: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(engine.isPlaying ? Text("Pulstick, playing at \(Int(engine.bpm)) BPM") : Text("Pulstick, stopped"))
+    }
+}
+
+/// ミュート中にメニューバーで現在の拍を示す
+struct MenuBarBeat: View {
+    @ObservedObject var clock: BeatClock
+
+    var body: some View {
+        Text(verbatim: "· \(clock.current + 1)")
+            .monospacedDigit()
     }
 }

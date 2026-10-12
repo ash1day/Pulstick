@@ -149,6 +149,11 @@ public final class PulstickEngine: ObservableObject {
     /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
     var minimumLoggedSession: TimeInterval = 5
 
+    /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない
+    @Published public var isMuted = false {
+        didSet { syncSequencer() }
+    }
+
     @Published public var clickSound: ClickSound = .beep {
         didSet {
             guard !isRestoring, clickSound != oldValue else { return }
@@ -179,6 +184,7 @@ public final class PulstickEngine: ObservableObject {
     /// 再生開始からの小節番号と、無音小節の設定。タイマーキュー上でのみ読み書きする
     private var measureIndex = 0
     private var activeGap: GapTrainer?
+    private var activeMute = false
     /// タイマーキュー上でのみ読み書きする
     private var sequencer = BeatSequencer(beatsPerMeasure: 4, accents: [0])
     private var timerSource: DispatchSourceTimer?
@@ -494,8 +500,10 @@ public final class PulstickEngine: ObservableObject {
         let accents = accentBeats
         let subdivision = subdivision
         let gap = gapTrainerEnabled ? gapTrainer : nil
+        let muted = isMuted
         timerQueue.async { [weak self] in
             self?.activeGap = gap
+            self?.activeMute = muted
             self?.sequencer.beatsPerMeasure = beats
             self?.sequencer.accents = accents
             self?.sequencer.subdivision = subdivision
@@ -508,7 +516,7 @@ public final class PulstickEngine: ObservableObject {
             measureIndex += 1
         }
         let silent = activeGap?.isMuted(measure: measureIndex) ?? false
-        if !silent {
+        if !silent, !activeMute {
             output.play(tick.click)
         }
         guard tick.click != .subdivision else { return }

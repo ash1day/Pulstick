@@ -608,6 +608,22 @@ struct PlaybackIntegrationTests {
         #expect(engine.practiceLog.seconds(on: Date()) == 0)
     }
 
+    @Test func mutedEngineKeepsTimeButPlaysNothing() async throws {
+        let output = SilentClickOutput()
+        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
+        engine.setBeats(4)
+        engine.bpm = 240
+        engine.isMuted = true
+        var beatChanges = 0
+        let cancellable = engine.beatClock.$current.removeDuplicates().dropFirst().sink { _ in beatChanges += 1 }
+        engine.start()
+        try await spin(0.6)
+        engine.stop()
+        cancellable.cancel()
+        #expect(output.played.isEmpty)
+        #expect(beatChanges >= 1)
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
