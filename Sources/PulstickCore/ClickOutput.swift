@@ -73,7 +73,8 @@ public final class AudioClickOutput: ClickOutput {
         // 放っておくと拍の表示は進むのに音だけ鳴らなくなるため、構成変更のたびに再始動する。
         // ノードの接続は保たれ、クリックごとに node.play() し直すので次の拍から音が戻る
         configurationObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange, object: audioEngine, queue: nil
+            // 通知はどのスレッドからでも届くので、再始動はメインキューに寄せて start() 同士が重ならないようにする
+            forName: .AVAudioEngineConfigurationChange, object: audioEngine, queue: .main
         ) { [weak self] _ in
             self?.prepare()
         }
