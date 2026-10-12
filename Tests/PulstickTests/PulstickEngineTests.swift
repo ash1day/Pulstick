@@ -524,6 +524,21 @@ struct PlaybackIntegrationTests {
         #expect(relaunched.practiceLog == engine.practiceLog)
     }
 
+    @Test func sessionSavedMidwayIsNotCountedAgainOnStop() async throws {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        engine.start()
+        let startedAt = engine.playStartedAt!
+        try await spin(0.1)
+        engine.recordSession()  // アプリ終了通知などで途中まで記録
+        try await spin(0.1)
+        engine.stop()           // 残りだけが加算されるべき
+        let elapsed = Date().timeIntervalSince(startedAt)
+        let logged = engine.practiceLog.seconds(on: startedAt)
+        #expect(logged <= elapsed)
+        #expect(logged > elapsed - 0.05)
+    }
+
     @Test func veryShortSessionsAreNotLogged() async throws {
         let engine = makeEngine()
         engine.start()
