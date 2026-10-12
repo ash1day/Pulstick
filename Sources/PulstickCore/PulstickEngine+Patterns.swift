@@ -1,6 +1,6 @@
 import Foundation
 
-// テンポ・拍・アクセント・休符・プリセットの操作（曲は PulstickEngine+Songs.swift）
+// テンポ・拍・アクセント・休符・プリセットの操作（曲は PulstickEngine+Songs.swift、スピードトレーナーは PulstickEngine+Trainer.swift）
 extension PulstickEngine {
     /// 拍のパターンを反映する。プリセットと曲で共通。保存データが壊れていても使えるよう検証してから入れる
     func applyPattern(_ pattern: BeatPreset) {
@@ -17,13 +17,6 @@ extension PulstickEngine {
 
     var currentPattern: BeatPreset {
         BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted(), rests: Array(restBeats).sorted())
-    }
-
-    /// いまのテンポをスピードトレーナーの起点にし、小節の数え直しを始める
-    func restartSession() {
-        sessionStartBPM = bpm
-        speedTrainerProgress.restart()
-        updateTempoStepCountdown()
     }
 
     public func applyPreset(at index: Int) {
