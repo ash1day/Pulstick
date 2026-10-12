@@ -124,7 +124,8 @@ struct StepperSentence: View {
         ForEach(parts.indices, id: \.self) { index in
             switch parts[index] {
             case .text(let text): Text(verbatim: text)
-            case .slot(let slot): slots[slot]
+            // 訳文の差し込み番号が誤っていても落ちないよう、範囲外は無視する
+            case .slot(let slot): if slots.indices.contains(slot) { slots[slot] }
             }
         }
     }

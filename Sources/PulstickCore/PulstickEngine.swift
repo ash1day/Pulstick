@@ -66,6 +66,11 @@ public final class PulstickEngine: ObservableObject {
         // didSet 内で clamp して再代入すると didSet が再発火するため、
         // 値が変わった場合のみ return で抜けてループを防ぐ
         didSet {
+            // NaN は比較が常に不一致になり clamp の再代入が止まらなくなるため、非有限値は元に戻す
+            guard bpm.isFinite else {
+                bpm = oldValue
+                return
+            }
             let clamped = bpm.clamped(to: Self.bpmRange)
             if bpm != clamped {
                 bpm = clamped
@@ -185,6 +190,8 @@ public final class PulstickEngine: ObservableObject {
     private var measureIndex = 0
     private var activeGap: GapTrainer?
     private var activeMute = false
+    /// 再生のたびに増える番号。停止直後に届いた前の再生の拍を、次の再生に反映しないために使う
+    private var playbackGeneration = 0
     /// タイマーキュー上でのみ読み書きする
     private var sequencer = BeatSequencer(beatsPerMeasure: 4, accents: [0])
     private var timerSource: DispatchSourceTimer?
@@ -223,7 +230,7 @@ public final class PulstickEngine: ObservableObject {
             beatsPerMeasure = saved.clamped(to: Self.beatsRange)
         }
         if let saved = defaults.object(forKey: Keys.accents) as? [Int] {
-            accentBeats = Set(saved.filter { $0 < beatsPerMeasure })
+            accentBeats = validAccents(saved)
         }
         if let saved = defaults.object(forKey: Keys.accentVolume) as? Double {
             accentVolume = saved.clamped(to: 0...1)
@@ -268,15 +275,13 @@ public final class PulstickEngine: ObservableObject {
     public func saveCurrentAsSong(named name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let song = Song(
+        var song = Song(
             name: trimmed, bpm: bpm, beats: beatsPerMeasure,
             accents: Array(accentBeats).sorted(), subdivision: subdivision
         )
         if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            songs[index] = Song(
-                id: songs[index].id, name: trimmed, bpm: song.bpm, beats: song.beats,
-                accents: song.accents, subdivision: song.subdivision
-            )
+            song.id = songs[index].id
+            songs[index] = song
         } else {
             songs.append(song)
         }
@@ -285,9 +290,18 @@ public final class PulstickEngine: ObservableObject {
     public func applySong(_ song: Song) {
         bpm = song.bpm
         beatsPerMeasure = song.beats.clamped(to: Self.beatsRange)
-        accentBeats = Set(song.accents.filter { $0 < beatsPerMeasure })
+        accentBeats = validAccents(song.accents)
         subdivision = song.subdivision
-        beatClock.current = 0
+        // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
+        if isPlaying {
+            sessionStartBPM = bpm
+            speedTrainerProgress.restart()
+        }
+    }
+
+    /// 保存データや曲から読んだアクセント位置のうち、いまの拍数の範囲にあるものだけを残す
+    private func validAccents(_ accents: [Int]) -> Set<Int> {
+        Set(accents.filter { (0..<beatsPerMeasure).contains($0) })
     }
 
     public func deleteSong(_ song: Song) {
@@ -299,7 +313,6 @@ public final class PulstickEngine: ObservableObject {
         let preset = presets[index]
         beatsPerMeasure = preset.beats
         accentBeats = preset.accentSet
-        beatClock.current = 0
     }
 
     public func saveCurrentAsPreset(at index: Int) {
@@ -325,6 +338,8 @@ public final class PulstickEngine: ObservableObject {
     public func start() {
         guard !isPlaying else { return }
         isPlaying = true
+        playbackGeneration += 1
+        let generation = playbackGeneration
         beatClock.current = 0
         playStartedAt = Date()
         sessionStartBPM = bpm
@@ -335,9 +350,9 @@ public final class PulstickEngine: ObservableObject {
         timerQueue.async { [self] in
             lastFireTime = DispatchTime.now().uptimeNanoseconds
             measureIndex = 0
-            play(sequencer.reset(), countsMeasure: false)
+            play(sequencer.reset(), countsMeasure: false, generation: generation)
         }
-        scheduleTimer()
+        scheduleTimer(generation: generation)
     }
 
     /// 音色を選んだときの試聴。再生中は鳴らさない（次の拍で新しい音が聞こえるため）
@@ -362,7 +377,9 @@ public final class PulstickEngine: ObservableObject {
             practiceLog.record(from: startedAt, to: Date())
         }
         isPlaying = false
+        playbackGeneration += 1
         playStartedAt = nil
+        sessionStartBPM = nil
         timerSource?.cancel()
         timerSource = nil
         output.stopAll()
@@ -408,7 +425,6 @@ public final class PulstickEngine: ObservableObject {
     public func setBeats(_ beats: Int) {
         beatsPerMeasure = beats.clamped(to: Self.beatsRange)
         accentBeats = [0]
-        beatClock.current = 0
     }
 
     public func addBeat() {
@@ -469,7 +485,7 @@ public final class PulstickEngine: ObservableObject {
     /// タイマーコールバック内で次のビートとアクセントを先に確定し、
     /// 音を鳴らしてから UI 更新をメインスレッドに送ることで、
     /// 音とビート表示のズレを防ぐ。
-    private func scheduleTimer() {
+    private func scheduleTimer(generation: Int) {
         let interval = tickInterval
         // .strict: macOS は省電力のために複数タイマーの発火をまとめる（timer coalescing）が、
         // メトロノームでは数ms のズレも体感できるため、まとめずに即発火させる。
@@ -487,7 +503,7 @@ public final class PulstickEngine: ObservableObject {
             // メインスレッドに送ると UI 処理の順番待ちで音が遅延するため。
             // 人間は視覚より聴覚のズレに敏感なので、音を優先し UI 更新だけ非同期で送る。
             self.lastFireTime = DispatchTime.now().uptimeNanoseconds
-            self.play(self.sequencer.advance(), countsMeasure: true)
+            self.play(self.sequencer.advance(), countsMeasure: true, generation: generation)
         }
         source.resume()
         timerSource = source
@@ -511,7 +527,7 @@ public final class PulstickEngine: ObservableObject {
     }
 
     /// タイマーキュー上で呼ぶ。音を先に鳴らし、UI 更新だけメインスレッドへ送る
-    private func play(_ tick: Tick, countsMeasure: Bool) {
+    private func play(_ tick: Tick, countsMeasure: Bool, generation: Int) {
         if countsMeasure, tick.startsMeasure {
             measureIndex += 1
         }
@@ -521,7 +537,7 @@ public final class PulstickEngine: ObservableObject {
         }
         guard tick.click != .subdivision else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.isPlaying else { return }
+            guard let self, self.isPlaying, self.playbackGeneration == generation else { return }
             self.beatClock.current = tick.beat
             if self.beatClock.isInSilentBar != silent {
                 self.beatClock.isInSilentBar = silent

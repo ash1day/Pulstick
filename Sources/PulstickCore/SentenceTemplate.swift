@@ -9,11 +9,12 @@ public enum SentenceTemplate {
         case slot(Int)
     }
 
+    // Swift 5 モードでは /…/ リテラルが使えないため文字列から組み立てる。毎回の生成を避けて一度だけ作る
+    private nonisolated(unsafe) static let placeholder = try! Regex(#"%(\d+)\$@"#, as: (Substring, Substring).self)
+
     public static func parse(_ template: String) -> [Part] {
         var parts: [Part] = []
         var rest = Substring(template)
-        // Swift 5 モードでは /…/ リテラルが使えないため文字列から組み立てる
-        let placeholder = try! Regex(#"%(\d+)\$@"#, as: (Substring, Substring).self)
         while let match = rest.firstMatch(of: placeholder) {
             appendText(rest[..<match.range.lowerBound], to: &parts)
             parts.append(.slot(Int(match.output.1)! - 1))

@@ -15,6 +15,6 @@ public enum TempoMarking {
     ]
 
     public static func name(for bpm: Double) -> String {
-        thresholds.last { bpm >= $0.lowerBound }!.name
+        (thresholds.last { bpm >= $0.lowerBound } ?? thresholds[0]).name
     }
 }

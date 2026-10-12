@@ -107,6 +107,14 @@ struct BPMTests {
         #expect(engine.bpm == 30)
     }
 
+    @Test(arguments: [Double.nan, .infinity, -.infinity])
+    func nonFiniteTempoIsRejected(value: Double) {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.bpm = value
+        #expect(engine.bpm == 100)
+    }
+
     @Test func incrementBPMAddsOne() {
         let engine = makeEngine()
         engine.bpm = 120
@@ -215,6 +223,17 @@ struct SongTests {
         #expect(engine.songs.first?.bpm == 110)
     }
 
+    @Test func applyingSongWhilePlayingMakesItTheNewStartingTempo() throws {
+        let engine = makeEngine()
+        engine.bpm = 150
+        engine.saveCurrentAsSong(named: "Fast")
+        engine.bpm = 100
+        engine.start()
+        engine.applySong(try #require(engine.songs.first))
+        #expect(engine.sessionStartBPM == 150)
+        engine.stop()
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
@@ -300,6 +319,14 @@ struct PersistenceTests {
         let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.beatsPerMeasure == 5)
         #expect(second.accentBeats == [0, 2])
+    }
+
+    @Test func invalidSavedAccentsAreDropped() {
+        let defaults = InMemorySettingsStore()
+        defaults.set(4, forKey: "pulstick.beats")
+        defaults.set([-1, 0, 2, 9], forKey: "pulstick.accents")
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(engine.accentBeats == [0, 2])
     }
 
     @Test func volumesAreRestoredOnNextLaunch() {
@@ -547,9 +574,10 @@ struct PlaybackIntegrationTests {
         engine.speedTrainerEnabled = true
         engine.start()
         try await spin(0.8)
+        #expect(engine.sessionStartBPM == 200)
         engine.stop()
         #expect(engine.bpm > 200)
-        #expect(engine.sessionStartBPM == 200)
+        #expect(engine.sessionStartBPM == nil)
         #expect(engine.playStartedAt == nil)
     }
 
@@ -598,6 +626,13 @@ struct PlaybackIntegrationTests {
         #expect(logged <= elapsed)
         let relaunched = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(relaunched.practiceLog == engine.practiceLog)
+    }
+
+    @Test func stoppingClearsTheSessionStartTempo() {
+        let engine = makeEngine()
+        engine.start()
+        engine.stop()
+        #expect(engine.sessionStartBPM == nil)
     }
 
     @Test func veryShortSessionsAreNotLogged() async throws {
