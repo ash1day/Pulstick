@@ -208,6 +208,8 @@ struct MiniStepper: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // 目標テンポを 120 → 180 のように大きく動かすとき、何十回もクリックしなくて済むよう長押しで連続して増減する
+        .buttonRepeatBehavior(.enabled)
         .foregroundColor(.secondary)
         .pointingHandCursor()
     }

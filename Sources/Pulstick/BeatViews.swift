@@ -267,6 +267,8 @@ struct BPMSlider: View {
                 .contentShape(Circle())
         }
         .buttonStyle(GlyphButtonStyle())
+        // 長押しで連続して 1 ずつ動かせる。スライダーより細かく、キーボードに手を伸ばさずに合わせられる
+        .buttonRepeatBehavior(.enabled)
         .pointingHandCursor()
     }
 }
