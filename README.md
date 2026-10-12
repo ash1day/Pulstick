@@ -9,7 +9,7 @@ A minimal metronome that lives in your macOS menu bar.
 ## Features
 
 - Tempo 30–300 BPM: drag, use the ± buttons (hold to keep going) or arrow keys, tap along, or click the number and type
-- Up to 16 beats per bar; click a beat to cycle normal → accent → rest (e.g. click only on 2 and 4), plus four presets you can overwrite (right-click)
+- Up to 16 beats per bar; click a beat to cycle normal → accent → rest, or right-click it to pick one (e.g. click only on 2 and 4), plus four presets you can overwrite (right-click)
 - Songs: save the tempo, beat pattern and subdivision under a song name, recall it in one click, and see how long you have practised each song. Songs keep setlist order (right-click to move, update with the current settings, delete, or practise at 70–90 % of the tempo) and `[` / `]` step through them. Copy and paste a setlist to share it with your band
 - Subdivisions: eighths, triplets, sixteenths
 - Three click sounds (beep, wood, tick), all synthesized in code
