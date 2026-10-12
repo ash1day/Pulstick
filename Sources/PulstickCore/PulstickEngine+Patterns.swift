@@ -20,6 +20,7 @@ extension PulstickEngine {
         bpm = song.bpm
         beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
         accentBeats = validAccents(song.pattern.accents)
+        restBeats = validAccents(song.pattern.rests)
         subdivision = song.subdivision
         // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
         if isPlaying {
@@ -28,7 +29,7 @@ extension PulstickEngine {
     }
 
     var currentPattern: BeatPreset {
-        BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted())
+        BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted(), rests: Array(restBeats).sorted())
     }
 
     /// いまのテンポをスピードトレーナーの起点にし、小節の数え直しを始める
@@ -45,7 +46,8 @@ extension PulstickEngine {
     /// 曲リストで「いま使っている曲」を強調するための判定
     public func matchesCurrentSettings(_ song: Song) -> Bool {
         song.bpm == bpm && song.pattern.beats == beatsPerMeasure
-            && song.pattern.accentSet == accentBeats && song.subdivision == subdivision
+            && song.pattern.accentSet == accentBeats && song.pattern.restSet == restBeats
+            && song.subdivision == subdivision
     }
 
     public func deleteSong(_ song: Song) {
@@ -57,6 +59,7 @@ extension PulstickEngine {
         let preset = presets[index]
         beatsPerMeasure = preset.beats
         accentBeats = preset.accentSet
+        restBeats = preset.restSet
     }
 
     public func saveCurrentAsPreset(at index: Int) {
@@ -89,6 +92,7 @@ extension PulstickEngine {
     public func setBeats(_ beats: Int) {
         beatsPerMeasure = beats.clamped(to: Self.beatsRange)
         accentBeats = [0]
+        restBeats = []
     }
 
     public func addBeat() {
@@ -101,9 +105,22 @@ extension PulstickEngine {
         guard beatsPerMeasure > Self.beatsRange.lowerBound else { return }
         let last = beatsPerMeasure - 1
         accentBeats.remove(last)
+        restBeats.remove(last)
         beatsPerMeasure -= 1
         if beatClock.current >= beatsPerMeasure {
             beatClock.current = 0
+        }
+    }
+
+    /// 拍をタップしたときの切り替え: 弱 → 強 → 休み → 弱
+    public func cycleBeat(_ beat: Int) {
+        if restBeats.contains(beat) {
+            restBeats.remove(beat)
+        } else if accentBeats.contains(beat) {
+            accentBeats.remove(beat)
+            restBeats.insert(beat)
+        } else {
+            accentBeats.insert(beat)
         }
     }
 

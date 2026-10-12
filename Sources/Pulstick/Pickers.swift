@@ -17,6 +17,7 @@ struct PresetPicker: View {
     private func presetButton(_ index: Int) -> some View {
         let preset = engine.presets[index]
         let selected = engine.beatsPerMeasure == preset.beats && engine.accentBeats == preset.accentSet
+            && engine.restBeats == preset.restSet
         // 拍数が多いプリセットはボタン幅に収まるよう○を小さくする
         let dense = preset.beats > 6
         let accentSize: CGFloat = dense ? 5 : 7
@@ -24,12 +25,16 @@ struct PresetPicker: View {
         return HStack(spacing: dense ? 1.5 : 2) {
             ForEach(0..<preset.beats, id: \.self) { i in
                 let isAccent = preset.accents.contains(i)
+                let isRest = preset.rests.contains(i)
                 Circle()
                     .fill(
-                        isAccent
+                        isRest ? Color.clear
+                            : isAccent
                             ? (selected ? Color.orange : Color.orange.opacity(0.5))
                             : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
                     )
+                    // 休符は輪郭だけの小さな○
+                    .overlay(Circle().stroke(isRest ? Color.secondary.opacity(selected ? 0.5 : 0.3) : .clear, lineWidth: 0.8))
                     .frame(width: isAccent ? accentSize : normalSize, height: isAccent ? accentSize : normalSize)
             }
         }

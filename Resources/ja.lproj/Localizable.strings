@@ -1,7 +1,7 @@
 /* Beat indicator */
 "Remove a beat" = "拍を減らす";
 "Add a beat" = "拍を増やす";
-"Click a beat to toggle its accent" = "拍をクリックするとアクセント（強拍）を切り替えます";
+"Click a beat to switch it: normal → accent → rest" = "拍をクリックするたびに 弱 → 強 → 休み と切り替わります";
 
 /* BPM */
 "Click to type a tempo" = "クリックしてテンポを入力";
@@ -116,3 +116,4 @@
 "Press ⌃⌥M in any app to start or stop." = "どのアプリを使っていても、⌃⌥M で再生・停止できます。";
 "Turn on “Launch at Login” at the bottom to keep it handy." = "開いた画面の下にある「ログイン時に起動」をオンにしておくと、いつでも使えます。";
 "Got It" = "はじめる";
+"Rest" = "休み";

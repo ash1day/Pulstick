@@ -17,12 +17,16 @@ public struct Tick: Equatable {
     public var click: ClickKind
     /// この tick で新しい小節に入ったか（小節頭の tick で true）
     public var startsMeasure: Bool
+    /// 休符にした拍。拍の表示は進むが音は鳴らさない（音の種類ではないので ClickKind とは分けている）
+    public var isRest = false
 }
 
 /// 拍・細分の進行を管理する純粋なロジック。オーディオやタイマーには依存しない
 public struct BeatSequencer {
     public var beatsPerMeasure: Int
     public var accents: Set<Int>
+    /// 休符にした拍。「2 拍目と 4 拍目だけ鳴らす」ジャズの練習などに使う
+    public var rests: Set<Int> = []
     public var subdivision: Subdivision
 
     public private(set) var beat = 0
@@ -38,7 +42,7 @@ public struct BeatSequencer {
     public mutating func reset() -> Tick {
         beat = 0
         step = 0
-        return Tick(beat: 0, click: accentClick(for: 0), startsMeasure: true)
+        return beatTick(0)
     }
 
     public mutating func advance() -> Tick {
@@ -48,10 +52,14 @@ public struct BeatSequencer {
         }
         step = 0
         beat = (beat + 1) % beatsPerMeasure
-        return Tick(beat: beat, click: accentClick(for: beat), startsMeasure: beat == 0)
+        return beatTick(beat)
     }
 
-    private func accentClick(for beat: Int) -> ClickKind {
-        accents.contains(beat) ? .accent : .normal
+    /// 拍頭の tick
+    private func beatTick(_ beat: Int) -> Tick {
+        Tick(
+            beat: beat, click: accents.contains(beat) ? .accent : .normal,
+            startsMeasure: beat == 0, isRest: rests.contains(beat)
+        )
     }
 }

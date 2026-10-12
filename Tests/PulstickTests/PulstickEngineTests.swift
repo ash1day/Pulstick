@@ -91,6 +91,46 @@ struct AccentManagementTests {
     }
 }
 
+// MARK: - PulstickEngine: 休符
+
+@Suite("PulstickEngine: 休符")
+struct RestBeatTests {
+    @Test func tappingABeatCyclesNormalAccentRest() {
+        let engine = makeEngine()
+        engine.setBeats(4)  // 1 拍目だけアクセント
+        engine.cycleBeat(1)
+        #expect(engine.accentBeats.contains(1))
+        engine.cycleBeat(1)
+        #expect(!engine.accentBeats.contains(1))
+        #expect(engine.restBeats.contains(1))
+        engine.cycleBeat(1)
+        #expect(!engine.restBeats.contains(1))
+    }
+
+    @Test func restBeatsSurviveRelaunchAndPresets() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.setBeats(4)
+        first.cycleBeat(0)  // 1 拍目: 強 → 休み
+        first.cycleBeat(2); first.cycleBeat(2)  // 3 拍目: 弱 → 強 → 休み
+        first.saveCurrentAsPreset(at: 3)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.restBeats == [0, 2])
+        second.setBeats(3)
+        #expect(second.restBeats.isEmpty)
+        second.applyPreset(at: 3)
+        #expect(second.restBeats == [0, 2])
+    }
+
+    @Test func presetsSavedBeforeRestsExistedStillLoad() {
+        let defaults = InMemorySettingsStore()
+        let old = #"[{"beats":5,"accents":[0]},{"beats":3,"accents":[0]},{"beats":6,"accents":[0,3]},{"beats":9,"accents":[0,3,6]}]"#
+        defaults.set(old.data(using: .utf8), forKey: "pulstick.presets")
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(engine.presets[0].beats == 5)
+    }
+}
+
 // MARK: - PulstickEngine: BPM
 
 @Suite("PulstickEngine: BPM")
@@ -412,6 +452,19 @@ struct BeatSequencerMeasureTests {
         var seq = BeatSequencer(beatsPerMeasure: 4, accents: [0, 2])
         _ = seq.advance()
         #expect(seq.advance().click == .accent)
+    }
+}
+
+@Suite("BeatSequencer: 休符")
+struct BeatSequencerRestTests {
+    @Test func restBeatsAreSilentButStillAdvance() {
+        // 2 拍目と 4 拍目だけ鳴らす（1・3 拍目を休符に）
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [])
+        seq.rests = [0, 2]
+        #expect(seq.reset().isRest)
+        #expect(seq.advance() == Tick(beat: 1, click: .normal, startsMeasure: false))
+        #expect(seq.advance() == Tick(beat: 2, click: .normal, startsMeasure: false, isRest: true))
+        #expect(seq.advance() == Tick(beat: 3, click: .normal, startsMeasure: false))
     }
 }
 
@@ -751,6 +804,18 @@ struct PlaybackIntegrationTests {
         try await spin(0.5)
         #expect(engine.isPlaying)
         engine.stop()
+    }
+
+    @Test func restBeatsPlayNothing() async throws {
+        let output = SilentClickOutput()
+        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
+        engine.setBeats(1)
+        engine.cycleBeat(0)  // 唯一の拍を休みに
+        engine.bpm = 240
+        engine.start()
+        try await spin(0.4)
+        engine.stop()
+        #expect(output.played.isEmpty)
     }
 
     @Test func subdivisionClicksReachTheOutput() async throws {

@@ -14,6 +14,7 @@ public final class PulstickEngine: ObservableObject {
         static let bpm = "pulstick.bpm"
         static let beats = "pulstick.beats"
         static let accents = "pulstick.accents"
+        static let rests = "pulstick.rests"
         static let accentVolume = "pulstick.accentVolume"
         static let normalVolume = "pulstick.normalVolume"
         static let subdivision = "pulstick.subdivision"
@@ -78,6 +79,15 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             guard !isRestoring else { return }
             defaults.set(Array(accentBeats).sorted(), forKey: Keys.accents)
+            syncSequencer()
+        }
+    }
+
+    /// 休符にした拍。拍の表示は進むが音は鳴らさない
+    @Published public var restBeats: Set<Int> = [] {
+        didSet {
+            guard !isRestoring else { return }
+            defaults.set(Array(restBeats).sorted(), forKey: Keys.rests)
             syncSequencer()
         }
     }
@@ -212,6 +222,9 @@ public final class PulstickEngine: ObservableObject {
         }
         if let saved = defaults.object(forKey: Keys.accents) as? [Int] {
             accentBeats = validAccents(saved)
+        }
+        if let saved = defaults.object(forKey: Keys.rests) as? [Int] {
+            restBeats = validAccents(saved)
         }
         if let saved = defaults.object(forKey: Keys.accentVolume) as? Double {
             accentVolume = saved.clamped(to: 0...1)

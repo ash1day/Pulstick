@@ -146,6 +146,7 @@ extension PulstickEngine {
     func syncSequencer() {
         let beats = beatsPerMeasure
         let accents = accentBeats
+        let rests = restBeats
         let subdivision = subdivision
         let gap = gapTrainerEnabled ? gapTrainer : nil
         let muted = isMuted
@@ -154,6 +155,7 @@ extension PulstickEngine {
             self?.activeMute = muted
             self?.sequencer.beatsPerMeasure = beats
             self?.sequencer.accents = accents
+            self?.sequencer.rests = rests
             self?.sequencer.subdivision = subdivision
         }
     }
@@ -164,7 +166,7 @@ extension PulstickEngine {
             measureIndex += 1
         }
         let silent = activeGap?.isMuted(measure: measureIndex) ?? false
-        if !silent, !activeMute {
+        if !silent, !activeMute, !tick.isRest {
             output.play(tick.click)
         }
         guard tick.click != .subdivision else { return }

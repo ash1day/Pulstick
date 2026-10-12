@@ -28,17 +28,14 @@ struct BeatIndicator: View {
                             .frame(width: slot, height: geo.size.height)
                             .contentShape(Rectangle())
                             .pointingHandCursor()
-                            .accessibleTap(
-                                Text("Beat \(beat + 1)"),
-                                value: engine.accentBeats.contains(beat) ? Text("Accented") : Text("Not accented")
-                            ) {
-                                engine.toggleAccent(beat)
+                            .accessibleTap(Text("Beat \(beat + 1)"), value: beatStateName(beat)) {
+                                engine.cycleBeat(beat)
                             }
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
             }
-            .help("Click a beat to toggle its accent")
+            .help("Click a beat to switch it: normal → accent → rest")
 
             stepButton("plus.circle", enabled: engine.beatsPerMeasure < PulstickEngine.beatsRange.upperBound) {
                 engine.addBeat()
@@ -59,21 +56,33 @@ struct BeatIndicator: View {
         .pointingHandCursor()
     }
 
+    private func beatStateName(_ beat: Int) -> Text {
+        if engine.restBeats.contains(beat) { return Text("Rest") }
+        return engine.accentBeats.contains(beat) ? Text("Accented") : Text("Not accented")
+    }
+
     private func beatDot(beat: Int, diameter: CGFloat) -> some View {
         let isAccent = engine.accentBeats.contains(beat)
+        let isRest = engine.restBeats.contains(beat)
         let isCurrent = engine.isPlaying && clock.current == beat
+        let outline = Color.secondary.opacity(contrast == .increased ? 0.8 : 0.35)
         return ZStack {
-            Circle()
-                .fill(isAccent
-                      ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
-                      : (isCurrent ? Color.accentColor.opacity(0.25) : Color.clear))
-            Circle()
-                .stroke(
-                    isAccent
-                        ? Color.clear
-                        : (isCurrent ? Color.accentColor : Color.secondary.opacity(contrast == .increased ? 0.8 : 0.35)),
-                    lineWidth: 1.5
-                )
+            if isRest {
+                // 休符: 鳴らない拍は点線の輪郭だけで示す
+                Circle()
+                    .stroke(isCurrent ? Color.accentColor : outline, style: StrokeStyle(lineWidth: 1.2, dash: [2, 2.5]))
+                    .padding(diameter * 0.15)
+            } else {
+                Circle()
+                    .fill(isAccent
+                          ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
+                          : (isCurrent ? Color.accentColor.opacity(0.25) : Color.clear))
+                Circle()
+                    .stroke(
+                        isAccent ? Color.clear : (isCurrent ? Color.accentColor : outline),
+                        lineWidth: 1.5
+                    )
+            }
         }
         .frame(width: diameter, height: diameter)
         // 無音小節中は拍の表示だけ進め、音が鳴っていないことを薄さで示す
