@@ -29,11 +29,14 @@ struct PulstickView: View {
                     }
                 BPMSlider(engine: engine)
             }
-            PresetPicker(engine: engine)
-            SegmentedPicker(Text("Subdivision"), items: Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
-                SubdivisionGlyph(subdivision: sub)
-                    .font(.system(size: 12, weight: .medium))
-            } onSelect: { engine.subdivision = $0 }
+            // プリセットと細分はどちらも拍のパターンを決めるので、近づけて 1 つのまとまりに見せる
+            VStack(spacing: 6) {
+                PresetPicker(engine: engine)
+                SegmentedPicker(Text("Subdivision"), items: Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
+                    SubdivisionGlyph(subdivision: sub)
+                        .font(.system(size: 12, weight: .medium))
+                } onSelect: { engine.subdivision = $0 }
+            }
             VStack(spacing: 6) {
                 SpeedTrainerSection(engine: engine)
                 GapTrainerSection(engine: engine)
