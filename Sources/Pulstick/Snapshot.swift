@@ -2,7 +2,7 @@ import AppKit
 import PulstickCore
 import SwiftUI
 
-/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome] [--rests] [--song]` でポップオーバーの中身を PNG に書き出して終了する。
+/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome] [--rests] [--song] [--goal]` でポップオーバーの中身を PNG に書き出して終了する。
 /// 開発中の見た目確認と LP 用スクリーンショットのための仕組み。
 enum Snapshot {
     static func runIfRequested() {
@@ -28,6 +28,7 @@ enum Snapshot {
             engine.speedTrainerEnabled = args.contains("--trainer")
             engine.gapTrainerEnabled = args.contains("--gap")
             engine.isMuted = args.contains("--muted")
+            if args.contains("--goal") { engine.weeklyGoalMinutes = 120 }
             if args.contains("--rests") {
                 // 見本: 2 拍目と 4 拍目だけ鳴らすジャズの練習
                 engine.setBeats(4)

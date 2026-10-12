@@ -173,6 +173,12 @@ extension PulstickEngine {
         return current.timeIntervalSince(max(startedAt, calendar.startOfDay(for: current)))
     }
 
+    /// 直近 7 日（今日を含む）の練習時間。再生中でまだ記録していない今日の分も含める
+    public func practiceSecondsThisWeek(calendar: Calendar = .current) -> TimeInterval {
+        practiceLog.recentDays(7, endingAt: now(), calendar: calendar).reduce(0, +)
+            + unsavedPracticeToday(calendar: calendar)
+    }
+
     var isLongEnoughToLog: Bool {
         playStartedAt.map { now().timeIntervalSince($0) >= minimumLoggedSession } ?? false
     }

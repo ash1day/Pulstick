@@ -135,7 +135,7 @@ struct PracticeSummary: View {
     @State private var isConfirmingReset = false
 
     var body: some View {
-        if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty {
+        if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty || engine.weeklyGoalMinutes > 0 {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let now = context.date
                 // 記録と同じ規則（5 秒未満は数えない・日付をまたいだら今日の分だけ）で再生中の時間を足す
@@ -143,19 +143,36 @@ struct PracticeSummary: View {
                 let today = engine.practiceLog.seconds(on: now) + running
                 let streak = engine.practiceLog.streak(endingAt: now, practisingNow: running > 0)
                 let week = recentWeek(endingAt: now, running: running)
-                HStack(spacing: 10) {
-                    Label("Today \(Int(today / 60)) min", systemImage: "clock")
-                    if streak > 1 {
-                        Label("\(streak)-day streak", systemImage: "flame")
+                VStack(spacing: 6) {
+                    HStack(spacing: 10) {
+                        Label("Today \(Int(today / 60)) min", systemImage: "clock")
+                        if streak > 1 {
+                            Label("\(streak)-day streak", systemImage: "flame")
+                        }
+                        Spacer()
+                        WeekBars(seconds: week, endingAt: now)
                     }
-                    Spacer()
-                    WeekBars(seconds: week, endingAt: now)
+                    if engine.weeklyGoalMinutes > 0 {
+                        WeeklyGoalProgress(
+                            seconds: engine.practiceSecondsThisWeek(),
+                            goalSeconds: Double(engine.weeklyGoalMinutes * 60)
+                        )
+                    }
                 }
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .help("Practice time is counted while the metronome plays")
-                // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
                 .contextMenu {
+                    // 教室で「週に 2 時間」のように目標を出されている人向け
+                    Picker("Weekly Goal", selection: $engine.weeklyGoalMinutes) {
+                        Text("No Goal").tag(0)
+                        ForEach([1, 2, 3, 5], id: \.self) { hours in
+                            Text("\(hours) h a Week").tag(hours * 60)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    Divider()
+                    // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
                     Button("Reset Practice History…") { isConfirmingReset = true }
                 }
                 .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
@@ -267,3 +284,36 @@ struct WeekBars: View {
         return date.formatted(.dateTime.weekday(.abbreviated))
     }
 }
+
+/// 週の目標に対する進み具合（直近 7 日）。単一の量なので単色のバーで示し、達成したらチェックを付ける
+struct WeeklyGoalProgress: View {
+    let seconds: Double
+    let goalSeconds: Double
+
+    var body: some View {
+        let ratio = min(seconds / goalSeconds, 1)
+        let reached = seconds >= goalSeconds
+        HStack(spacing: 8) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.2))
+                    Capsule()
+                        .fill(reached ? Color.green : Color.accentColor)
+                        .frame(width: max(4, geo.size.width * ratio))
+                }
+            }
+            .frame(height: 4)
+            Text("This week \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))")
+                .lineLimit(1)
+                .fixedSize()
+            if reached {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Weekly goal"))
+        .accessibilityValue(Text("This week \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))"))
+    }
+}
+

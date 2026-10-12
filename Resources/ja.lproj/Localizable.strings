@@ -151,3 +151,10 @@
 "No Count-in" = "カウントインなし";
 "1 Bar" = "1 小節";
 "2 Bars" = "2 小節";
+
+/* Weekly goal */
+"Weekly Goal" = "週の目標";
+"Weekly goal" = "週の目標";
+"No Goal" = "目標なし";
+"%lld h a Week" = "週 %lld 時間";
+"This week %@ / %@" = "今週 %1$@ / %2$@";

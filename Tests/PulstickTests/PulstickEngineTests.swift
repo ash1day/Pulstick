@@ -443,6 +443,28 @@ struct SongTests {
         #expect(engine.songs[0].bestBPM == nil)
     }
 
+    @Test func weeklyGoalIsRememberedAndKeptInRange() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.weeklyGoalMinutes = 120
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.weeklyGoalMinutes == 120)
+        second.weeklyGoalMinutes = -5
+        #expect(second.weeklyGoalMinutes == 0)
+    }
+
+    @Test func weekProgressIncludesTheSessionPlayingNow() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        var log = PracticeLog()
+        log.record(from: clock.date.addingTimeInterval(-2 * 86_400 - 1800), to: clock.date.addingTimeInterval(-2 * 86_400))
+        engine.seedPracticeLog(log)
+        engine.start()
+        clock.advance(600)
+        #expect(engine.practiceSecondsThisWeek() == 1800 + 600)
+        engine.stop()
+    }
+
     @Test func savingWhilePlayingStartsCountingThatSong() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
