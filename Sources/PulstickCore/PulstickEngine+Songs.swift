@@ -175,12 +175,20 @@ extension PulstickEngine {
 
     /// 直近 7 日（今日を含む）の練習時間。再生中でまだ記録していない今日の分も含める
     public func practiceSecondsThisWeek(calendar: Calendar = .current) -> TimeInterval {
-        practiceLog.recentDays(7, endingAt: now(), calendar: calendar).reduce(0, +)
-            + unsavedPracticeToday(calendar: calendar)
+        // 再生中の分は、日付をまたいでいても全部が直近 7 日に入る
+        practiceLog.recentDays(7, endingAt: now(), calendar: calendar).reduce(0, +) + unsavedPractice()
     }
 
+    /// 再生中でまだ練習ログに記録していない時間（記録と同じく、練習が始まって 5 秒以上たってから数える）
+    public func unsavedPractice() -> TimeInterval {
+        guard isLongEnoughToLog, let startedAt = playStartedAt else { return 0 }
+        return now().timeIntervalSince(startedAt)
+    }
+
+    /// 練習が始まっていて（カウントイン中ではなく）、記録に値する長さを弾いているか
     var isLongEnoughToLog: Bool {
-        playStartedAt.map { now().timeIntervalSince($0) >= minimumLoggedSession } ?? false
+        guard practiceHasBegun, let startedAt = playStartedAt else { return false }
+        return now().timeIntervalSince(startedAt) >= minimumLoggedSession
     }
 
     /// 停止時に呼ぶ。記録に値する長さの再生なら未確定分を曲に加え、そうでなければ捨てる

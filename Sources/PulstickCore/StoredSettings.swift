@@ -89,7 +89,7 @@ struct StoredSettings {
             countInBars = saved.clamped(to: PulstickEngine.countInRange)
         }
         if let saved = store.object(forKey: SettingsKeys.weeklyGoalMinutes) as? Int {
-            weeklyGoalMinutes = saved.clamped(to: PulstickEngine.weeklyGoalRange)
+            weeklyGoalMinutes = PulstickEngine.nearestWeeklyGoal(saved)
         }
         songs = store.codable([Song].self, forKey: SettingsKeys.songs) ?? []
         if let saved = (store.object(forKey: SettingsKeys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),

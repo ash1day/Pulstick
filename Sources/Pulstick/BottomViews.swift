@@ -142,7 +142,7 @@ struct PracticeSummary: View {
                 let running = engine.unsavedPracticeToday()
                 let today = engine.practiceLog.seconds(on: now) + running
                 let streak = engine.practiceLog.streak(endingAt: now, practisingNow: running > 0)
-                let week = recentWeek(endingAt: now, running: running)
+                let week = recentWeek(endingAt: now, today: running)
                 VStack(spacing: 6) {
                     HStack(spacing: 10) {
                         Label("Today \(Int(today / 60)) min", systemImage: "clock")
@@ -153,10 +153,8 @@ struct PracticeSummary: View {
                         WeekBars(seconds: week, endingAt: now)
                     }
                     if engine.weeklyGoalMinutes > 0 {
-                        WeeklyGoalProgress(
-                            seconds: engine.practiceSecondsThisWeek(),
-                            goalSeconds: Double(engine.weeklyGoalMinutes * 60)
-                        )
+                        // 棒グラフと同じ合計を使い、グラフと目標の数字が食い違わないようにする
+                        WeeklyGoalProgress(seconds: week.reduce(0, +), goalSeconds: Double(engine.weeklyGoalMinutes * 60))
                     }
                 }
                 .font(.system(size: 11))
@@ -165,9 +163,13 @@ struct PracticeSummary: View {
                 .contextMenu {
                     // 教室で「週に 2 時間」のように目標を出されている人向け
                     Picker("Weekly Goal", selection: $engine.weeklyGoalMinutes) {
-                        Text("No Goal").tag(0)
-                        ForEach([1, 2, 3, 5], id: \.self) { hours in
-                            Text("\(hours) h a Week").tag(hours * 60)
+                        ForEach(PulstickEngine.weeklyGoalOptions, id: \.self) { minutes in
+                            if minutes == 0 {
+                                Text("No Goal").tag(0)
+                            } else {
+                                let hours = minutes / 60
+                                Text("\(hours) h a Week").tag(minutes)
+                            }
                         }
                     }
                     .pickerStyle(.inline)
@@ -184,10 +186,12 @@ struct PracticeSummary: View {
         }
     }
 
-    /// 直近 7 日の練習秒数。今日の分には再生中のセッションも含める
-    private func recentWeek(endingAt now: Date, running: TimeInterval) -> [Double] {
+    /// 直近 7 日の練習秒数。再生中でまだ記録していない分も、日付ごとに分けて含める
+    /// （0 時をまたいで弾いていれば、0 時より前の分は前日の棒に入る）
+    private func recentWeek(endingAt now: Date, today: TimeInterval) -> [Double] {
         var week = engine.practiceLog.recentDays(7, endingAt: now)
-        week[week.count - 1] += running
+        week[week.count - 1] += today
+        week[week.count - 2] += max(0, engine.unsavedPractice() - today)
         return week
     }
 }
@@ -285,7 +289,8 @@ struct WeekBars: View {
     }
 }
 
-/// 週の目標に対する進み具合（直近 7 日）。単一の量なので単色のバーで示し、達成したらチェックを付ける
+/// 週の目標に対する進み具合。暦の週は人や国で区切りが違うので、7 日間グラフと同じく直近 7 日で数える。
+/// 単一の量なので単色のバーで示し、達成したらチェックを付ける
 struct WeeklyGoalProgress: View {
     let seconds: Double
     let goalSeconds: Double
@@ -297,13 +302,16 @@ struct WeeklyGoalProgress: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.secondary.opacity(0.2))
-                    Capsule()
-                        .fill(reached ? Color.green : Color.accentColor)
-                        .frame(width: max(4, geo.size.width * ratio))
+                    // 練習がまだなければ塗らない（少しでも色が付くと進んでいるように見えるため）
+                    if ratio > 0 {
+                        Capsule()
+                            .fill(reached ? Color.green : Color.accentColor)
+                            .frame(width: max(4, geo.size.width * ratio))
+                    }
                 }
             }
             .frame(height: 4)
-            Text("This week \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))")
+            Text("Last 7 days \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))")
                 .lineLimit(1)
                 .fixedSize()
             if reached {
@@ -313,7 +321,6 @@ struct WeeklyGoalProgress: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Weekly goal"))
-        .accessibilityValue(Text("This week \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))"))
+        .accessibilityValue(Text("Last 7 days \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))"))
     }
 }
-

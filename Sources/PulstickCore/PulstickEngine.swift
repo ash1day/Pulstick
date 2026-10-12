@@ -7,8 +7,12 @@ public final class PulstickEngine: ObservableObject {
     public static let bpmRange: ClosedRange<Double> = 30...300
     public static let beatsRange: ClosedRange<Int> = 1...16
     public static let countInRange: ClosedRange<Int> = 0...2
-    /// 週の練習目標（分）。0 は目標なし、上限は 1 週間
-    public static let weeklyGoalRange: ClosedRange<Int> = 0...(7 * 24 * 60)
+    /// 週の目標の選択肢（分）。0 は目標なし
+    public static let weeklyGoalOptions = [0, 60, 120, 180, 300]
+
+    static func nearestWeeklyGoal(_ minutes: Int) -> Int {
+        weeklyGoalOptions.min { abs($0 - minutes) < abs($1 - minutes) } ?? 0
+    }
 
     /// batchPatternChange の入れ子の深さ。0 より大きい間は、拍のパターン変更の反映を後回しにする
     var patternBatchDepth = 0
@@ -149,12 +153,16 @@ public final class PulstickEngine: ObservableObject {
     @Published public internal(set) var practiceTimerStartedAt: Date?
     var practiceTimer: DispatchWorkItem?
 
+    /// 練習が始まったか。カウントインがあれば、それが終わるまでは false（練習として記録しない）
+    var practiceHasBegun = false
+
     /// 週の練習目標（分）。0 なら目標なし
     @Published public var weeklyGoalMinutes = 0 {
         didSet {
-            let clamped = weeklyGoalMinutes.clamped(to: Self.weeklyGoalRange)
-            guard weeklyGoalMinutes == clamped else {
-                weeklyGoalMinutes = clamped
+            // メニューで選択中の項目が分からなくならないよう、いちばん近い選択肢に揃える
+            let snapped = Self.nearestWeeklyGoal(weeklyGoalMinutes)
+            guard weeklyGoalMinutes == snapped else {
+                weeklyGoalMinutes = snapped
                 return
             }
             defaults.set(weeklyGoalMinutes, forKey: SettingsKeys.weeklyGoalMinutes)

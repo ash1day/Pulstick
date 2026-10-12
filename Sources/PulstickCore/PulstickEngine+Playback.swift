@@ -18,6 +18,7 @@ extension PulstickEngine {
         beatClock.current = 0
         playStartedAt = now()
         practiceTimerStartedAt = playStartedAt
+        practiceHasBegun = countInBars == 0
         restartSession()
         songPractice.start(currentSong?.id, at: now(), bpm: bpm)
 
@@ -78,6 +79,7 @@ extension PulstickEngine {
     /// カウントインが終わって練習の 1 小節目に入ったとき。カウントインの時間を練習に含めないよう、
     /// 経過時間・練習タイマー・曲の練習時間をここから数え直す
     func practiceDidBegin() {
+        practiceHasBegun = true
         playStartedAt = now()
         practiceTimerStartedAt = playStartedAt
         schedulePracticeTimer()

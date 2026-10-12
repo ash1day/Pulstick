@@ -465,6 +465,46 @@ struct SongTests {
         engine.stop()
     }
 
+    @Test func weekProgressCountsASessionPlayingAcrossMidnight() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let clock = TestClock()
+        clock.date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 12, hour: 23, minute: 30))!
+        let engine = makeEngine(clock: clock)
+        engine.start()
+        clock.advance(50 * 60)  // 0:20 まで弾き続けている
+        #expect(engine.practiceSecondsThisWeek(calendar: calendar) == 50 * 60)
+        engine.stop()
+    }
+
+    @Test func weekProgressLeavesOutDaysOlderThanSeven() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        var log = PracticeLog()
+        let eightDaysAgo = clock.date.addingTimeInterval(-8 * 86_400)
+        log.record(from: eightDaysAgo, to: eightDaysAgo.addingTimeInterval(3600))
+        engine.seedPracticeLog(log)
+        #expect(engine.practiceSecondsThisWeek() == 0)
+    }
+
+    @Test func weeklyGoalSnapsToAMenuOption() {
+        let engine = makeEngine()
+        engine.weeklyGoalMinutes = 100
+        #expect(PulstickEngine.weeklyGoalOptions.contains(engine.weeklyGoalMinutes))
+    }
+
+    @Test func stoppingDuringTheCountInRecordsNoPractice() async throws {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        engine.setBeats(4)
+        engine.bpm = 60  // カウントインの 1 小節は 4 秒
+        engine.countInBars = 1
+        engine.start()
+        try await Task.sleep(for: .milliseconds(300))
+        engine.stop()
+        #expect(engine.practiceLog.secondsByDay.isEmpty)
+    }
+
     @Test func savingWhilePlayingStartsCountingThatSong() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
