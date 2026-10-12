@@ -48,4 +48,31 @@ struct SharedSetlist: Codable {
     /// Pulstick のセットリストであることを示す印と形式の版
     var pulstick = SharedSetlist.version
     var songs: [Entry]
+
+    /// 版だけを先に読む（新しい版なら「アップデートが必要」と伝えるため）
+    struct Header: Codable {
+        var pulstick: Int
+    }
+
+    /// 前後の文章を取り除き、チャットなどで “ ” に置き換わった引用符を戻して、JSON の部分を取り出す
+    static func extractJSON(from text: String) -> Data? {
+        let normalized = text
+            .replacingOccurrences(of: "“", with: "\"")
+            .replacingOccurrences(of: "”", with: "\"")
+            .replacingOccurrences(of: "„", with: "\"")
+        guard let start = normalized.firstIndex(of: "{"), let end = normalized.lastIndex(of: "}"), start < end else {
+            return nil
+        }
+        return String(normalized[start...end]).data(using: .utf8)
+    }
+}
+
+/// セットリストを取り込んだ結果
+public enum SetlistImportResult: Equatable {
+    /// 追加・更新した曲の数
+    case imported(Int)
+    /// Pulstick のセットリストではなかった
+    case notASetlist
+    /// 新しい版の Pulstick で書き出されたもの
+    case needsNewerVersion
 }

@@ -811,13 +811,12 @@ struct SongTests {
         mine.bpm = 96
         mine.saveCurrentAsSong(named: "Waltz")
         mine.seedSongPractice(3600, bestBPM: 140, forSongAt: 0)
-        let text = mine.exportSetlist()
+        let text = try #require(mine.exportSetlist())
 
         let bandmate = makeEngine()
         bandmate.bpm = 120
         bandmate.saveCurrentAsSong(named: "waltz")  // 同じ名前の曲は上書きされる
-        let imported = try #require(bandmate.importSetlist(text))
-        #expect(imported == 2)
+        #expect(bandmate.importSetlist(text) == .imported(2))
         #expect(bandmate.songs.map(\.name) == ["Waltz", "Autumn Leaves"])
         #expect(bandmate.songs[0].bpm == 96)
         #expect(bandmate.songs[0].pattern.beats == 3)
@@ -828,8 +827,46 @@ struct SongTests {
     @Test func pastingSomethingElseChangesNothing() {
         let engine = makeEngine()
         engine.saveCurrentAsSong(named: "Etude")
-        #expect(engine.importSetlist("hello") == nil)
+        #expect(engine.importSetlist("hello") == .notASetlist)
         #expect(engine.songs.map(\.name) == ["Etude"])
+    }
+
+    @Test func aSetlistPastedFromChatStillImports() throws {
+        // チャットから文章ごとコピーし、引用符が “ ” に置き換わっていても読める
+        let text = #"Here's our setlist: {“pulstick”: 1, “songs”: [{“name”: “Blues”, “bpm”: 132.4, “pattern”: {“beats”: 4, “accents”: [0, 9, -1]}, “subdivision”: 1}]} see you"#
+        let engine = makeEngine()
+        #expect(engine.importSetlist(text) == .imported(1))
+        let song = try #require(engine.songs.first)
+        #expect(song.bpm == 132)  // 呼び出し時と同じく整数に丸める
+        #expect(song.pattern.accents == [0])  // 範囲外の拍は捨てる
+        engine.applySong(song)
+        #expect(engine.currentSong?.id == song.id)  // 取り込んだ曲がちゃんと「いまの曲」になる
+    }
+
+    @Test func aSetlistFromANewerVersionAsksForAnUpdate() {
+        let engine = makeEngine()
+        #expect(engine.importSetlist(#"{"pulstick": 99, "songs": []}"#) == .needsNewerVersion)
+    }
+
+    @Test func onlySongsThatChangedAreCounted() {
+        let engine = makeEngine()
+        let text = #"{"pulstick": 1, "songs": [{"name": " ", "bpm": 100, "pattern": {"beats": 4, "accents": [0]}, "subdivision": 1}, {"name": "A", "bpm": 100, "pattern": {"beats": 4, "accents": [0]}, "subdivision": 1}]}"#
+        #expect(engine.importSetlist(text) == .imported(1))
+    }
+
+    @Test func importingWhilePlayingFollowsTheRedefinedSong() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.saveCurrentAsSong(named: "A")  // 120, 4/4
+        engine.applySong(engine.songs[0])
+        engine.start()
+        clock.advance(60)
+        // 再生中に、A を 3 拍子として定義し直したセットリストを貼り付けた
+        let text = #"{"pulstick": 1, "songs": [{"name": "A", "bpm": 96, "pattern": {"beats": 3, "accents": [0]}, "subdivision": 1}]}"#
+        _ = engine.importSetlist(text)
+        clock.advance(60)
+        engine.stop()
+        #expect(engine.songs[0].practiceSeconds == 60)  // 定義が変わった後の時間は A に入らない
     }
 
     @Test func songsAreRestoredOnNextLaunch() {

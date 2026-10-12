@@ -179,17 +179,21 @@ struct SongList: View {
     }
 
     private func copySetlist() {
+        // 書き出せなかったときは、クリップボードを空にせず失敗を伝える
+        guard let text = engine.exportSetlist() else {
+            shareStatus = Text("Couldn't copy the setlist")
+            return
+        }
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(engine.exportSetlist(), forType: .string)
-        shareStatus = Text("Copied \(engine.songs.count) songs")
+        NSPasteboard.general.setString(text, forType: .string)
+        shareStatus = Text("Songs copied: \(engine.songs.count)")
     }
 
     private func pasteSetlist() {
-        let text = NSPasteboard.general.string(forType: .string) ?? ""
-        if let count = engine.importSetlist(text) {
-            shareStatus = Text("Added or updated \(count) songs")
-        } else {
-            shareStatus = Text("No Pulstick setlist on the clipboard")
+        switch engine.importSetlist(NSPasteboard.general.string(forType: .string) ?? "") {
+        case .imported(let count): shareStatus = Text("Songs added or updated: \(count)")
+        case .notASetlist: shareStatus = Text("No Pulstick setlist on the clipboard")
+        case .needsNewerVersion: shareStatus = Text("This setlist needs a newer version of Pulstick")
         }
     }
 

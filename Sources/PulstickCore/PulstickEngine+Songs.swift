@@ -8,7 +8,7 @@ extension PulstickEngine {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         var song = Song(name: trimmed, bpm: bpm, pattern: currentPattern, subdivision: subdivision)
-        if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+        if let index = songIndex(named: trimmed) {
             // 同じ曲の設定を更新するだけなので、識別子と練習の記録は引き継ぐ
             song.id = songs[index].id
             song.practiceSeconds = songs[index].practiceSeconds
@@ -65,31 +65,34 @@ extension PulstickEngine {
     }
 
     /// セットリストを共有用のテキスト（JSON）にする。バンドのメンバーに送る用途なので、
-    /// 個人の練習時間や最高テンポは含めない
-    public func exportSetlist() -> String {
+    /// 個人の練習時間や最高テンポは含めない。作れなければ nil
+    public func exportSetlist() -> String? {
         let shared = SharedSetlist(songs: songs.map {
             SharedSetlist.Entry(name: $0.name, bpm: $0.bpm, pattern: $0.pattern, subdivision: $0.subdivision)
         })
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return (try? encoder.encode(shared)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        return (try? encoder.encode(shared)).flatMap { String(data: $0, encoding: .utf8) }
     }
 
     /// 共有されたセットリストを取り込む。同じ名前の曲は設定を上書きし（練習の記録は残す）、新しい曲は末尾に足す。
-    /// Pulstick のセットリストとして読めなければ何も変えずに nil を返す
+    /// チャットから前後の文章ごとコピーされたものや、引用符が “ ” に置き換わったものも読む
     @discardableResult
-    public func importSetlist(_ text: String) -> Int? {
-        guard let data = text.data(using: .utf8),
-              let shared = try? JSONDecoder().decode(SharedSetlist.self, from: data),
-              shared.pulstick == SharedSetlist.version
-        else { return nil }
+    public func importSetlist(_ text: String) -> SetlistImportResult {
+        guard let data = SharedSetlist.extractJSON(from: text) else { return .notASetlist }
+        guard let header = try? JSONDecoder().decode(SharedSetlist.Header.self, from: data) else { return .notASetlist }
+        guard header.pulstick <= SharedSetlist.version else { return .needsNewerVersion }
+        guard let shared = try? JSONDecoder().decode(SharedSetlist.self, from: data) else { return .notASetlist }
+
         var updated = songs
+        var applied = 0
         for entry in shared.songs {
             let name = entry.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty, entry.bpm.isFinite else { continue }
-            var pattern = entry.pattern
-            pattern.beats = pattern.beats.clamped(to: Self.beatsRange)
-            let bpm = entry.bpm.clamped(to: Self.bpmRange)
+            guard !name.isEmpty else { continue }
+            // 呼び出したときと同じ値になるよう、テンポは整数に丸め、拍のパターンも検証しておく
+            // （ずれていると、呼び出した後に「いまの曲」として一致しなくなる）
+            let bpm = entry.bpm.rounded().clamped(to: Self.bpmRange)
+            let pattern = Self.sanitized(entry.pattern)
             if let index = updated.firstIndex(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
                 updated[index].name = name
                 updated[index].bpm = bpm
@@ -98,9 +101,23 @@ extension PulstickEngine {
             } else {
                 updated.append(Song(name: name, bpm: bpm, pattern: pattern, subdivision: entry.subdivision))
             }
+            applied += 1
         }
         songs = updated
-        return shared.songs.count
+        // 再生中の曲の定義が変わったかもしれないので、数える曲を合わせ直す
+        followCurrentSongIfPlaying()
+        return .imported(applied)
+    }
+
+    /// 拍数を範囲に収め、アクセントと休符をその拍数の範囲に絞る（保存データや共有テキストが壊れていても使えるように）
+    static func sanitized(_ pattern: BeatPreset) -> BeatPreset {
+        let beats = pattern.beats.clamped(to: beatsRange)
+        let valid = { (indices: [Int]) in Array(Set(indices.filter { (0..<beats).contains($0) })).sorted() }
+        return BeatPreset(beats: beats, accents: valid(pattern.accents), rests: valid(pattern.rests))
+    }
+
+    private func songIndex(named name: String) -> Int? {
+        songs.firstIndex { $0.name.caseInsensitiveCompare(name) == .orderedSame }
     }
 
     public func deleteSong(_ song: Song) {
