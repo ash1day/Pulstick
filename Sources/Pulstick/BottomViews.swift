@@ -107,18 +107,27 @@ struct PracticeSummary: View {
                 let running = engine.playStartedAt.map { now.timeIntervalSince($0) } ?? 0
                 let today = engine.practiceLog.seconds(on: now) + running
                 let streak = engine.practiceLog.streak(endingAt: now, practisingNow: running > 0)
+                let week = recentWeek(endingAt: now, running: running)
                 HStack(spacing: 10) {
                     Label("Today \(Int(today / 60)) min", systemImage: "clock")
                     if streak > 1 {
                         Label("\(streak)-day streak", systemImage: "flame")
                     }
+                    Spacer()
+                    WeekBars(seconds: week, endingAt: now)
                 }
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .help("Practice time is counted while the metronome plays")
             }
         }
+    }
+
+    /// 直近 7 日の練習秒数。今日の分には再生中のセッションも含める
+    private func recentWeek(endingAt now: Date, running: TimeInterval) -> [Double] {
+        var week = engine.practiceLog.recentDays(7, endingAt: now)
+        week[week.count - 1] += running
+        return week
     }
 }
 
@@ -156,5 +165,47 @@ struct FooterRow: View {
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
+    }
+}
+
+/// 直近 7 日の練習時間の小さな棒グラフ。量を表す単一系列なので単色の濃淡だけで描き、
+/// 今日の棒だけを濃くする。練習しなかった日は基線上の小さな点で「0」を示す
+struct WeekBars: View {
+    /// 古い日から順に 7 日分（秒）
+    let seconds: [Double]
+    let endingAt: Date
+
+    private let barWidth: CGFloat = 5
+    private let height: CGFloat = 14
+
+    var body: some View {
+        let peak = max(seconds.max() ?? 0, 60)
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach(seconds.indices, id: \.self) { index in
+                let isToday = index == seconds.count - 1
+                let value = seconds[index]
+                Group {
+                    if value > 0 {
+                        UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2)
+                            .fill(Color.accentColor.opacity(isToday ? 1 : 0.45))
+                            .frame(width: barWidth, height: max(2, height * CGFloat(value / peak)))
+                    } else {
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.35))
+                            .frame(width: barWidth, height: 1.5)
+                    }
+                }
+                .frame(height: height, alignment: .bottom)
+                .help(Text("\(dayName(index)) \(Int(value / 60)) min"))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Last 7 days"))
+        .accessibilityValue(Text(seconds.indices.map { "\(dayName($0)) \(Int(seconds[$0] / 60))" }.joined(separator: ", ")))
+    }
+
+    private func dayName(_ index: Int) -> String {
+        let date = Calendar.current.date(byAdding: .day, value: index - (seconds.count - 1), to: endingAt)!
+        return date.formatted(.dateTime.weekday(.abbreviated))
     }
 }

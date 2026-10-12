@@ -14,11 +14,11 @@ enum Snapshot {
         MainActor.assumeIsolated {
             let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
             if args.contains("--log") {
-                // 見本用の練習記録: 今日を含め 4 日連続で 25 分ずつ
+                // 見本用の練習記録: 今日を含め 4 日連続、その前に 1 日休み、さらに前にも練習
                 var log = PracticeLog()
-                for daysAgo in 0..<4 {
+                for (daysAgo, minutes) in [(0, 25.0), (1, 40), (2, 15), (3, 30), (5, 20), (6, 35)] {
                     let end = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
-                    log.record(from: end.addingTimeInterval(-25 * 60), to: end)
+                    log.record(from: end.addingTimeInterval(-minutes * 60), to: end)
                 }
                 engine.seedPracticeLog(log)
             }

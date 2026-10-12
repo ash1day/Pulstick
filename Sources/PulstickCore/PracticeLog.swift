@@ -27,6 +27,13 @@ public struct PracticeLog: Codable, Equatable {
     }
 
     /// 今日（今日まだ練習していなければ昨日）から遡って、練習した日が何日続いているか
+    /// 直近 n 日の練習秒数。古い日から順に並べ、最後が today
+    public func recentDays(_ count: Int, endingAt today: Date, calendar: Calendar = .current) -> [Double] {
+        (0..<count).reversed().map { daysAgo in
+            seconds(on: calendar.date(byAdding: .day, value: -daysAgo, to: today)!, calendar: calendar)
+        }
+    }
+
     /// - Parameter practisingNow: 再生中なら、まだ記録されていない今日も練習した日として数える
     public func streak(endingAt today: Date, practisingNow: Bool = false, calendar: Calendar = .current) -> Int {
         var day = today

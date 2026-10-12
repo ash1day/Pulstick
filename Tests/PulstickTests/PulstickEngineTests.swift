@@ -609,6 +609,13 @@ struct PracticeLogTests {
         #expect(log.streak(endingAt: date(12, 22), calendar: calendar) == 4)
     }
 
+    @Test func recentDaysListsOldestFirstWithZerosForMissedDays() {
+        var log = PracticeLog()
+        log.record(from: date(10, 20), to: date(10, 20, 30), calendar: calendar)
+        log.record(from: date(12, 20), to: date(12, 20, 10), calendar: calendar)
+        #expect(log.recentDays(3, endingAt: date(12, 22), calendar: calendar) == [1800, 0, 600])
+    }
+
     @Test func practisingRightNowCountsTodayInTheStreak() {
         var log = PracticeLog()
         log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
