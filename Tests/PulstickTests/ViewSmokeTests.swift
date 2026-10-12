@@ -54,6 +54,10 @@ struct ViewSmokeTests {
         #expect(render(SongList(engine: filled) {}) != nil)
     }
 
+    @Test func welcomeRenders() {
+        #expect(render(WelcomeView {}) != nil)
+    }
+
     @Test func shortcutHelpRenders() {
         #expect(render(ShortcutHelp(hotKeys: nil, presetCount: 4)) != nil)
     }

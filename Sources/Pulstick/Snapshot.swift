@@ -2,7 +2,7 @@ import AppKit
 import PulstickCore
 import SwiftUI
 
-/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast]` でポップオーバーの中身を PNG に書き出して終了する。
+/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast] [--welcome]` でポップオーバーの中身を PNG に書き出して終了する。
 /// 開発中の見た目確認と LP 用スクリーンショットのための仕組み。
 enum Snapshot {
     static func runIfRequested() {
@@ -40,6 +40,8 @@ enum Snapshot {
             let view = Group {
                 if showSongs {
                     SongList(engine: engine) {}
+                } else if args.contains("--welcome") {
+                    WelcomeView {}
                 } else if args.contains("--shortcuts") {
                     ShortcutHelp(hotKeys: nil, presetCount: engine.presets.count)
                 } else {

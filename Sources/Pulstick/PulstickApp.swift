@@ -19,6 +19,11 @@ struct PulstickApp: App {
         ) { _ in
             MainActor.assumeIsolated { engine.stop() }
         }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didFinishLaunchingNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { Welcome.showIfFirstLaunch() }
+        }
     }
 
     var body: some Scene {

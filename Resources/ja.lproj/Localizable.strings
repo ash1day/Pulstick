@@ -108,3 +108,11 @@
 "Repeat" = "繰り返し";
 "Repeat: after the target tempo, start again from the first tempo" = "繰り返し：目標テンポまで上がったら、開始テンポからやり直す";
 "Last 7 days: %@" = "直近 7 日間：%@";
+
+/* Welcome */
+"Pulstick lives in your menu bar" = "Pulstick はメニューバーにいます";
+"Click the metronome icon at the top right of the screen to open it." = "画面右上のメトロノームのアイコンから開けます。";
+"Click the icon to set the tempo and press Space to play." = "アイコンを開いてテンポを決め、スペースキーで再生します。";
+"Press ⌃⌥M in any app to start or stop." = "どのアプリを使っていても、⌃⌥M で再生・停止できます。";
+"Turn on “Launch at Login” at the bottom to keep it handy." = "開いた画面の下にある「ログイン時に起動」をオンにしておくと、いつでも使えます。";
+"Got It" = "はじめる";
