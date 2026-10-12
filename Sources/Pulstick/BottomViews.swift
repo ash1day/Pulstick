@@ -174,6 +174,15 @@ struct PracticeSummary: View {
                 }
                 .pickerStyle(.inline)
                 Divider()
+                // 先生やバンドのメンバーに、1 週間の練習をメッセージで送れるように
+                Button("Copy the Last 7 Days") {
+                    let text = PracticeReport.text(
+                        log: engine.practiceLogIncludingCurrentSession(), endingAt: Date(),
+                        goalSeconds: Double(engine.weeklyGoalMinutes * 60)
+                    )
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                }
                 // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
                 Button("Reset Practice History…") { isConfirmingReset = true }
             }
@@ -312,5 +321,30 @@ struct WeeklyGoalProgress: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Weekly goal"))
         .accessibilityValue(Text("Last 7 days \(PracticeTime.format(seconds)) / \(PracticeTime.format(goalSeconds))"))
+    }
+}
+
+/// 直近 7 日の練習を、先生やバンドのメンバーに送れる文章にする
+enum PracticeReport {
+    static func text(
+        log: PracticeLog, endingAt now: Date, goalSeconds: Double, calendar: Calendar = .current, locale: Locale = .current
+    ) -> String {
+        let week = log.recentDays(7, endingAt: now, calendar: calendar)
+        let total = PracticeTime.format(week.reduce(0, +), locale: locale)
+        let header = goalSeconds > 0
+            ? String(localized: "report.header.goal", defaultValue: "Practice in the last 7 days: \(total) (goal: \(PracticeTime.format(goalSeconds, locale: locale)))")
+            : String(localized: "report.header", defaultValue: "Practice in the last 7 days: \(total)")
+        let dayFormatter = DateFormatter()
+        dayFormatter.locale = locale
+        dayFormatter.calendar = calendar
+        dayFormatter.timeZone = calendar.timeZone
+        dayFormatter.setLocalizedDateFormatFromTemplate("EEEMd")
+        let days = week.enumerated().map { offset, seconds in
+            let date = calendar.date(byAdding: .day, value: offset - (week.count - 1), to: now)!
+            // 練習しなかった日も行を残し、どの日が空いたか分かるようにする
+            let time = seconds > 0 ? PracticeTime.format(seconds, locale: locale) : "–"
+            return "\(dayFormatter.string(from: date)): \(time)"
+        }
+        return ([header] + days).joined(separator: "\n")
     }
 }

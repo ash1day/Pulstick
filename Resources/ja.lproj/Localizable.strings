@@ -27,6 +27,9 @@
 "Speed trainer on / off" = "スピードトレーナーのオン / オフ";
 "trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 "trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
+"report.header" = "直近 7 日の練習: %@";
+"report.header.goal" = "直近 7 日の練習: %1$@（目標 %2$@）";
+"Copy the Last 7 Days" = "直近 7 日の記録をコピー";
 
 /* Silent bars. %1$@ = bars played, %2$@ = bars muted */
 "Silent Bars" = "サイレント小節";
