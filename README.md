@@ -8,9 +8,9 @@ A minimal metronome that lives in your macOS menu bar.
 
 ## Features
 
-- Tempo 30–300 BPM: drag, use the ± buttons or arrow keys, tap along, or click the number and type
+- Tempo 30–300 BPM: drag, use the ± buttons (hold to keep going) or arrow keys, tap along, or click the number and type
 - Up to 16 beats per bar; click a beat to cycle normal → accent → rest (e.g. click only on 2 and 4), plus four presets you can overwrite (right-click)
-- Songs: save the tempo, beat pattern and subdivision under a song name, recall it in one click, and see how long you have practised each song. Songs keep setlist order (right-click to move or to practise at 70–90 % of the tempo) and `[` / `]` step through them. Copy and paste a setlist to share it with your band
+- Songs: save the tempo, beat pattern and subdivision under a song name, recall it in one click, and see how long you have practised each song. Songs keep setlist order (right-click to move, update with the current settings, delete, or practise at 70–90 % of the tempo) and `[` / `]` step through them. Copy and paste a setlist to share it with your band
 - Subdivisions: eighths, triplets, sixteenths
 - Three click sounds (beep, wood, tick), all synthesized in code
 - Mute: click the speaker to silence the click while the beat display (and the menu bar beat number) keeps going
@@ -21,6 +21,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Practice log: minutes practised today and a 7-day chart (right-click to reset)
 - Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo, <kbd>⌃⌥,</kbd> / <kbd>⌃⌥.</kbd> previous/next song
 - Settings are remembered between launches
+- Follows the system accent colour, light and dark mode
 - English and Japanese UI (follows the system language), VoiceOver labels, and Reduce Motion / Increase Contrast support
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.

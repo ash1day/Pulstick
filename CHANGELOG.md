@@ -14,8 +14,8 @@
 
 ### Tempo and sound
 - Tempo range is now 30–300 BPM, with the Italian tempo marking shown next to the BPM.
-- Click the BPM to type a tempo.
-- Tap tempo uses the median of the last few taps, so one late tap does not throw it off.
+- Click the BPM to type a tempo. Hold the tempo or beat − / + buttons to keep changing the value.
+- Tap tempo uses the median of the last few taps, so one late tap does not throw it off. The Tap button lights up on every tap, so you know the first one counted.
 - Three click sounds: beep, woodblock and tick.
 - The click keeps going while you drag the tempo slider.
 - Audio restarts by itself when the output device changes (for example, plugging in headphones).
@@ -27,6 +27,11 @@
 - A one-time welcome on first launch shows where Pulstick lives.
 - Japanese localization, VoiceOver support (including spoken tempo changes from the speed trainer), and Reduce Motion / Increase Contrast support.
 - New app icon.
+
+### Look
+- The popover follows the system accent colour and fits in with macOS: presets, subdivisions and sounds sit in segmented tracks, and the tempo number, slider and song button form one block.
+- Song names are no longer cut short; the beat count moved to the second line, and the delete button appears on hover. Right-click a song to update it with the current settings or delete it.
+- The triplet button shows a small 3, as in sheet music.
 
 ### Fixes
 - The volume sliders only produced 0 % or 100 %.
