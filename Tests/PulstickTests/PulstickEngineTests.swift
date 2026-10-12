@@ -735,6 +735,15 @@ struct PlaybackIntegrationTests {
         #expect(!engine.isPlaying)
     }
 
+    @Test func practiceTimerStopsOnTimeEvenAtSlowTempo() async throws {
+        let engine = makeEngine()
+        engine.bpm = 30  // 1 拍 2 秒。拍の合間でも時間どおりに止まること
+        engine.start()
+        engine.stopAfter = 0.3  // 再生中に設定しても効く
+        try await spin(0.6)
+        #expect(!engine.isPlaying)
+    }
+
     @Test func playbackContinuesWithoutPracticeTimer() async throws {
         let engine = makeEngine()
         engine.bpm = 300

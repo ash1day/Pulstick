@@ -151,7 +151,10 @@ public final class PulstickEngine: ObservableObject {
     var minimumLoggedSession: TimeInterval = 5
 
     /// 練習タイマー。設定すると、再生開始からこの秒数で自動的に止まる。nil なら止まらない
-    @Published public var stopAfter: TimeInterval?
+    @Published public var stopAfter: TimeInterval? {
+        didSet { schedulePracticeTimer() }
+    }
+    private var practiceTimer: DispatchWorkItem?
 
     /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない
     @Published public var isMuted = false {
@@ -355,6 +358,7 @@ public final class PulstickEngine: ObservableObject {
         restartSession()
 
         output.prepare()
+        schedulePracticeTimer()
 
         timerQueue.async { [self] in
             lastFireTime = DispatchTime.now().uptimeNanoseconds
@@ -387,6 +391,8 @@ public final class PulstickEngine: ObservableObject {
         }
         isPlaying = false
         playbackGeneration += 1
+        practiceTimer?.cancel()
+        practiceTimer = nil
         playStartedAt = nil
         sessionStartBPM = nil
         timerSource?.cancel()
@@ -443,12 +449,20 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
-    /// 拍ごとにメインスレッドで確かめる。遅いテンポでも遅れは 1 拍分（30 BPM で 2 秒）に収まる
-    private func stopIfPracticeTimeIsUp() {
-        guard let limit = stopAfter, let startedAt = playStartedAt,
-              Date().timeIntervalSince(startedAt) >= limit
-        else { return }
-        stop()
+    /// 再生開始時と、再生中に時間を変えたときに、止める時刻へ一度だけ発火するタイマーを仕掛け直す。
+    /// 拍ごとに確かめる方式だと、遅いテンポでは最大 1 拍（30 BPM で 2 秒）遅れて止まるため
+    private func schedulePracticeTimer() {
+        practiceTimer?.cancel()
+        practiceTimer = nil
+        guard isPlaying, let limit = stopAfter, let startedAt = playStartedAt else { return }
+        let generation = playbackGeneration
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, self.isPlaying, self.playbackGeneration == generation else { return }
+            self.stop()
+        }
+        practiceTimer = item
+        let remaining = max(0, limit - Date().timeIntervalSince(startedAt))
+        DispatchQueue.main.asyncAfter(deadline: .now() + remaining, execute: item)
     }
 
     /// 小節の終わりごとにメインスレッドで呼ばれる
@@ -545,7 +559,6 @@ public final class PulstickEngine: ObservableObject {
             if countsMeasure, tick.startsMeasure {
                 self.handleMeasureCompleted()
             }
-            self.stopIfPracticeTimeIsUp()
         }
     }
 
