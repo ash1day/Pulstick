@@ -38,6 +38,12 @@ swift test                   # unit tests (silent: they never play audio)
                              # render the popover to a PNG without launching the app
 ```
 
+## App icon
+
+```bash
+swift scripts/make-icon.swift   # regenerates Resources/AppIcon.icns and docs/icon.png
+```
+
 ## License
 
 MIT

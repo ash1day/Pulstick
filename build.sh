@@ -19,6 +19,7 @@ mkdir -p "$APP_DIR"
 cp Resources/Info.plist "./build/Pulstick.app/Contents/Info.plist"
 mkdir -p "./build/Pulstick.app/Contents/Resources"
 cp -R Resources/*.lproj "./build/Pulstick.app/Contents/Resources/"
+cp Resources/AppIcon.icns "./build/Pulstick.app/Contents/Resources/"
 cp ".build/release/Pulstick" "$APP_DIR/Pulstick"
 chmod +x "$APP_DIR/Pulstick"
 

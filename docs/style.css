@@ -544,3 +544,11 @@ kbd {
     padding: 64px 0;
   }
 }
+
+/* --- App icon in hero --- */
+.hero-icon {
+  display: block;
+  margin: 0 auto 20px;
+  width: 96px;
+  height: 96px;
+}
