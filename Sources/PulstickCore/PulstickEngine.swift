@@ -23,6 +23,9 @@ public struct BeatPreset: Codable, Equatable {
 /// メトロノームのオーディオ再生とタイミング制御を担当するエンジン。
 /// DispatchSourceTimer で正確なビート間隔を維持し、ClickOutput に音を鳴らさせる。
 public final class PulstickEngine: ObservableObject {
+    public static let bpmRange: ClosedRange<Double> = 40...240
+    public static let beatsRange: ClosedRange<Int> = 1...16
+
     /// UserDefaults のキー。値の型を変えるときはキー名も変えて旧データと衝突させないこと
     private enum Keys {
         static let presets = "pulstick.presets"
@@ -40,21 +43,24 @@ public final class PulstickEngine: ObservableObject {
         static let clickSound = "pulstick.clickSound"
     }
 
+    /// 起動時の復元中は didSet の副作用（保存・タイマーキューへの反映・音色生成）を止め、
+    /// 復元後に一度だけまとめて反映する
+    private var isRestoring = false
+
     @Published public var presets: [BeatPreset] = []
 
     @Published public var bpm: Double = 120 {
         // didSet 内で clamp して再代入すると didSet が再発火するため、
         // 値が変わった場合のみ return で抜けてループを防ぐ
         didSet {
-            let clamped = bpm.clamped(to: 40...240)
+            let clamped = bpm.clamped(to: Self.bpmRange)
             if bpm != clamped {
                 bpm = clamped
                 return
             }
-            if bpm != oldValue {
-                defaults.set(bpm, forKey: Keys.bpm)
-                retimeIfPlaying()
-            }
+            guard !isRestoring, bpm != oldValue else { return }
+            defaults.set(bpm, forKey: Keys.bpm)
+            retimeIfPlaying()
         }
     }
     @Published public var isPlaying: Bool = false
@@ -64,14 +70,18 @@ public final class PulstickEngine: ObservableObject {
     @Published public private(set) var sessionStartBPM: Double?
     @Published public var beatsPerMeasure: Int = 4 {
         didSet {
+            guard !isRestoring else { return }
             defaults.set(beatsPerMeasure, forKey: Keys.beats)
             syncSequencer()
         }
     }
-    @Published public var currentBeat: Int = 0
+    /// 拍ごとに変わる表示用の状態。このオブジェクト自体の変更通知とは分けてある
+    public let beatClock = BeatClock()
+    public var currentBeat: Int { beatClock.current }
     /// ユーザーが選択したアクセント拍の位置。タップで自由にon/off可能
     @Published public var accentBeats: Set<Int> = [0] {
         didSet {
+            guard !isRestoring else { return }
             defaults.set(Array(accentBeats).sorted(), forKey: Keys.accents)
             syncSequencer()
         }
@@ -79,50 +89,48 @@ public final class PulstickEngine: ObservableObject {
 
     @Published public var subdivision: Subdivision = .quarter {
         didSet {
+            guard !isRestoring, subdivision != oldValue else { return }
             defaults.set(subdivision.rawValue, forKey: Keys.subdivision)
             syncSequencer()
-            if subdivision != oldValue {
-                retimeIfPlaying()
-            }
+            retimeIfPlaying()
         }
     }
 
     @Published public var speedTrainerEnabled = false {
         didSet {
+            guard !isRestoring else { return }
             defaults.set(speedTrainerEnabled, forKey: Keys.speedTrainerEnabled)
-            speedTrainer.restart()
+            speedTrainerProgress.restart()
         }
     }
     @Published public var speedTrainer = SpeedTrainer() {
         didSet {
-            if let data = try? JSONEncoder().encode(speedTrainer) {
-                defaults.set(data, forKey: Keys.speedTrainer)
-            }
+            guard !isRestoring else { return }
+            defaults.setCodable(speedTrainer, forKey: Keys.speedTrainer)
         }
     }
+    /// 設定と違い毎小節変わるので @Published にも保存対象にもしない
+    private var speedTrainerProgress = SpeedTrainerProgress()
 
     @Published public var gapTrainerEnabled = false {
         didSet {
+            guard !isRestoring else { return }
             defaults.set(gapTrainerEnabled, forKey: Keys.gapTrainerEnabled)
             syncSequencer()
         }
     }
     @Published public var gapTrainer = GapTrainer() {
         didSet {
-            if let data = try? JSONEncoder().encode(gapTrainer) {
-                defaults.set(data, forKey: Keys.gapTrainer)
-            }
+            guard !isRestoring else { return }
+            defaults.setCodable(gapTrainer, forKey: Keys.gapTrainer)
             syncSequencer()
         }
     }
-    /// いま無音の小節を再生中か。UI で「心の中で数えて」と示すために使う
-    @Published public private(set) var isInSilentBar = false
 
     @Published public private(set) var practiceLog = PracticeLog() {
         didSet {
-            if let data = try? JSONEncoder().encode(practiceLog) {
-                defaults.set(data, forKey: Keys.practiceLog)
-            }
+            guard !isRestoring else { return }
+            defaults.setCodable(practiceLog, forKey: Keys.practiceLog)
         }
     }
     /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
@@ -130,19 +138,23 @@ public final class PulstickEngine: ObservableObject {
 
     @Published public var clickSound: ClickSound = .beep {
         didSet {
+            guard !isRestoring, clickSound != oldValue else { return }
             defaults.set(clickSound.rawValue, forKey: Keys.clickSound)
             output.setSound(clickSound)
         }
     }
 
+    /// スライダーのドラッグ中は値が細かく変わり続けるため、同じ値の書き込みは省く
     @Published public var accentVolume: Double = 1.0 {
         didSet {
+            guard !isRestoring, accentVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(accentVolume, forKey: Keys.accentVolume)
         }
     }
     @Published public var normalVolume: Double = 0.7 {
         didSet {
+            guard !isRestoring, normalVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(normalVolume, forKey: Keys.normalVolume)
         }
@@ -175,20 +187,21 @@ public final class PulstickEngine: ObservableObject {
     public init(defaults: SettingsStore = UserDefaults.standard, output: ClickOutput) {
         self.defaults = defaults
         self.output = output
+        isRestoring = true
         loadPresets()
         restoreSettings()
+        isRestoring = false
         syncSequencer()
-        self.output.setVolumes(accent: accentVolume, normal: normalVolume)
-        self.output.setSound(clickSound)
+        output.setVolumes(accent: accentVolume, normal: normalVolume)
+        output.setSound(clickSound)
     }
 
-    /// init から呼ばれるメソッド内の代入なので didSet は発火し、同じ値が書き戻される（無害）
     private func restoreSettings() {
         if let saved = defaults.object(forKey: Keys.bpm) as? Double {
-            bpm = saved.clamped(to: 40...240)
+            bpm = saved
         }
         if let saved = defaults.object(forKey: Keys.beats) as? Int {
-            beatsPerMeasure = max(1, min(saved, 16))
+            beatsPerMeasure = saved.clamped(to: Self.beatsRange)
         }
         if let saved = defaults.object(forKey: Keys.accents) as? [Int] {
             accentBeats = Set(saved.filter { $0 < beatsPerMeasure })
@@ -199,44 +212,26 @@ public final class PulstickEngine: ObservableObject {
         if let saved = defaults.object(forKey: Keys.normalVolume) as? Double {
             normalVolume = saved.clamped(to: 0...1)
         }
-        // enabled の didSet が speedTrainer を書き戻すため、先に speedTrainer を復元する
-        if let data = defaults.object(forKey: Keys.speedTrainer) as? Data,
-           let saved = try? JSONDecoder().decode(SpeedTrainer.self, from: data)
-        {
-            speedTrainer = saved
-        }
-        if let saved = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool {
-            speedTrainerEnabled = saved
-        }
-        if let raw = defaults.object(forKey: Keys.clickSound) as? String,
-           let saved = ClickSound(rawValue: raw)
-        {
-            clickSound = saved
-        }
-        if let data = defaults.object(forKey: Keys.practiceLog) as? Data,
-           let saved = try? JSONDecoder().decode(PracticeLog.self, from: data)
-        {
-            practiceLog = saved
-        }
-        if let data = defaults.object(forKey: Keys.gapTrainer) as? Data,
-           let saved = try? JSONDecoder().decode(GapTrainer.self, from: data)
-        {
-            gapTrainer = saved
-        }
-        if let saved = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool {
-            gapTrainerEnabled = saved
-        }
-        if let raw = defaults.object(forKey: Keys.subdivision) as? Int,
-           let saved = Subdivision(rawValue: raw)
-        {
+        if let raw = defaults.object(forKey: Keys.subdivision) as? Int, let saved = Subdivision(rawValue: raw) {
             subdivision = saved
         }
+        if let raw = defaults.object(forKey: Keys.clickSound) as? String, let saved = ClickSound(rawValue: raw) {
+            clickSound = saved
+        }
+        speedTrainer = defaults.codable(SpeedTrainer.self, forKey: Keys.speedTrainer) ?? speedTrainer
+        speedTrainerEnabled = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool ?? false
+        gapTrainer = defaults.codable(GapTrainer.self, forKey: Keys.gapTrainer) ?? gapTrainer
+        gapTrainerEnabled = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool ?? false
+        practiceLog = defaults.codable(PracticeLog.self, forKey: Keys.practiceLog) ?? practiceLog
     }
 
+    /// プレビューやスクリーンショット用に、見本の練習記録で置き換える
+    public func seedPracticeLog(_ log: PracticeLog) {
+        practiceLog = log
+    }
 
     private func loadPresets() {
-        if let data = defaults.object(forKey: Keys.presets) as? Data,
-           let saved = try? JSONDecoder().decode([BeatPreset].self, from: data),
+        if let saved = defaults.codable([BeatPreset].self, forKey: Keys.presets),
            saved.count == BeatPreset.defaults.count
         {
             presets = saved
@@ -246,9 +241,7 @@ public final class PulstickEngine: ObservableObject {
     }
 
     private func persistPresets() {
-        if let data = try? JSONEncoder().encode(presets) {
-            defaults.set(data, forKey: Keys.presets)
-        }
+        defaults.setCodable(presets, forKey: Keys.presets)
     }
 
     public func applyPreset(at index: Int) {
@@ -256,7 +249,7 @@ public final class PulstickEngine: ObservableObject {
         let preset = presets[index]
         beatsPerMeasure = preset.beats
         accentBeats = preset.accentSet
-        currentBeat = 0
+        beatClock.current = 0
     }
 
     public func saveCurrentAsPreset(at index: Int) {
@@ -282,10 +275,10 @@ public final class PulstickEngine: ObservableObject {
     public func start() {
         guard !isPlaying else { return }
         isPlaying = true
-        currentBeat = 0
+        beatClock.current = 0
         playStartedAt = Date()
         sessionStartBPM = bpm
-        speedTrainer.restart()
+        speedTrainerProgress.restart()
 
         output.prepare()
 
@@ -310,34 +303,30 @@ public final class PulstickEngine: ObservableObject {
     public func returnToSessionStartBPM() {
         guard let start = sessionStartBPM else { return }
         bpm = start
-        speedTrainer.restart()
+        speedTrainerProgress.restart()
     }
 
+    /// 停止し、再生していた時間を練習ログに記録する。アプリ終了時にも呼ぶ
     public func stop() {
-        recordSession()
+        if let startedAt = playStartedAt, Date().timeIntervalSince(startedAt) >= minimumLoggedSession {
+            practiceLog.record(from: startedAt, to: Date())
+        }
         isPlaying = false
         playStartedAt = nil
         timerSource?.cancel()
         timerSource = nil
         output.stopAll()
-        currentBeat = 0
-        isInSilentBar = false
+        beatClock.current = 0
+        beatClock.isInSilentBar = false
     }
 
-    /// 再生中のセッションを練習ログに書き込む。アプリ終了時にも呼ぶ
-    public func recordSession(until end: Date = Date()) {
-        guard let startedAt = playStartedAt, end.timeIntervalSince(startedAt) >= minimumLoggedSession else { return }
-        practiceLog.record(from: startedAt, to: end)
-        // 終了時に呼ばれた後で stop() が来ても二重計上しない
-        playStartedAt = end
+    /// 範囲外は bpm の didSet で丸められる
+    public func incrementBPM(by step: Double = 1) {
+        bpm += step
     }
 
-    public func incrementBPM() {
-        bpm = min(bpm + 1, 240)
-    }
-
-    public func decrementBPM() {
-        bpm = max(bpm - 1, 40)
+    public func decrementBPM(by step: Double = 1) {
+        bpm -= step
     }
 
     /// 直近の最大4回のタップ間隔の平均からBPMを算出する。
@@ -367,24 +356,24 @@ public final class PulstickEngine: ObservableObject {
     }
 
     public func setBeats(_ beats: Int) {
-        beatsPerMeasure = max(1, min(beats, 16))
+        beatsPerMeasure = beats.clamped(to: Self.beatsRange)
         accentBeats = [0]
-        currentBeat = 0
+        beatClock.current = 0
     }
 
     public func addBeat() {
-        guard beatsPerMeasure < 16 else { return }
+        guard beatsPerMeasure < Self.beatsRange.upperBound else { return }
         beatsPerMeasure += 1
         // 追加した拍はデフォルトで弱（accentBeats に追加しない）
     }
 
     public func removeBeat() {
-        guard beatsPerMeasure > 1 else { return }
+        guard beatsPerMeasure > Self.beatsRange.lowerBound else { return }
         let last = beatsPerMeasure - 1
         accentBeats.remove(last)
         beatsPerMeasure -= 1
-        if currentBeat >= beatsPerMeasure {
-            currentBeat = 0
+        if beatClock.current >= beatsPerMeasure {
+            beatClock.current = 0
         }
     }
 
@@ -398,7 +387,9 @@ public final class PulstickEngine: ObservableObject {
 
     /// 小節の終わりごとにメインスレッドで呼ばれる
     func handleMeasureCompleted() {
-        guard speedTrainerEnabled, let next = speedTrainer.measureCompleted(currentBPM: bpm) else { return }
+        guard speedTrainerEnabled,
+              let next = speedTrainerProgress.measureCompleted(speedTrainer, currentBPM: bpm)
+        else { return }
         bpm = next
     }
 
@@ -479,9 +470,9 @@ public final class PulstickEngine: ObservableObject {
         guard tick.click != .subdivision else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.isPlaying else { return }
-            self.currentBeat = tick.beat
-            if self.isInSilentBar != silent {
-                self.isInSilentBar = silent
+            self.beatClock.current = tick.beat
+            if self.beatClock.isInSilentBar != silent {
+                self.beatClock.isInSilentBar = silent
             }
             if countsMeasure, tick.startsMeasure {
                 self.handleMeasureCompleted()
@@ -494,8 +485,3 @@ public final class PulstickEngine: ObservableObject {
     }
 }
 
-private extension Double {
-    func clamped(to range: ClosedRange<Double>) -> Double {
-        return Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
-    }
-}

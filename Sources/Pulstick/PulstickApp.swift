@@ -3,19 +3,21 @@ import SwiftUI
 
 @main
 struct PulstickApp: App {
-    @StateObject private var engine: PulstickEngine
+    /// App はエンジンを購読しない（App の body が変更のたびに再評価されないように）。
+    /// App 構造体の init は一度しか呼ばれないので StateObject でなくても寿命は保たれる
+    private let engine: PulstickEngine
     private let hotKeys: GlobalHotKeys
 
     init() {
         Snapshot.runIfRequested()
         let engine = PulstickEngine(output: AudioClickOutput())
-        _engine = StateObject(wrappedValue: engine)
+        self.engine = engine
         hotKeys = GlobalHotKeys(engine: engine)
-        // 再生したまま終了しても、その練習時間を失わないようにする
+        // 再生したまま終了しても、その練習時間を失わないよう停止して記録する
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { _ in
-            MainActor.assumeIsolated { engine.recordSession() }
+            MainActor.assumeIsolated { engine.stop() }
         }
     }
 

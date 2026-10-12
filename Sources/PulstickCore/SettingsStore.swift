@@ -16,3 +16,15 @@ public final class InMemorySettingsStore: SettingsStore {
     public func object(forKey key: String) -> Any? { values[key] }
     public func set(_ value: Any?, forKey key: String) { values[key] = value }
 }
+
+extension SettingsStore {
+    /// Codable な値を JSON として保存・復元する。壊れたデータは nil として扱い既定値に戻す
+    func codable<T: Decodable>(_ type: T.Type, forKey key: String) -> T? {
+        guard let data = object(forKey: key) as? Data else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
+
+    func setCodable<T: Encodable>(_ value: T, forKey key: String) {
+        set(try? JSONEncoder().encode(value), forKey: key)
+    }
+}

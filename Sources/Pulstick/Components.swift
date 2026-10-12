@@ -22,6 +22,18 @@ extension View {
             .accessibilityAction { action() }
     }
 
+    /// accessibleTap のトグル版。MiniSwitch と CheckBox で共有する
+    func accessibleToggle(_ isOn: Binding<Bool>, label: Text? = nil) -> some View {
+        contentShape(Rectangle())
+            .pointingHandCursor()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label ?? Text(""))
+            .accessibilityAddTraits(.isToggle)
+            .accessibilityValue(isOn.wrappedValue ? Text("On") : Text("Off"))
+            .onTapGesture { isOn.wrappedValue.toggle() }
+            .accessibilityAction { isOn.wrappedValue.toggle() }
+    }
+
     /// プリセットや細分化など「選択中の1つがハイライトされるチップ」の共通装飾
     func chip(selected: Bool) -> some View {
         background(
@@ -86,7 +98,7 @@ struct CustomSlider: View {
                         let clamped = min(max(fraction, 0), 1)
                         let raw = clamped * (range.upperBound - range.lowerBound) + range.lowerBound
                         let stepped = (raw / step).rounded() * step
-                        value = min(max(stepped, range.lowerBound), range.upperBound)
+                        value = stepped.clamped(to: range)
                     }
             )
         }
@@ -121,13 +133,7 @@ struct MiniSwitch: View {
                     .padding(2)
             }
             .animation(.easeOut(duration: 0.12), value: isOn)
-            .contentShape(Rectangle())
-            .pointingHandCursor()
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isToggle)
-            .accessibilityValue(isOn ? Text("On") : Text("Off"))
-            .onTapGesture { isOn.toggle() }
-            .accessibilityAction { isOn.toggle() }
+            .accessibleToggle($isOn)
     }
 }
 
@@ -141,13 +147,6 @@ struct CheckBox: View {
                 .foregroundColor(isOn ? .accentColor : .secondary)
             Text(title)
         }
-        .contentShape(Rectangle())
-        .pointingHandCursor()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(title))
-        .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(isOn ? Text("On") : Text("Off"))
-        .onTapGesture { isOn.toggle() }
-        .accessibilityAction { isOn.toggle() }
+        .accessibleToggle($isOn, label: Text(title))
     }
 }

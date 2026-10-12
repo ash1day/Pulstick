@@ -12,7 +12,7 @@ enum Snapshot {
         let dark = args.contains("--dark")
 
         MainActor.assumeIsolated {
-            let store = InMemorySettingsStore()
+            let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
             if args.contains("--log") {
                 // 見本用の練習記録: 今日を含め 4 日連続で 25 分ずつ
                 var log = PracticeLog()
@@ -20,9 +20,8 @@ enum Snapshot {
                     let end = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
                     log.record(from: end.addingTimeInterval(-25 * 60), to: end)
                 }
-                store.set(try? JSONEncoder().encode(log), forKey: "pulstick.practiceLog")
+                engine.seedPracticeLog(log)
             }
-            let engine = PulstickEngine(defaults: store, output: SilentClickOutput())
             if let i = args.firstIndex(of: "--beats"), i + 1 < args.count, let beats = Int(args[i + 1]) {
                 engine.setBeats(beats)
             }

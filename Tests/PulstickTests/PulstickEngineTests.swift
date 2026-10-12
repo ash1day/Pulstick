@@ -342,30 +342,34 @@ struct BeatSequencerResetTests {
 @Suite("SpeedTrainer")
 struct SpeedTrainerTests {
     @Test func raisesTempoAfterConfiguredMeasures() {
-        var trainer = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 5, targetBPM: 200)
-        #expect(trainer.measureCompleted(currentBPM: 100) == nil)
-        #expect(trainer.measureCompleted(currentBPM: 100) == 105)
+        let settings = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 5, targetBPM: 200)
+        var progress = SpeedTrainerProgress()
+        #expect(progress.measureCompleted(settings, currentBPM: 100) == nil)
+        #expect(progress.measureCompleted(settings, currentBPM: 100) == 105)
     }
 
     @Test func stopsAtTargetTempo() {
-        var trainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 103)
-        #expect(trainer.measureCompleted(currentBPM: 100) == 103)
-        #expect(trainer.measureCompleted(currentBPM: 103) == nil)
+        let settings = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 103)
+        var progress = SpeedTrainerProgress()
+        #expect(progress.measureCompleted(settings, currentBPM: 100) == 103)
+        #expect(progress.measureCompleted(settings, currentBPM: 103) == nil)
     }
 
     @Test func countsAgainFromZeroAfterRaising() {
-        var trainer = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
-        _ = trainer.measureCompleted(currentBPM: 100)
-        _ = trainer.measureCompleted(currentBPM: 100)  // 101 へ
-        #expect(trainer.measureCompleted(currentBPM: 101) == nil)
-        #expect(trainer.measureCompleted(currentBPM: 101) == 102)
+        let settings = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
+        var progress = SpeedTrainerProgress()
+        _ = progress.measureCompleted(settings, currentBPM: 100)
+        _ = progress.measureCompleted(settings, currentBPM: 100)  // 101 へ
+        #expect(progress.measureCompleted(settings, currentBPM: 101) == nil)
+        #expect(progress.measureCompleted(settings, currentBPM: 101) == 102)
     }
 
     @Test func restartResetsMeasureCount() {
-        var trainer = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
-        _ = trainer.measureCompleted(currentBPM: 100)
-        trainer.restart()
-        #expect(trainer.measureCompleted(currentBPM: 100) == nil)
+        let settings = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
+        var progress = SpeedTrainerProgress()
+        _ = progress.measureCompleted(settings, currentBPM: 100)
+        progress.restart()
+        #expect(progress.measureCompleted(settings, currentBPM: 100) == nil)
     }
 }
 
@@ -487,7 +491,7 @@ struct PlaybackIntegrationTests {
         engine.setBeats(4)
         engine.bpm = 240
         var beatChanges = 0
-        let cancellable = engine.$currentBeat.removeDuplicates().dropFirst().sink { _ in beatChanges += 1 }
+        let cancellable = engine.beatClock.$current.removeDuplicates().dropFirst().sink { _ in beatChanges += 1 }
         engine.start()
         // スライダーのドラッグを模して 20ms ごとにテンポを変え続ける（間隔 250ms より短い）
         for i in 0..<40 {
@@ -517,26 +521,16 @@ struct PlaybackIntegrationTests {
         let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         engine.minimumLoggedSession = 0
         engine.start()
+        let startedAt = engine.playStartedAt!
         try await spin(0.2)
         engine.stop()
-        #expect(engine.practiceLog.seconds(on: Date()) >= 0.2)
-        let relaunched = PulstickEngine(defaults: defaults, output: SilentClickOutput())
-        #expect(relaunched.practiceLog == engine.practiceLog)
-    }
-
-    @Test func sessionSavedMidwayIsNotCountedAgainOnStop() async throws {
-        let engine = makeEngine()
-        engine.minimumLoggedSession = 0
-        engine.start()
-        let startedAt = engine.playStartedAt!
-        try await spin(0.1)
-        engine.recordSession()  // アプリ終了通知などで途中まで記録
-        try await spin(0.1)
-        engine.stop()           // 残りだけが加算されるべき
+        engine.stop()  // 二度止めても二重に記録しない
         let elapsed = Date().timeIntervalSince(startedAt)
         let logged = engine.practiceLog.seconds(on: startedAt)
+        #expect(logged >= 0.2)
         #expect(logged <= elapsed)
-        #expect(logged > elapsed - 0.05)
+        let relaunched = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(relaunched.practiceLog == engine.practiceLog)
     }
 
     @Test func veryShortSessionsAreNotLogged() async throws {
@@ -614,6 +608,12 @@ struct PracticeLogTests {
         #expect(log.streak(endingAt: date(12, 22), calendar: calendar) == 4)
     }
 
+    @Test func practisingRightNowCountsTodayInTheStreak() {
+        var log = PracticeLog()
+        log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
+        #expect(log.streak(endingAt: date(12, 8), practisingNow: true, calendar: calendar) == 2)
+    }
+
     @Test func streakStillCountsWhenTodayHasNoPracticeYet() {
         var log = PracticeLog()
         log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
@@ -657,5 +657,22 @@ struct ClickSynthTests {
         let quarter = wave.count / 4
         let energy = { (part: ArraySlice<Float>) in part.reduce(0) { $0 + $1 * $1 } }
         #expect(energy(wave.suffix(quarter)) < energy(wave.prefix(quarter)))
+    }
+}
+
+// MARK: - SentenceTemplate
+
+@Suite("SentenceTemplate")
+struct SentenceTemplateTests {
+    @Test func splitsTextAndPositionalSlots() {
+        #expect(SentenceTemplate.parse("%1$@ BPM every %2$@ bars") == [
+            .slot(0), .text("BPM every"), .slot(1), .text("bars"),
+        ])
+    }
+
+    @Test func slotsCanAppearInAnyOrder() {
+        #expect(SentenceTemplate.parse("%2$@ 小節ごとに %1$@ BPM（上限 %3$@）") == [
+            .slot(1), .text("小節ごとに"), .slot(0), .text("BPM（上限"), .slot(2), .text("）"),
+        ])
     }
 }

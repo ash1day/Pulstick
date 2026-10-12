@@ -68,24 +68,20 @@ struct SpeedTrainerSection: View {
                 .pointingHandCursor()
             }
         } settings: {
-            let increment = MiniStepper(value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+")
-            let measures = MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32)
-            let target = MiniStepper(value: $engine.speedTrainer.targetBPM, range: 41...240, step: 5)
-            // 文字列の訳だけでは語順を変えられないため、日本語ではステッパーの並びごと変える
-            if usesJapaneseWordOrder {
-                measures
-                Text(verbatim: "小節ごとに")
-                increment
-                Text(verbatim: "BPM（上限")
-                target
-                Text(verbatim: "）")
-            } else {
-                increment
-                Text(verbatim: "BPM every")
-                measures
-                Text(verbatim: engine.speedTrainer.measuresPerStep == 1 ? "bar, up to" : "bars, up to")
-                target
-            }
+            let bpmRange = PulstickEngine.bpmRange
+            StepperSentence(
+                template: engine.speedTrainer.measuresPerStep == 1
+                    ? String(localized: "trainer.sentence.one", defaultValue: "%1$@ BPM every %2$@ bar, up to %3$@")
+                    : String(localized: "trainer.sentence.other", defaultValue: "%1$@ BPM every %2$@ bars, up to %3$@"),
+                slots: [
+                    AnyView(MiniStepper(value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+")),
+                    AnyView(MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32)),
+                    AnyView(MiniStepper(
+                        value: $engine.speedTrainer.targetBPM,
+                        range: Int(bpmRange.lowerBound) + 1...Int(bpmRange.upperBound), step: 5
+                    )),
+                ]
+            )
         }
     }
 }
@@ -104,23 +100,34 @@ struct GapTrainerSection: View {
         ) {
             EmptyView()
         } settings: {
-            let prefix = String(localized: "gap.prefix", defaultValue: "Play")
-            if !prefix.isEmpty {
-                Text(prefix)
-            }
-            MiniStepper(value: $engine.gapTrainer.playBars, range: 1...16)
-            Text(engine.gapTrainer.playBars == 1
-                 ? String(localized: "gap.then.one", defaultValue: "bar, then")
-                 : String(localized: "gap.then.other", defaultValue: "bars, then"))
-            MiniStepper(value: $engine.gapTrainer.muteBars, range: 1...16)
-            Text(String(localized: "gap.suffix", defaultValue: "silent"))
+            StepperSentence(
+                template: engine.gapTrainer.playBars == 1
+                    ? String(localized: "gap.sentence.one", defaultValue: "Play %1$@ bar, then %2$@ silent")
+                    : String(localized: "gap.sentence.other", defaultValue: "Play %1$@ bars, then %2$@ silent"),
+                slots: [
+                    AnyView(MiniStepper(value: $engine.gapTrainer.playBars, range: 1...16)),
+                    AnyView(MiniStepper(value: $engine.gapTrainer.muteBars, range: 1...16)),
+                ]
+            )
         }
     }
 }
 
-/// 実際に使われているローカライズ（システム言語ではなくバンドルが選んだもの）が日本語か
-private var usesJapaneseWordOrder: Bool {
-    Bundle.main.preferredLocalizations.first == "ja"
+/// 言語ごとに語順が違う文の途中にステッパーを差し込む。
+/// 語順はローカライズされたテンプレート（"%2$@ 小節ごとに %1$@ BPM" など）で決まる
+struct StepperSentence: View {
+    let template: String
+    let slots: [AnyView]
+
+    var body: some View {
+        let parts = SentenceTemplate.parse(template)
+        ForEach(parts.indices, id: \.self) { index in
+            switch parts[index] {
+            case .text(let text): Text(verbatim: text)
+            case .slot(let slot): slots[slot]
+            }
+        }
+    }
 }
 
 /// 左右の矢印で値を増減する小さなステッパー
@@ -147,7 +154,7 @@ struct MiniStepper: View {
 
     private func stepButton(_ symbol: String, delta: Int) -> some View {
         Button {
-            value = min(max(value + delta, range.lowerBound), range.upperBound)
+            value = (value + delta).clamped(to: range)
         } label: {
             Image(systemName: symbol)
                 .font(.system(size: 8, weight: .bold))

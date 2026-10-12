@@ -20,18 +20,18 @@
 "Triplets" = "3連符";
 "Sixteenth notes" = "16分音符";
 
-/* Speed trainer (the stepper row is laid out in code because word order differs) */
+/* Speed trainer. %1$@ = BPM increment, %2$@ = bars, %3$@ = target BPM (steppers are inserted there) */
 "Speed Trainer" = "スピードトレーナー";
 "Gradually raise the tempo while playing" = "演奏しながら少しずつテンポを上げます";
 "Go back to the tempo you started at" = "開始時のテンポに戻す";
+"trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
+"trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 
-/* Silent bars: "2 小節鳴らして 2 小節休む" */
+/* Silent bars. %1$@ = bars played, %2$@ = bars muted */
 "Silent Bars" = "サイレント小節";
 "Mute some bars to check that you hold the tempo on your own" = "ときどき小節を無音にして、自分でテンポを保てているか確かめます";
-"gap.prefix" = "";
-"gap.then.one" = "小節鳴らして";
-"gap.then.other" = "小節鳴らして";
-"gap.suffix" = "小節休む";
+"gap.sentence.one" = "%1$@ 小節鳴らして %2$@ 小節休む";
+"gap.sentence.other" = "%1$@ 小節鳴らして %2$@ 小節休む";
 
 /* Controls */
 "Tap" = "タップ";

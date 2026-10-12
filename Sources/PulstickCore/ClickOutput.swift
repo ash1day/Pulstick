@@ -60,7 +60,7 @@ public final class AudioClickOutput: ClickOutput {
         audioEngine.connect(accentPlayerNode, to: audioEngine.mainMixerNode, format: format)
         audioEngine.connect(normalPlayerNode, to: audioEngine.mainMixerNode, format: format)
         audioEngine.connect(subdivisionPlayerNode, to: audioEngine.mainMixerNode, format: format)
-        setSound(.beep)
+        // 音色はエンジンが起動時に setSound で一度だけ設定する
 
         do {
             try audioEngine.start()
