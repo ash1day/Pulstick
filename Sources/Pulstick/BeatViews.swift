@@ -139,6 +139,12 @@ struct BPMDisplay: View {
                 Group {
                     if clock.isInSilentBar {
                         Label("Silent bar · keep counting", systemImage: "speaker.slash.fill")
+                    } else if let song = engine.currentSong {
+                        // リハーサル中に [ ] で切り替えても、いまどの曲かが分かるように
+                        Text(verbatim: "\(song.name) · \(TempoMarking.name(for: engine.bpm))")
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: 220)
                     } else {
                         Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
                     }
