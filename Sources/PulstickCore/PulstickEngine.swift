@@ -262,8 +262,7 @@ public final class PulstickEngine: ObservableObject {
 
     /// 直近の最大4回のタップ間隔の平均からBPMを算出する。
     /// 2秒以上間隔が空くとタップ履歴をリセット。
-    public func tapTempo() {
-        let now = Date()
+    public func tapTempo(at now: Date = Date()) {
 
         if let lastTap = tapTimes.last, now.timeIntervalSince(lastTap) > tapTimeout {
             tapTimes.removeAll()
@@ -283,7 +282,8 @@ public final class PulstickEngine: ObservableObject {
         }
         let averageInterval = totalInterval / Double(tapTimes.count - 1)
 
-        bpm = 60.0 / averageInterval
+        // 小数の BPM は表示と食い違い、±ボタンでも端数が残るため整数に丸める
+        bpm = (60.0 / averageInterval).rounded()
     }
 
     public func setBeats(_ beats: Int) {

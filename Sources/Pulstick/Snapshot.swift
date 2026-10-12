@@ -17,7 +17,7 @@ enum Snapshot {
                 engine.setBeats(beats)
             }
             engine.speedTrainerEnabled = args.contains("--trainer")
-            let view = PulstickView(engine: engine)
+            let view = PulstickView(engine: engine, hotKeys: nil)
                 .background(Color(nsColor: .windowBackgroundColor))
                 .environment(\.colorScheme, dark ? .dark : .light)
             let renderer = ImageRenderer(content: view)

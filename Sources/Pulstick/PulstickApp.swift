@@ -15,7 +15,7 @@ struct PulstickApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            PulstickView(engine: engine)
+            PulstickView(engine: engine, hotKeys: hotKeys)
         } label: {
             MenuBarLabel(engine: engine)
         }

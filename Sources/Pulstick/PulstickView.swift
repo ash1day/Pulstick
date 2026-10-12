@@ -4,6 +4,8 @@ import SwiftUI
 
 struct PulstickView: View {
     @ObservedObject var engine: PulstickEngine
+    /// スナップショット時は nil
+    let hotKeys: GlobalHotKeys?
     @State private var pulseScale: CGFloat = 1.0
     @State private var pulseOpacity: Double = 0.0
     @State private var isEditingBPM = false
@@ -304,7 +306,8 @@ struct PulstickView: View {
             }
             .controlSize(.large)
             .buttonStyle(.bordered)
-            .help("Tap along to set the tempo (T, or ⌃⌥T from any app)")
+            .help("Tap along to set the tempo (T"
+                + (hotKeys?.isTapAvailable == true ? ", or ⌃⌥T from any app)" : ")"))
             .pointingHandCursor()
 
             Button {
@@ -318,7 +321,8 @@ struct PulstickView: View {
             .buttonStyle(.borderedProminent)
             .tint(engine.isPlaying ? .red : .accentColor)
             .keyboardShortcut(.space, modifiers: [])
-            .help(engine.isPlaying ? "Stop (Space, or ⌃⌥M from any app)" : "Play (Space, or ⌃⌥M from any app)")
+            .help((engine.isPlaying ? "Stop (Space" : "Play (Space")
+                + (hotKeys?.isToggleAvailable == true ? ", or ⌃⌥M from any app)" : ")"))
             .pointingHandCursor()
         }
     }

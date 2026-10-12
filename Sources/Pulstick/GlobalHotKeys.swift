@@ -12,6 +12,10 @@ final class GlobalHotKeys {
         case tap = 2
     }
 
+    /// 他アプリと競合して登録できなかったショートカットは UI で案内しないようにする
+    private(set) var isToggleAvailable = false
+    private(set) var isTapAvailable = false
+
     private weak var engine: PulstickEngine?
     private var hotKeyRefs: [EventHotKeyRef?] = []
     private var handlerRef: EventHandlerRef?
@@ -19,8 +23,8 @@ final class GlobalHotKeys {
     init(engine: PulstickEngine) {
         self.engine = engine
         installHandler()
-        register(.toggle, keyCode: UInt32(kVK_ANSI_M))
-        register(.tap, keyCode: UInt32(kVK_ANSI_T))
+        isToggleAvailable = register(.toggle, keyCode: UInt32(kVK_ANSI_M))
+        isTapAvailable = register(.tap, keyCode: UInt32(kVK_ANSI_T))
     }
 
     deinit {
@@ -28,17 +32,17 @@ final class GlobalHotKeys {
         if let handlerRef { RemoveEventHandler(handlerRef) }
     }
 
-    private func register(_ action: Action, keyCode: UInt32) {
+    private func register(_ action: Action, keyCode: UInt32) -> Bool {
         // "PLST" を4文字コードとしてアプリ固有の signature にする
         let id = EventHotKeyID(signature: 0x504C_5354, id: action.rawValue)
         var ref: EventHotKeyRef?
         let status = RegisterEventHotKey(
             keyCode, UInt32(controlKey | optionKey), id, GetApplicationEventTarget(), 0, &ref
         )
-        // 他アプリが同じ組み合わせを先に登録している場合は失敗する。致命的ではないので無視する
-        if status == noErr {
-            hotKeyRefs.append(ref)
-        }
+        // 他アプリが同じ組み合わせを先に登録している場合は失敗する。致命的ではないので黙って諦める
+        guard status == noErr else { return false }
+        hotKeyRefs.append(ref)
+        return true
     }
 
     private func installHandler() {

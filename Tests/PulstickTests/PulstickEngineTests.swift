@@ -136,6 +136,28 @@ struct BPMTests {
     }
 }
 
+// MARK: - PulstickEngine: タップテンポ
+
+@Suite("PulstickEngine: タップテンポ")
+struct TapTempoTests {
+    @Test func tappedTempoIsRoundedToWholeBPM() {
+        let engine = makeEngine()
+        let t0 = Date()
+        engine.tapTempo(at: t0)
+        engine.tapTempo(at: t0.addingTimeInterval(0.502))  // 119.52 BPM 相当
+        #expect(engine.bpm == 120)
+    }
+
+    @Test func pauseLongerThanTimeoutStartsOver() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        let t0 = Date()
+        engine.tapTempo(at: t0)
+        engine.tapTempo(at: t0.addingTimeInterval(3))  // 2秒以上空いたので最初のタップ扱い
+        #expect(engine.bpm == 100)
+    }
+}
+
 // MARK: - PulstickEngine: プリセット管理
 
 @Suite("PulstickEngine: プリセット管理")
