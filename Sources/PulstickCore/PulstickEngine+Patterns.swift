@@ -6,9 +6,10 @@ extension PulstickEngine {
     /// 保存データが壊れていても拍数 0（ゼロ除算）や範囲外の拍にならないよう検証する。
     /// 拍数を先に決めてから、その範囲でアクセントと休符を絞り込む
     func applyPattern(_ pattern: BeatPreset) {
-        beatsPerMeasure = pattern.beats.clamped(to: Self.beatsRange)
-        accentBeats = validBeatIndices(pattern.accents)
-        restBeats = validBeatIndices(pattern.rests)
+        let valid = Self.sanitized(pattern)
+        beatsPerMeasure = valid.beats
+        accentBeats = valid.accentSet
+        restBeats = valid.restSet
     }
 
     /// いまの拍のパターンがこのパターンと同じか（プリセットの選択表示や曲の判定に使う）

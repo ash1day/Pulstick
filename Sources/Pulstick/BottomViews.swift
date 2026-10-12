@@ -129,70 +129,60 @@ struct VolumeRow: View {
     }
 }
 
-/// 今日の練習時間と連続日数。再生中のセッションも含めて 30 秒ごとに更新する
+/// 今日の練習時間と連続日数。再生中のセッションも含めて 30 秒ごとに更新する。
+/// まだ練習していなくても表示する（右クリックで週の目標を先に決められるように）
 struct PracticeSummary: View {
     @ObservedObject var engine: PulstickEngine
     @State private var isConfirmingReset = false
 
     var body: some View {
-        if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty || engine.weeklyGoalMinutes > 0 {
-            TimelineView(.periodic(from: .now, by: 30)) { context in
-                let now = context.date
-                // 記録と同じ規則（5 秒未満は数えない・日付をまたいだら今日の分だけ）で再生中の時間を足す
-                let running = engine.unsavedPracticeToday()
-                let today = engine.practiceLog.seconds(on: now) + running
-                let streak = engine.practiceLog.streak(endingAt: now, practisingNow: running > 0)
-                let week = recentWeek(endingAt: now, today: running)
-                VStack(spacing: 6) {
-                    HStack(spacing: 10) {
-                        Label("Today \(Int(today / 60)) min", systemImage: "clock")
-                        if streak > 1 {
-                            Label("\(streak)-day streak", systemImage: "flame")
-                        }
-                        Spacer()
-                        WeekBars(seconds: week, endingAt: now)
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let now = context.date
+            // 停止したときと同じ規則で再生中の分も足したログから、すべての数字を求める
+            let log = engine.practiceLogIncludingCurrentSession()
+            let today = log.seconds(on: now)
+            let streak = log.streak(endingAt: now)
+            let week = log.recentDays(7, endingAt: now)
+            VStack(spacing: 6) {
+                HStack(spacing: 10) {
+                    Label("Today \(Int(today / 60)) min", systemImage: "clock")
+                    if streak > 1 {
+                        Label("\(streak)-day streak", systemImage: "flame")
                     }
-                    if engine.weeklyGoalMinutes > 0 {
-                        // 棒グラフと同じ合計を使い、グラフと目標の数字が食い違わないようにする
-                        WeeklyGoalProgress(seconds: week.reduce(0, +), goalSeconds: Double(engine.weeklyGoalMinutes * 60))
-                    }
+                    Spacer()
+                    WeekBars(seconds: week, endingAt: now)
                 }
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .help("Practice time is counted while the metronome plays")
-                .contextMenu {
-                    // 教室で「週に 2 時間」のように目標を出されている人向け
-                    Picker("Weekly Goal", selection: $engine.weeklyGoalMinutes) {
-                        ForEach(PulstickEngine.weeklyGoalOptions, id: \.self) { minutes in
-                            if minutes == 0 {
-                                Text("No Goal").tag(0)
-                            } else {
-                                let hours = minutes / 60
-                                Text("\(hours) h a Week").tag(minutes)
-                            }
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    Divider()
-                    // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
-                    Button("Reset Practice History…") { isConfirmingReset = true }
-                }
-                .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
-                    Button("Reset", role: .destructive) { engine.resetPracticeHistory() }
-                } message: {
-                    Text("This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay.")
+                if engine.weeklyGoalMinutes > 0 {
+                    // 棒グラフと同じ合計を使い、グラフと目標の数字が食い違わないようにする
+                    WeeklyGoalProgress(seconds: week.reduce(0, +), goalSeconds: Double(engine.weeklyGoalMinutes * 60))
                 }
             }
+            .font(.system(size: 11))
+            .foregroundColor(.secondary)
+            .help("Practice time is counted while the metronome plays")
+            .contextMenu {
+                // 教室で「週に 2 時間」のように目標を出されている人向け
+                Picker("Weekly Goal", selection: $engine.weeklyGoalMinutes) {
+                    ForEach(PulstickEngine.weeklyGoalOptions, id: \.self) { minutes in
+                        if minutes == 0 {
+                            Text("No Goal").tag(0)
+                        } else {
+                            let hours = minutes / 60
+                            Text("\(hours) h a Week").tag(minutes)
+                        }
+                    }
+                }
+                .pickerStyle(.inline)
+                Divider()
+                // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
+                Button("Reset Practice History…") { isConfirmingReset = true }
+            }
+            .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
+                Button("Reset", role: .destructive) { engine.resetPracticeHistory() }
+            } message: {
+                Text("This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay.")
+            }
         }
-    }
-
-    /// 直近 7 日の練習秒数。再生中でまだ記録していない分も、日付ごとに分けて含める
-    /// （0 時をまたいで弾いていれば、0 時より前の分は前日の棒に入る）
-    private func recentWeek(endingAt now: Date, today: TimeInterval) -> [Double] {
-        var week = engine.practiceLog.recentDays(7, endingAt: now)
-        week[week.count - 1] += today
-        week[week.count - 2] += max(0, engine.unsavedPractice() - today)
-        return week
     }
 }
 

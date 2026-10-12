@@ -200,6 +200,7 @@ public final class PulstickEngine: ObservableObject {
             guard accentVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(accentVolume, forKey: SettingsKeys.accentVolume)
+            syncSequencer()  // カウントインで鳴らす音の選び方が変わる
         }
     }
     @Published public var normalVolume: Double = 0.7 {
@@ -207,6 +208,7 @@ public final class PulstickEngine: ObservableObject {
             guard normalVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(normalVolume, forKey: SettingsKeys.normalVolume)
+            syncSequencer()  // カウントインで鳴らす音の選び方が変わる
         }
     }
 
@@ -217,6 +219,7 @@ public final class PulstickEngine: ObservableObject {
     var measureIndex = 0
     var activeGap: GapTrainer?
     var activeMute = false
+    var activeCountIn = TickPlan.CountInSounds()
     /// 再生のたびに増える番号。停止直後に届いた前の再生の拍を、次の再生に反映しないために使う
     var playbackGeneration = 0
     /// タイマーキュー上でのみ読み書きする

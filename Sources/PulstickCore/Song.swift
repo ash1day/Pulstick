@@ -54,16 +54,44 @@ struct SharedSetlist: Codable {
         var pulstick: Int
     }
 
-    /// 前後の文章を取り除き、チャットなどで “ ” に置き換わった引用符を戻して、JSON の部分を取り出す
-    static func extractJSON(from text: String) -> Data? {
+    /// テキストの中から JSON の候補を取り出す。チャットに前後の文章（波括弧を含むこともある）ごと貼られても
+    /// 読めるよう、{ と } の対応を数えて候補を切り出す。まずそのままの文字で、だめなら “ ” を " に直して試す
+    /// （曲名に含まれる正規の “ ” を壊さないよう、直すのはそのままでは読めなかったときだけ）
+    static func jsonCandidates(in text: String) -> [Data] {
         let normalized = text
             .replacingOccurrences(of: "“", with: "\"")
             .replacingOccurrences(of: "”", with: "\"")
             .replacingOccurrences(of: "„", with: "\"")
-        guard let start = normalized.firstIndex(of: "{"), let end = normalized.lastIndex(of: "}"), start < end else {
-            return nil
+        let sources = normalized == text ? [text] : [text, normalized]
+        return sources.flatMap { balancedObjects(in: $0) }.compactMap { $0.data(using: .utf8) }
+    }
+
+    /// { から始まり、対応する } で終わる部分文字列をすべて返す（文字列の中の波括弧は数えない）
+    private static func balancedObjects(in text: String) -> [String] {
+        let characters = Array(text)
+        var results: [String] = []
+        for start in characters.indices where characters[start] == "{" {
+            var depth = 0
+            var inString = false
+            var escaped = false
+            for index in start..<characters.count {
+                let character = characters[index]
+                if inString {
+                    if escaped { escaped = false } else if character == "\\" { escaped = true } else if character == "\"" { inString = false }
+                    continue
+                }
+                if character == "\"" { inString = true }
+                if character == "{" { depth += 1 }
+                if character == "}" {
+                    depth -= 1
+                    if depth == 0 {
+                        results.append(String(characters[start...index]))
+                        break
+                    }
+                }
+            }
         }
-        return String(normalized[start...end]).data(using: .utf8)
+        return results
     }
 }
 

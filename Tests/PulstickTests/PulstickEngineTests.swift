@@ -477,6 +477,19 @@ struct SongTests {
         engine.stop()
     }
 
+    @Test func aSessionSpanningSeveralMidnightsIsSplitByDay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let clock = TestClock()
+        clock.date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 10, hour: 22))!
+        let engine = makeEngine(clock: clock)
+        engine.start()
+        clock.advance(28 * 3600)  // 12 日の 2 時まで流しっぱなし
+        let log = engine.practiceLogIncludingCurrentSession(calendar: calendar)
+        #expect(log.recentDays(3, endingAt: clock.date, calendar: calendar) == [2.0 * 3600, 24.0 * 3600, 2.0 * 3600])
+        engine.stop()
+    }
+
     @Test func weekProgressLeavesOutDaysOlderThanSeven() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
@@ -779,6 +792,17 @@ struct SongTests {
         #expect(engine.songs[0].bestBPM == 128)  // 本来の 160 を一瞬でも記録しない
     }
 
+    @Test func rampingUpASongAtTheSlowestTempoJustAppliesIt() {
+        let engine = makeEngine()
+        engine.bpm = 30
+        engine.saveCurrentAsSong(named: "Largo")
+        engine.speedTrainer = SpeedTrainer(targetBPM: 160)
+        engine.rampUp(engine.songs[0], fromPercent: 70)
+        #expect(engine.bpm == 30)
+        #expect(!engine.speedTrainerEnabled)  // 上げる余地がないのでトレーナーは使わない
+        #expect(engine.speedTrainer.targetBPM == 160)
+    }
+
     @Test func rampingUpASongStartsSlowAndTargetsItsTempo() {
         let engine = makeEngine()
         engine.bpm = 160
@@ -841,6 +865,20 @@ struct SongTests {
         #expect(song.pattern.accents == [0])  // 範囲外の拍は捨てる
         engine.applySong(song)
         #expect(engine.currentSong?.id == song.id)  // 取り込んだ曲がちゃんと「いまの曲」になる
+    }
+
+    @Test func songNamesWithCurlyQuotesSurviveARoundTrip() throws {
+        let mine = makeEngine()
+        mine.saveCurrentAsSong(named: "“Blue” Bossa")
+        let text = try #require(mine.exportSetlist())
+        let other = makeEngine()
+        #expect(other.importSetlist(text) == .imported(1))
+        #expect(other.songs.first?.name == "“Blue” Bossa")
+    }
+
+    @Test func bracesInTheSurroundingMessageDoNotBreakTheImport() {
+        let text = #"Setlist {rev 2} for Sunday: {"pulstick": 1, "songs": [{"name": "A", "bpm": 100, "pattern": {"beats": 4, "accents": [0]}, "subdivision": 1}]} see you :-}"#
+        #expect(makeEngine().importSetlist(text) == .imported(1))
     }
 
     @Test func aSetlistFromANewerVersionAsksForAnUpdate() {
@@ -1854,6 +1892,14 @@ struct TickPlanTests {
         #expect(other == TickPlan(sound: .normal, isCountingIn: true))
         let downbeat = TickPlan.plan(for: beat(0, starts: true, rest: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false)
         #expect(downbeat == TickPlan(sound: .accent, isCountingIn: true))
+    }
+
+    @Test func countInUsesAnAudibleSoundWhenOneVolumeIsZero() {
+        // 弱拍の音量が 0 なら全部強拍、強拍の音量が 0 なら全部弱拍で鳴らす
+        let accentOnly = TickPlan.CountInSounds(accentVolume: 1, normalVolume: 0)
+        #expect(TickPlan.plan(for: beat(1), measureIndex: -1, countsMeasure: true, gap: nil, muted: false, countIn: accentOnly).sound == .accent)
+        let normalOnly = TickPlan.CountInSounds(accentVolume: 0, normalVolume: 1)
+        #expect(TickPlan.plan(for: beat(0, starts: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false, countIn: normalOnly).sound == .normal)
     }
 
     @Test func countInSkipsSubdivisionsAndRespectsMute() {

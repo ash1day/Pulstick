@@ -59,6 +59,12 @@ extension PulstickEngine {
     /// 難しい曲を「遅く始めて、慣れたら本来のテンポへ」と練習する流れを 1 回の操作で用意する。
     /// スピードトレーナーの目標はこの曲のテンポに書き換わる。繰り返しモードなら 70% のテンポに戻ってまた上げる
     public func rampUp(_ song: Song, fromPercent percent: Int) {
+        // 遅くしても下限に張り付いて上げる余地がなければ、トレーナーは使わずにそのまま呼び出す
+        let start = (song.bpm * Double(percent) / 100).rounded().clamped(to: Self.bpmRange)
+        guard start < song.bpm else {
+            applySong(song)
+            return
+        }
         speedTrainer.targetBPM = Int(song.bpm.rounded())
         speedTrainerEnabled = true
         applySong(song, tempoPercent: percent)
@@ -79,10 +85,13 @@ extension PulstickEngine {
     /// チャットから前後の文章ごとコピーされたものや、引用符が “ ” に置き換わったものも読む
     @discardableResult
     public func importSetlist(_ text: String) -> SetlistImportResult {
-        guard let data = SharedSetlist.extractJSON(from: text) else { return .notASetlist }
-        guard let header = try? JSONDecoder().decode(SharedSetlist.Header.self, from: data) else { return .notASetlist }
+        // 候補のうち、Pulstick の印（版）が読める最初のものを使う
+        let decoder = JSONDecoder()
+        guard let (data, header) = SharedSetlist.jsonCandidates(in: text).lazy.compactMap({ data in
+            (try? decoder.decode(SharedSetlist.Header.self, from: data)).map { (data, $0) }
+        }).first else { return .notASetlist }
         guard header.pulstick <= SharedSetlist.version else { return .needsNewerVersion }
-        guard let shared = try? JSONDecoder().decode(SharedSetlist.self, from: data) else { return .notASetlist }
+        guard let shared = try? decoder.decode(SharedSetlist.self, from: data) else { return .notASetlist }
 
         var updated = songs
         var applied = 0
@@ -231,14 +240,17 @@ extension PulstickEngine {
 
     /// 直近 7 日（今日を含む）の練習時間。再生中でまだ記録していない今日の分も含める
     public func practiceSecondsThisWeek(calendar: Calendar = .current) -> TimeInterval {
-        // 再生中の分は、日付をまたいでいても全部が直近 7 日に入る
-        practiceLog.recentDays(7, endingAt: now(), calendar: calendar).reduce(0, +) + unsavedPractice()
+        practiceLogIncludingCurrentSession(calendar: calendar).recentDays(7, endingAt: now(), calendar: calendar).reduce(0, +)
     }
 
-    /// 再生中でまだ練習ログに記録していない時間（記録と同じく、練習が始まって 5 秒以上たってから数える）
-    public func unsavedPractice() -> TimeInterval {
-        guard isLongEnoughToLog, let startedAt = playStartedAt else { return 0 }
-        return now().timeIntervalSince(startedAt)
+    /// 練習ログに、再生中でまだ記録していない分を（停止したときと同じく日付ごとに分けて）足したもの。
+    /// 今日の分数・連続日数・7 日間のグラフ・週の目標は、すべてここから求めて数字を揃える
+    public func practiceLogIncludingCurrentSession(calendar: Calendar = .current) -> PracticeLog {
+        var log = practiceLog
+        if isLongEnoughToLog, let startedAt = playStartedAt {
+            log.record(from: startedAt, to: now(), calendar: calendar)
+        }
+        return log
     }
 
     /// 練習が始まっていて（カウントイン中ではなく）、記録に値する長さを弾いているか

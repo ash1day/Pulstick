@@ -11,11 +11,31 @@ struct TickPlan: Equatable {
     /// - Parameter measureIndex: この tick が属する小節の番号。カウントインの小節は負（-1, -2…）、練習の小節は 0 から。
     ///   再生開始時に -カウントインの小節数 から数え始めることが前提（PulstickEngine.start）
     /// - Parameter countsMeasure: 再生開始の最初の tick では false（小節の終わりではない）
-    static func plan(for tick: Tick, measureIndex: Int, countsMeasure: Bool, gap: GapTrainer?, muted: Bool) -> TickPlan {
+    /// カウントインで鳴らす音。小節の区切りが分かるよう頭だけ強拍、ほかは弱拍にするが、
+    /// どちらかの音量が 0 なら聞こえる方の音で揃える（入りのテンポが必ずつかめるように）
+    struct CountInSounds: Equatable {
+        var downbeat: ClickKind = .accent
+        var otherBeats: ClickKind = .normal
+
+        init() {}
+
+        init(accentVolume: Double, normalVolume: Double) {
+            if normalVolume <= 0 {
+                otherBeats = .accent
+            } else if accentVolume <= 0 {
+                downbeat = .normal
+            }
+        }
+    }
+
+    static func plan(
+        for tick: Tick, measureIndex: Int, countsMeasure: Bool, gap: GapTrainer?, muted: Bool,
+        countIn: CountInSounds = CountInSounds()
+    ) -> TickPlan {
         if measureIndex < 0 {
-            // カウントイン: 休符や細分の設定に関係なく拍ごとに鳴らす。小節の区切りが分かるよう頭だけ強拍にし、
-            // ほかは弱拍の音にする（強拍の音量を 0 にしていても聞こえるように）
-            let sound: ClickKind? = tick.click == .subdivision || muted ? nil : (tick.startsMeasure ? .accent : .normal)
+            // カウントイン: 休符や細分の設定に関係なく拍ごとに鳴らす
+            let sound: ClickKind? = tick.click == .subdivision || muted ? nil
+                : (tick.startsMeasure ? countIn.downbeat : countIn.otherBeats)
             return TickPlan(sound: sound, isCountingIn: true)
         }
         let silentBar = gap?.isMuted(measure: measureIndex) ?? false

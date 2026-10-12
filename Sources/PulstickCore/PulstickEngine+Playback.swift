@@ -80,6 +80,8 @@ extension PulstickEngine {
     /// 経過時間・練習タイマー・曲の練習時間をここから数え直す
     func practiceDidBegin() {
         practiceHasBegun = true
+        // カウントイン中にテンポを変えていたら、それを練習の起点（↶ や繰り返しで戻る先）にする
+        restartSession()
         playStartedAt = now()
         practiceTimerStartedAt = playStartedAt
         schedulePracticeTimer()
@@ -190,7 +192,9 @@ extension PulstickEngine {
         let subdivision = subdivision
         let gap = gapTrainerEnabled ? gapTrainer : nil
         let muted = isMuted
+        let countIn = TickPlan.CountInSounds(accentVolume: accentVolume, normalVolume: normalVolume)
         timerQueue.async { [weak self] in
+            self?.activeCountIn = countIn
             self?.activeGap = gap
             self?.activeMute = muted
             self?.sequencer.beatsPerMeasure = beats
@@ -206,7 +210,8 @@ extension PulstickEngine {
             measureIndex += 1
         }
         let plan = TickPlan.plan(
-            for: tick, measureIndex: measureIndex, countsMeasure: countsMeasure, gap: activeGap, muted: activeMute
+            for: tick, measureIndex: measureIndex, countsMeasure: countsMeasure, gap: activeGap, muted: activeMute,
+            countIn: activeCountIn
         )
         if let sound = plan.sound {
             output.play(sound)

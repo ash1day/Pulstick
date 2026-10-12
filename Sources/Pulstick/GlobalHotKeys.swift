@@ -28,11 +28,23 @@ final class GlobalHotKeys {
     init(engine: PulstickEngine) {
         self.engine = engine
         installHandler()
-        isToggleAvailable = register(.toggle, keyCode: UInt32(kVK_ANSI_M))
-        isTapAvailable = register(.tap, keyCode: UInt32(kVK_ANSI_T))
+        isToggleAvailable = keep(register(.toggle, keyCode: UInt32(kVK_ANSI_M)))
+        isTapAvailable = keep(register(.tap, keyCode: UInt32(kVK_ANSI_T)))
+        // 前の曲・次の曲は対で使うもの。片方しか取れなければ両方とも諦め、案内とずれないようにする
         let previous = register(.previousSong, keyCode: UInt32(kVK_ANSI_Comma))
         let next = register(.nextSong, keyCode: UInt32(kVK_ANSI_Period))
-        isSongStepAvailable = previous && next
+        if let previous, let next {
+            isSongStepAvailable = keep(previous) && keep(next)
+        } else {
+            [previous, next].forEach { if let ref = $0 { UnregisterEventHotKey(ref) } }
+        }
+    }
+
+    /// 登録できたホットキーを、終了時に外せるよう覚えておく
+    private func keep(_ ref: EventHotKeyRef?) -> Bool {
+        guard let ref else { return false }
+        hotKeyRefs.append(ref)
+        return true
     }
 
     deinit {
@@ -40,7 +52,7 @@ final class GlobalHotKeys {
         if let handlerRef { RemoveEventHandler(handlerRef) }
     }
 
-    private func register(_ action: Action, keyCode: UInt32) -> Bool {
+    private func register(_ action: Action, keyCode: UInt32) -> EventHotKeyRef? {
         // "PLST" を4文字コードとしてアプリ固有の signature にする
         let id = EventHotKeyID(signature: 0x504C_5354, id: action.rawValue)
         var ref: EventHotKeyRef?
@@ -48,9 +60,8 @@ final class GlobalHotKeys {
             keyCode, UInt32(controlKey | optionKey), id, GetApplicationEventTarget(), 0, &ref
         )
         // 他アプリが同じ組み合わせを先に登録している場合は失敗する。致命的ではないので黙って諦める
-        guard status == noErr else { return false }
-        hotKeyRefs.append(ref)
-        return true
+        guard status == noErr else { return nil }
+        return ref
     }
 
     private func installHandler() {
