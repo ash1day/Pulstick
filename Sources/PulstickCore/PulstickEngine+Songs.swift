@@ -118,7 +118,7 @@ extension PulstickEngine {
         return .imported(applied)
     }
 
-    /// 拍数を範囲に収め、アクセントと休符をその拍数の範囲に絞る（保存データや共有テキストが壊れていても使えるように）
+    /// 同じ名前の曲（大文字・小文字は区別しない）の位置
     private func songIndex(named name: String) -> Int? {
         songs.firstIndex { $0.name.caseInsensitiveCompare(name) == .orderedSame }
     }
