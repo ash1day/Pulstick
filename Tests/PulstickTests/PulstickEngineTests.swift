@@ -669,6 +669,25 @@ struct PlaybackIntegrationTests {
         #expect(beatChanges >= 1)
     }
 
+    @Test func beatsDoNotInvalidateViewsObservingTheWholeEngine() async throws {
+        let engine = makeEngine()
+        engine.setBeats(4)
+        engine.bpm = 240  // 0.8 秒で 3 拍以上進む
+        engine.start()
+        try await spin(0.05)
+        var engineChanges = 0
+        var beatChanges = 0
+        let engineSub = engine.objectWillChange.sink { engineChanges += 1 }
+        let beatSub = engine.beatClock.$current.dropFirst().sink { _ in beatChanges += 1 }
+        try await spin(0.8)
+        engineSub.cancel()
+        beatSub.cancel()
+        engine.stop()
+        // 拍は BeatClock だけが通知し、エンジン全体（ポップオーバーやメニューバー）は再評価させない
+        #expect(beatChanges >= 3)
+        #expect(engineChanges == 0)
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
