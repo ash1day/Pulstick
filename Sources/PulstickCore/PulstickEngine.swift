@@ -34,6 +34,8 @@ public final class PulstickEngine: ObservableObject {
         static let subdivision = "pulstick.subdivision"
         static let speedTrainerEnabled = "pulstick.speedTrainerEnabled"
         static let speedTrainer = "pulstick.speedTrainer"
+        static let gapTrainerEnabled = "pulstick.gapTrainerEnabled"
+        static let gapTrainer = "pulstick.gapTrainer"
     }
 
     @Published public var presets: [BeatPreset] = []
@@ -97,6 +99,23 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
+    @Published public var gapTrainerEnabled = false {
+        didSet {
+            defaults.set(gapTrainerEnabled, forKey: Keys.gapTrainerEnabled)
+            syncSequencer()
+        }
+    }
+    @Published public var gapTrainer = GapTrainer() {
+        didSet {
+            if let data = try? JSONEncoder().encode(gapTrainer) {
+                defaults.set(data, forKey: Keys.gapTrainer)
+            }
+            syncSequencer()
+        }
+    }
+    /// いま無音の小節を再生中か。UI で「心の中で数えて」と示すために使う
+    @Published public private(set) var isInSilentBar = false
+
     @Published public var accentVolume: Double = 1.0 {
         didSet {
             output.setVolumes(accent: accentVolume, normal: normalVolume)
@@ -113,6 +132,9 @@ public final class PulstickEngine: ObservableObject {
     private let output: ClickOutput
     /// 直前に鳴らした時刻。タイマーキュー上でのみ読み書きする
     private var lastFireTime: UInt64 = 0
+    /// 再生開始からの小節番号と、無音小節の設定。タイマーキュー上でのみ読み書きする
+    private var measureIndex = 0
+    private var activeGap: GapTrainer?
     /// タイマーキュー上でのみ読み書きする
     private var sequencer = BeatSequencer(beatsPerMeasure: 4, accents: [0])
     private var timerSource: DispatchSourceTimer?
@@ -165,6 +187,14 @@ public final class PulstickEngine: ObservableObject {
         }
         if let saved = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool {
             speedTrainerEnabled = saved
+        }
+        if let data = defaults.object(forKey: Keys.gapTrainer) as? Data,
+           let saved = try? JSONDecoder().decode(GapTrainer.self, from: data)
+        {
+            gapTrainer = saved
+        }
+        if let saved = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool {
+            gapTrainerEnabled = saved
         }
         if let raw = defaults.object(forKey: Keys.subdivision) as? Int,
            let saved = Subdivision(rawValue: raw)
@@ -231,6 +261,7 @@ public final class PulstickEngine: ObservableObject {
 
         timerQueue.async { [self] in
             lastFireTime = DispatchTime.now().uptimeNanoseconds
+            measureIndex = 0
             play(sequencer.reset(), countsMeasure: false)
         }
         scheduleTimer()
@@ -250,6 +281,7 @@ public final class PulstickEngine: ObservableObject {
         timerSource = nil
         output.stopAll()
         currentBeat = 0
+        isInSilentBar = false
     }
 
     public func incrementBPM() {
@@ -378,7 +410,9 @@ public final class PulstickEngine: ObservableObject {
         let beats = beatsPerMeasure
         let accents = accentBeats
         let subdivision = subdivision
+        let gap = gapTrainerEnabled ? gapTrainer : nil
         timerQueue.async { [weak self] in
+            self?.activeGap = gap
             self?.sequencer.beatsPerMeasure = beats
             self?.sequencer.accents = accents
             self?.sequencer.subdivision = subdivision
@@ -387,11 +421,20 @@ public final class PulstickEngine: ObservableObject {
 
     /// タイマーキュー上で呼ぶ。音を先に鳴らし、UI 更新だけメインスレッドへ送る
     private func play(_ tick: Tick, countsMeasure: Bool) {
-        output.play(tick.click)
+        if countsMeasure, tick.startsMeasure {
+            measureIndex += 1
+        }
+        let silent = activeGap?.isMuted(measure: measureIndex) ?? false
+        if !silent {
+            output.play(tick.click)
+        }
         guard tick.click != .subdivision else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.isPlaying else { return }
             self.currentBeat = tick.beat
+            if self.isInSilentBar != silent {
+                self.isInSilentBar = silent
+            }
             if countsMeasure, tick.startsMeasure {
                 self.handleMeasureCompleted()
             }

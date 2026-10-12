@@ -10,6 +10,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Up to 16 beats per bar with any beats accented, plus four presets you can overwrite (right-click)
 - Subdivisions: eighths, triplets, sixteenths
 - Speed trainer: raise the tempo by N BPM every M bars up to a target
+- Silent bars: play N bars, then mute M bars to check you hold the tempo yourself
 - Menu bar shows the BPM while playing; the Play button shows practice time
 - Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo
 - Settings are remembered between launches
@@ -27,7 +28,7 @@ Requires Xcode (the SwiftUI macros are not in the Command Line Tools alone). `bu
 ```bash
 ./dev.sh                     # rebuild and relaunch the app
 swift test                   # unit tests (silent: they never play audio)
-.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer]
+.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap]
                              # render the popover to a PNG without launching the app
 ```
 

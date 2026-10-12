@@ -19,7 +19,10 @@ struct PulstickView: View {
             bpmSlider
             timeSignaturePicker
             subdivisionPicker
-            SpeedTrainerSection(engine: engine)
+            VStack(spacing: 6) {
+                SpeedTrainerSection(engine: engine)
+                GapTrainerSection(engine: engine)
+            }
             controlsRow
             Divider()
             volumeControls
@@ -129,6 +132,8 @@ struct PulstickView: View {
                 )
         }
         .frame(width: diameter, height: diameter)
+        // 無音小節中は拍の表示だけ進め、音が鳴っていないことを薄さで示す
+        .opacity(engine.isInSilentBar ? 0.35 : 1)
         .scaleEffect(isCurrent ? 1.25 : 1.0)
         .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
     }
@@ -168,9 +173,15 @@ struct PulstickView: View {
                         .help("Click to type a tempo")
                         .pointerStyle(.horizontalText)
                 }
-                Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
+                Group {
+                    if engine.isInSilentBar {
+                        Label("Silent bar · keep counting", systemImage: "speaker.slash.fill")
+                    } else {
+                        Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
+                    }
+                }
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
             }
         }
         .frame(height: 84)

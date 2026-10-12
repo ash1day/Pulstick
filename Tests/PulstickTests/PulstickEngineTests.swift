@@ -387,6 +387,16 @@ struct EngineSpeedTrainerTests {
         #expect(second.speedTrainer == SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180))
         #expect(second.speedTrainerEnabled)
     }
+
+    @Test func gapTrainerSettingsAreRestoredOnNextLaunch() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.gapTrainer = GapTrainer(playBars: 3, muteBars: 1)
+        first.gapTrainerEnabled = true
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.gapTrainer == GapTrainer(playBars: 3, muteBars: 1))
+        #expect(second.gapTrainerEnabled)
+    }
 }
 
 // MARK: - TempoMarking
@@ -479,6 +489,19 @@ struct PlaybackIntegrationTests {
         #expect(beatChanges >= 2)
     }
 
+    @Test func gapTrainerSilencesEveryOtherBar() async throws {
+        let output = SilentClickOutput()
+        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
+        engine.setBeats(1)
+        engine.bpm = 240  // 1小節 = 250ms
+        engine.gapTrainer = GapTrainer(playBars: 1, muteBars: 1)
+        engine.gapTrainerEnabled = true
+        engine.start()
+        try await spin(1.1)  // 小節 0〜4 → 鳴るのは 0, 2, 4
+        engine.stop()
+        #expect((2...3).contains(output.played.count))
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
@@ -491,5 +514,21 @@ struct PlaybackIntegrationTests {
         #expect(output.played.first == .accent)
         #expect(output.played.contains(.subdivision))
         #expect(output.played.contains(.normal))
+    }
+}
+
+// MARK: - GapTrainer
+
+@Suite("GapTrainer")
+struct GapTrainerTests {
+    @Test func mutesBarsAfterPlayedBarsAndRepeats() {
+        let gap = GapTrainer(playBars: 2, muteBars: 1)
+        let pattern = (0..<6).map { gap.isMuted(measure: $0) }
+        #expect(pattern == [false, false, true, false, false, true])
+    }
+
+    @Test func zeroMuteBarsNeverMutes() {
+        let gap = GapTrainer(playBars: 1, muteBars: 0)
+        #expect((0..<4).allSatisfy { !gap.isMuted(measure: $0) })
     }
 }
