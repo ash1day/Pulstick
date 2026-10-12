@@ -107,7 +107,7 @@ struct SongList: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                // 見えないだけで VoiceOver からは押せるよう、消さずに透明にする
+                // 行の幅が変わらないよう、消さずに透明にする（VoiceOver では行の「削除」アクションで消せる）
                 .opacity(hoveredSongID == song.id ? 1 : 0)
                 .help("Delete")
                 .accessibilityLabel(Text("Delete \(song.name)"))
@@ -133,6 +133,7 @@ struct SongList: View {
             engine.applySong(song)
             dismiss()
         }
+        .accessibilityAction(named: Text("Delete")) { engine.deleteSong(song) }
         // セットリストの順番を入れ替える
         .contextMenu {
             // 難しい曲は本来のテンポより遅く始め、慣れたら上げていく

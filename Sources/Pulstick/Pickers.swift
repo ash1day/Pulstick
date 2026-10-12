@@ -110,7 +110,7 @@ struct SubdivisionGlyph: View {
                 if subdivision == .triplet {
                     Text(verbatim: "3")
                         .font(.system(size: 8, weight: .semibold, design: .rounded))
-                        .offset(y: -8)
+                        .offset(y: -7)
                 }
             }
     }
