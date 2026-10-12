@@ -552,3 +552,21 @@ kbd {
   width: 96px;
   height: 96px;
 }
+
+/* --- Language switch --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.lang-link {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.lang-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
