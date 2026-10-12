@@ -224,6 +224,14 @@ struct PersistenceTests {
         #expect(second.normalVolume == 0.2)
     }
 
+    @Test func subdivisionIsRestoredOnNextLaunch() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults)
+        first.subdivision = .triplet
+        let second = PulstickEngine(defaults: defaults)
+        #expect(second.subdivision == .triplet)
+    }
+
     @Test func presetsAreStoredInInjectedDefaults() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults)
@@ -234,5 +242,65 @@ struct PersistenceTests {
         // 別の defaults を使うエンジンには漏れない
         let other = PulstickEngine(defaults: InMemorySettingsStore())
         #expect(other.presets[1] == BeatPreset.defaults[1])
+    }
+}
+
+// MARK: - BeatSequencer
+
+@Suite("BeatSequencer")
+struct BeatSequencerTests {
+    @Test func quarterNotesAdvanceOneBeatPerTick() {
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [0])
+        #expect(seq.advance() == Tick(beat: 1, click: .normal, startsMeasure: false))
+        #expect(seq.advance() == Tick(beat: 2, click: .normal, startsMeasure: false))
+    }
+}
+
+@Suite("BeatSequencer: アクセントと小節")
+struct BeatSequencerMeasureTests {
+    @Test func wrapsToAccentedDownbeatAndReportsNewMeasure() {
+        var seq = BeatSequencer(beatsPerMeasure: 3, accents: [0])
+        _ = seq.advance()
+        _ = seq.advance()
+        #expect(seq.advance() == Tick(beat: 0, click: .accent, startsMeasure: true))
+    }
+
+    @Test func accentedOffBeatIsAccent() {
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [0, 2])
+        _ = seq.advance()
+        #expect(seq.advance().click == .accent)
+    }
+}
+
+@Suite("BeatSequencer: 細分化")
+struct BeatSequencerSubdivisionTests {
+    @Test func eighthNotesInsertSubdivisionClickBetweenBeats() {
+        var seq = BeatSequencer(beatsPerMeasure: 2, accents: [0], subdivision: .eighth)
+        #expect(seq.advance() == Tick(beat: 0, click: .subdivision, startsMeasure: false))
+        #expect(seq.advance() == Tick(beat: 1, click: .normal, startsMeasure: false))
+        #expect(seq.advance() == Tick(beat: 1, click: .subdivision, startsMeasure: false))
+        #expect(seq.advance() == Tick(beat: 0, click: .accent, startsMeasure: true))
+    }
+
+    @Test func tripletsHaveTwoSubdivisionClicksPerBeat() {
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [0], subdivision: .triplet)
+        let clicks = (0..<3).map { _ in seq.advance().click }
+        #expect(clicks == [.subdivision, .subdivision, .normal])
+    }
+}
+
+@Suite("BeatSequencer: リセット")
+struct BeatSequencerResetTests {
+    @Test func resetReturnsDownbeatTick() {
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [0], subdivision: .eighth)
+        _ = seq.advance()
+        _ = seq.advance()
+        #expect(seq.reset() == Tick(beat: 0, click: .accent, startsMeasure: true))
+        #expect(seq.advance() == Tick(beat: 0, click: .subdivision, startsMeasure: false))
+    }
+
+    @Test func resetWithUnaccentedDownbeatIsNormal() {
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [1])
+        #expect(seq.reset().click == .normal)
     }
 }

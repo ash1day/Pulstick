@@ -14,6 +14,7 @@ struct PulstickView: View {
             bpmSlider
             volumeControls
             timeSignaturePicker
+            subdivisionPicker
             controlsRow
             Divider()
             footerRow
@@ -43,40 +44,24 @@ struct PulstickView: View {
             .disabled(engine.beatsPerMeasure <= 1)
             .pointingHandCursor()
 
+            // 16拍でもスクロールせず全拍が見えるよう、幅に合わせて○を縮める
             GeometryReader { geo in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .center, spacing: 6) {
+                let count = CGFloat(engine.beatsPerMeasure)
+                let slot = min(26, geo.size.width / count)
+                let diameter = max(8, min(20, slot - 6))
+                HStack(spacing: 0) {
                     ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
-                        let isAccent = engine.accentBeats.contains(beat)
-                        let isCurrent = engine.isPlaying && engine.currentBeat == beat
-                        ZStack {
-                            Circle()
-                                .fill(isAccent
-                                      ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
-                                      : Color.clear)
-                            Circle()
-                                .stroke(
-                                    isAccent
-                                        ? Color.clear
-                                        : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.35)),
-                                    lineWidth: 1.5
-                                )
-                        }
-                        .frame(width: 20, height: 20)
-                        .scaleEffect(isCurrent ? 1.25 : 1.0)
-                        .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
-                        .frame(width: 24)
-                        .contentShape(Rectangle())
-                        .pointingHandCursor()
-                        .onTapGesture {
-                            engine.toggleAccent(beat)
-                        }
+                        beatDot(beat: beat, diameter: diameter)
+                            .frame(width: slot, height: geo.size.height)
+                            .contentShape(Rectangle())
+                            .pointingHandCursor()
+                            .onTapGesture {
+                                engine.toggleAccent(beat)
+                            }
                     }
                 }
-                .padding(.horizontal, 2)
-                .frame(minWidth: geo.size.width, minHeight: geo.size.height, alignment: .center)
+                .frame(width: geo.size.width, height: geo.size.height)
             }
-            } // GeometryReader
 
             Button {
                 engine.addBeat()
@@ -90,6 +75,27 @@ struct PulstickView: View {
             .pointingHandCursor()
         }
         .frame(height: 52)
+    }
+
+    private func beatDot(beat: Int, diameter: CGFloat) -> some View {
+        let isAccent = engine.accentBeats.contains(beat)
+        let isCurrent = engine.isPlaying && engine.currentBeat == beat
+        return ZStack {
+            Circle()
+                .fill(isAccent
+                      ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
+                      : (isCurrent ? Color.accentColor.opacity(0.25) : Color.clear))
+            Circle()
+                .stroke(
+                    isAccent
+                        ? Color.clear
+                        : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.35)),
+                    lineWidth: 1.5
+                )
+        }
+        .frame(width: diameter, height: diameter)
+        .scaleEffect(isCurrent ? 1.25 : 1.0)
+        .animation(.easeOut(duration: 0.1), value: engine.currentBeat)
     }
 
     // MARK: - BPM Display
@@ -151,7 +157,7 @@ struct PulstickView: View {
     private var volumeControls: some View {
         VStack(spacing: 6) {
             volumeRow(label: "強", value: $engine.accentVolume, color: .orange)
-            volumeRow(label: "弱", value: $engine.normalVolume, color: .secondary)
+            volumeRow(label: "弱", value: $engine.normalVolume, color: .gray)
         }
     }
 
@@ -161,8 +167,8 @@ struct PulstickView: View {
                 .font(.system(size: 11, weight: .medium, design: .rounded))
                 .foregroundColor(color)
                 .frame(width: 16, alignment: .center)
-            CustomSlider(value: value, range: 0...1)
-                .frame(height: 20)
+            CustomSlider(value: value, range: 0...1, step: 0.01, tint: color)
+                .frame(height: 16)
                 .pointingHandCursor()
         }
     }
@@ -185,7 +191,11 @@ struct PulstickView: View {
     }
 
     private func presetButton(preset: BeatPreset, index: Int, selected: Bool) -> some View {
-        HStack(spacing: 2) {
+        // 拍数が多いプリセットはボタン幅に収まるよう○を小さくする
+        let dense = preset.beats > 6
+        let accentSize: CGFloat = dense ? 5 : 7
+        let normalSize: CGFloat = dense ? 3.5 : 5
+        return HStack(spacing: dense ? 1.5 : 2) {
             ForEach(0..<preset.beats, id: \.self) { i in
                 let isAccent = preset.accents.contains(i)
                 Circle()
@@ -194,7 +204,7 @@ struct PulstickView: View {
                             ? (selected ? Color.orange : Color.orange.opacity(0.5))
                             : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
                     )
-                    .frame(width: isAccent ? 7 : 5, height: isAccent ? 7 : 5)
+                    .frame(width: isAccent ? accentSize : normalSize, height: isAccent ? accentSize : normalSize)
             }
         }
         .frame(maxWidth: .infinity)
@@ -220,6 +230,35 @@ struct PulstickView: View {
             }
         }
         .pointingHandCursor()
+    }
+
+    // MARK: - Subdivision
+    // 1拍の刻み。音符記号は読めない人もいるので help で補足する
+
+    private var subdivisionPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(Subdivision.allCases, id: \.self) { sub in
+                let selected = engine.subdivision == sub
+                Text(sub.symbol)
+                    .font(.system(size: 12, weight: .medium))
+                    .tracking(-2)
+                    .foregroundColor(selected ? .primary : .secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(selected ? Color.accentColor.opacity(0.15) : Color.clear)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture { engine.subdivision = sub }
+                    .help(sub.label)
+                    .pointingHandCursor()
+            }
+        }
     }
 
     // MARK: - Controls
@@ -328,6 +367,9 @@ extension View {
 struct CustomSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
+    /// 値の刻み。BPM は整数、音量は 0.01 刻みにしたいので呼び出し側で指定する
+    var step: Double = 1
+    var tint: Color = .accentColor
 
     private let trackHeight: CGFloat = 4
     private let thumbSize: CGFloat = 18
@@ -345,7 +387,7 @@ struct CustomSlider: View {
                     .padding(.horizontal, thumbSize / 2)
 
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(tint)
                     .frame(width: offset + thumbSize / 2, height: trackHeight)
                     .padding(.leading, thumbSize / 2)
 
@@ -362,10 +404,31 @@ struct CustomSlider: View {
                     .onChanged { drag in
                         let fraction = Double((drag.location.x - thumbSize / 2) / width)
                         let clamped = min(max(fraction, 0), 1)
-                        let stepped = (clamped * (range.upperBound - range.lowerBound) + range.lowerBound).rounded()
+                        let raw = clamped * (range.upperBound - range.lowerBound) + range.lowerBound
+                        let stepped = (raw / step).rounded() * step
                         value = min(max(stepped, range.lowerBound), range.upperBound)
                     }
             )
+        }
+    }
+}
+
+extension Subdivision {
+    var symbol: String {
+        switch self {
+        case .quarter: "♩"
+        case .eighth: "♪♪"
+        case .triplet: "♪♪♪"
+        case .sixteenth: "♪♪♪♪"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .quarter: "4分音符（刻みなし）"
+        case .eighth: "8分音符"
+        case .triplet: "3連符"
+        case .sixteenth: "16分音符"
         }
     }
 }

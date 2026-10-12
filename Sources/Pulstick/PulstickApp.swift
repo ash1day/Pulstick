@@ -5,6 +5,10 @@ import SwiftUI
 struct PulstickApp: App {
     @StateObject private var engine = PulstickEngine()
 
+    init() {
+        Snapshot.runIfRequested()
+    }
+
     var body: some Scene {
         MenuBarExtra {
             PulstickView(engine: engine)
