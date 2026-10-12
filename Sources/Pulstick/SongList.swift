@@ -38,7 +38,7 @@ struct SongList: View {
             .font(.system(size: 12))
 
             if engine.songs.isEmpty {
-                Text("Save the current tempo and beat pattern under a song name to recall it with one click.")
+                Text("Save the current tempo and beat pattern under a song name to recall it with one click. Songs stay in the order you add them, like a setlist.")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -104,6 +104,15 @@ struct SongList: View {
         .accessibleTap(Text(verbatim: song.name), value: Text("\(Int(song.bpm)) BPM"), selected: isCurrent) {
             engine.applySong(song)
             dismiss()
+        }
+        // セットリストの順番を入れ替える
+        .contextMenu {
+            Button("Move Up") { engine.moveSong(song, by: -1) }
+                .disabled(song.id == engine.songs.first?.id)
+            Button("Move Down") { engine.moveSong(song, by: 1) }
+                .disabled(song.id == engine.songs.last?.id)
+            Divider()
+            Button("Delete") { engine.deleteSong(song) }
         }
     }
 

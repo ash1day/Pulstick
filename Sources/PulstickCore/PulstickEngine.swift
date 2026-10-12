@@ -32,7 +32,7 @@ public final class PulstickEngine: ObservableObject {
     var isRestoring = false
 
     @Published public var presets: [BeatPreset] = []
-    /// 名前順に並んだ状態を保つ（追加は saveCurrentAsSong が並び順の位置に挿入する）
+    /// セットリストの順（追加した順、moveSong で並べ替え可能）
     @Published public internal(set) var songs: [Song] = [] {
         didSet {
             guard !isRestoring else { return }

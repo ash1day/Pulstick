@@ -252,13 +252,39 @@ struct SongTests {
         #expect(engine.accentBeats == [0, 3])
     }
 
-    @Test func songsAreSortedByNameAndCanBeDeleted() throws {
+    @Test func songsKeepSetlistOrderAndCanBeDeleted() throws {
         let engine = makeEngine()
-        engine.saveCurrentAsSong(named: "Blues")
-        engine.saveCurrentAsSong(named: "autumn leaves")
-        #expect(engine.songs.map(\.name) == ["autumn leaves", "Blues"])
+        engine.saveCurrentAsSong(named: "Opener")
+        engine.saveCurrentAsSong(named: "Ballad")
+        #expect(engine.songs.map(\.name) == ["Opener", "Ballad"])
         engine.deleteSong(try #require(engine.songs.first))
-        #expect(engine.songs.map(\.name) == ["Blues"])
+        #expect(engine.songs.map(\.name) == ["Ballad"])
+    }
+
+    @Test func songsCanBeMovedWithinTheSetlist() throws {
+        let engine = makeEngine()
+        for name in ["A", "B", "C"] { engine.saveCurrentAsSong(named: name) }
+        engine.moveSong(try #require(engine.songs.last), by: -1)
+        #expect(engine.songs.map(\.name) == ["A", "C", "B"])
+        engine.moveSong(try #require(engine.songs.first), by: -1)  // 先頭より前には動かない
+        #expect(engine.songs.map(\.name) == ["A", "C", "B"])
+    }
+
+    @Test func nextAndPreviousSongStepThroughTheSetlist() {
+        let engine = makeEngine()
+        for (name, bpm) in [("A", 100.0), ("B", 120), ("C", 140)] {
+            engine.bpm = bpm
+            engine.saveCurrentAsSong(named: name)
+        }
+        engine.bpm = 90  // どの曲とも一致しない状態からは先頭へ
+        engine.applyAdjacentSong(1)
+        #expect(engine.bpm == 100)
+        engine.applyAdjacentSong(1)
+        #expect(engine.bpm == 120)
+        engine.applyAdjacentSong(-1)
+        #expect(engine.bpm == 100)
+        engine.applyAdjacentSong(-1)  // 先頭からさらに前へは行かない
+        #expect(engine.bpm == 100)
     }
 
     @Test func savingWithExistingNameUpdatesThatSong() {

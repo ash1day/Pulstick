@@ -37,6 +37,10 @@ struct PopoverShortcut {
             PopoverShortcut(display: "1–\(presetCount)", label: "Choose a preset", bindings: (0..<presetCount).map { index in
                 Binding(key: KeyEquivalent(Character("\(index + 1)"))) { $0.applyPreset(at: index) }
             }),
+            PopoverShortcut(display: "[ ]", label: "Previous / next song", bindings: [
+                Binding(key: "[") { $0.applyAdjacentSong(-1) },
+                Binding(key: "]") { $0.applyAdjacentSong(1) },
+            ]),
         ]
     }
 }

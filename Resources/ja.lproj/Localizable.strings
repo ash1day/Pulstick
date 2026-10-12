@@ -80,7 +80,7 @@
 "Song name" = "曲名";
 "Save" = "保存";
 "Save the current tempo, beats and subdivision under this name" = "現在のテンポ・拍子・細分化をこの名前で保存";
-"Save the current tempo and beat pattern under a song name to recall it with one click." = "いまのテンポと拍のパターンに曲名を付けて保存すると、ワンクリックで呼び出せます。";
+"Save the current tempo and beat pattern under a song name to recall it with one click. Songs stay in the order you add them, like a setlist." = "いまのテンポと拍のパターンに曲名を付けて保存すると、ワンクリックで呼び出せます。曲は追加した順に並ぶので、セットリストとして使えます。";
 "Delete" = "削除";
 "Delete %@" = "%@ を削除";
 "♩=%lld · %lld beats" = "♩=%1$lld · %2$lld 拍";
@@ -118,3 +118,6 @@
 "Got It" = "はじめる";
 "Rest" = "休み";
 "Practised %@" = "練習 %@";
+"Move Up" = "上へ";
+"Move Down" = "下へ";
+"Previous / next song" = "前の曲 / 次の曲";

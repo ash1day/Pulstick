@@ -13,8 +13,8 @@ extension PulstickEngine {
             song.practiceSeconds = songs[index].practiceSeconds
             songs[index] = song
         } else {
-            let index = songs.firstIndex { trimmed.localizedStandardCompare($0.name) == .orderedAscending } ?? songs.endIndex
-            songs.insert(song, at: index)
+            // セットリストとして使えるよう、名前順ではなく追加した順に並べる
+            songs.append(song)
         }
     }
 
@@ -68,6 +68,27 @@ extension PulstickEngine {
         else { return }
         songs[index].practiceSeconds += Date().timeIntervalSince(since)
         activeSongSince = Date()
+    }
+
+    /// セットリストの中で曲を前後に動かす。端より先には動かさない
+    public func moveSong(_ song: Song, by offset: Int) {
+        guard let index = songs.firstIndex(where: { $0.id == song.id }) else { return }
+        let destination = (index + offset).clamped(to: 0...(songs.count - 1))
+        guard destination != index else { return }
+        songs.insert(songs.remove(at: index), at: destination)
+    }
+
+    /// セットリストの前後の曲を呼び出す（リハーサル中に曲を順に切り替える用途）。
+    /// いまの設定がどの曲とも一致しなければ、先頭の曲から始める
+    public func applyAdjacentSong(_ offset: Int) {
+        guard !songs.isEmpty else { return }
+        let target: Int
+        if let current = songs.firstIndex(where: matchesCurrentSettings) {
+            target = (current + offset).clamped(to: 0...(songs.count - 1))
+        } else {
+            target = 0
+        }
+        applySong(songs[target])
     }
 
     public func deleteSong(_ song: Song) {
