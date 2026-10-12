@@ -143,3 +143,5 @@
 "This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay." = "今日の練習時間、連続日数、7 日間のグラフ、曲ごとの練習時間と最高テンポを消します。曲そのものは残ります。";
 "Best ♩=%lld" = "最高 ♩=%lld";
 "Practise at %@" = "%@ のテンポで練習";
+"Ramp Up from 70%% to ♩=%lld" = "70%% から ♩=%lld まで上げていく";
+"Start at 70% of the tempo and let the speed trainer raise it to the song's tempo" = "本来のテンポの 70% から始め、スピードトレーナーで曲のテンポまで上げていきます";

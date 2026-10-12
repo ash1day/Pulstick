@@ -717,6 +717,16 @@ struct SongTests {
         #expect(engine.songs[0].bestBPM == 128)  // 本来の 160 を一瞬でも記録しない
     }
 
+    @Test func rampingUpASongStartsSlowAndTargetsItsTempo() {
+        let engine = makeEngine()
+        engine.bpm = 160
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.rampUp(engine.songs[0], fromPercent: 70)
+        #expect(engine.bpm == 112)
+        #expect(engine.speedTrainerEnabled)
+        #expect(engine.speedTrainer.targetBPM == 160)
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

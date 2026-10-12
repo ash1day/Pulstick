@@ -124,6 +124,13 @@ struct SongList: View {
                     Text("Practise at \(percentText)") + Text(verbatim: " (♩=\(tempo))")
                 }
             }
+            Button {
+                engine.rampUp(song, fromPercent: 70)
+                dismiss()
+            } label: {
+                Text("Ramp Up from 70% to ♩=\(Int(song.bpm))")
+            }
+            .help("Start at 70% of the tempo and let the speed trainer raise it to the song's tempo")
             Divider()
             Button("Move Up") { engine.moveSong(song, by: -1) }
                 .disabled(song.id == engine.songs.first?.id)

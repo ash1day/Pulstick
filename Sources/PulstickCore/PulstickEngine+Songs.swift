@@ -55,6 +55,14 @@ extension PulstickEngine {
         }
     }
 
+    /// 本来のテンポの percent % から始め、スピードトレーナーで曲のテンポまで上げていく。
+    /// 難しい曲を「遅く始めて、慣れたら本来のテンポへ」と練習する流れを 1 回の操作で用意する
+    public func rampUp(_ song: Song, fromPercent percent: Int) {
+        speedTrainer.targetBPM = Int(song.bpm.rounded())
+        speedTrainerEnabled = true
+        applySong(song, tempoPercent: percent)
+    }
+
     public func deleteSong(_ song: Song) {
         songs.removeAll { $0.id == song.id }
         if selectedSongID == song.id { selectedSongID = nil }

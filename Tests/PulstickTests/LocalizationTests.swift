@@ -107,7 +107,9 @@ struct LocalizationTests {
     private func candidateKeys(for literal: String) -> [String] {
         let parts = literal.components(separatedBy: #"\("#)
         guard parts.count > 1 else { return [literal] }
-        var key = parts[0]
+        // 補間のある文言では、文字としての % は書式指定子と区別するため %% になる
+        let escape = { (text: String) in text.replacingOccurrences(of: "%", with: "%%") }
+        var key = escape(parts[0])
         for part in parts.dropFirst() {
             // 補間の閉じ括弧の位置を、括弧の対応で探す
             var depth = 1
@@ -118,7 +120,7 @@ struct LocalizationTests {
                 if depth == 0 { end = index; break }
             }
             let expression = String(part[..<end])
-            key += specifier(for: expression) + String(part[part.index(after: end)...])
+            key += specifier(for: expression) + escape(String(part[part.index(after: end)...]))
         }
         return [key]
     }
