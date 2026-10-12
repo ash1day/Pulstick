@@ -54,6 +54,8 @@ struct BeatIndicator: View {
                 .foregroundColor(enabled ? .secondary : .secondary.opacity(0.25))
         }
         .buttonStyle(.plain)
+        // 16 拍から 4 拍に戻すときなどに連打しなくて済むよう、長押しで続けて増減する
+        .buttonRepeatBehavior(.enabled)
         .disabled(!enabled)
         .pointingHandCursor()
     }

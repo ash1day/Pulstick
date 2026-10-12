@@ -175,7 +175,8 @@
 "A preset" = "プリセット";
 "Save the current pattern" = "いまのパターンを保存";
 "A song" = "曲";
-"Practise slower, ramp up, delete" = "遅めのテンポで練習、徐々に上げる、削除";
+"Practise slower, update, delete" = "遅めのテンポで練習、上書き、削除";
+"Update with Current Settings" = "現在の設定で上書き";
 
 /* Group names for VoiceOver */
 "Presets" = "プリセット";

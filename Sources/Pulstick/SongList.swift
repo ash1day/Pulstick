@@ -161,6 +161,9 @@ struct SongList: View {
             }
             .help("Start at 70% of the tempo and let the speed trainer raise it to the song's tempo")
             Divider()
+            // リハで「少し速くしよう」と決めたテンポを、曲名を打ち直さずにこの曲へ残す（練習の記録は引き継ぐ）
+            Button("Update with Current Settings") { engine.saveCurrentAsSong(named: song.name) }
+            Divider()
             Button("Move Up") { engine.moveSong(song, by: -1) }
                 .disabled(song.id == engine.songs.first?.id)
             Button("Move Down") { engine.moveSong(song, by: 1) }

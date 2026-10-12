@@ -20,18 +20,18 @@ struct ShortcutHelp: View {
                     row(shortcut.display, shortcut.label)
                 }
             }
-            // クリックや長押しでできることは見た目から分からないので、ここで案内する
-            section("Click") {
-                mouseTip("A beat", "Normal → accent → rest")
-                mouseTip("The tempo", "Type a tempo")
-                mouseTip("Hold − or +", "Keep changing the tempo")
-            }
-            // 練習タイマーや記録のリセットなどは右クリックの中にある
+            // 練習タイマーや記録のリセットなどは右クリックの中にあり見つけにくいので、クリックより先に案内する
             section("Right-click") {
                 mouseTip("Play", "Practice timer, count-in")
                 mouseTip("Today’s minutes", "Reset the practice history")
                 mouseTip("A preset", "Save the current pattern")
-                mouseTip("A song", "Practise slower, ramp up, delete")
+                mouseTip("A song", "Practise slower, update, delete")
+            }
+            // クリックや長押しでできることも見た目から分からないので、ここで案内する
+            section("Click") {
+                mouseTip("A beat", "Normal → accent → rest")
+                mouseTip("The tempo", "Type a tempo")
+                mouseTip("Hold − or +", "Keep changing the tempo")
             }
         }
         .padding(12)
