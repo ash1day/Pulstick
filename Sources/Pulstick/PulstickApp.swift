@@ -34,14 +34,18 @@ struct MenuBarLabel: View {
     @ObservedObject var engine: PulstickEngine
 
     var body: some View {
-        if engine.isPlaying {
-            HStack(spacing: 3) {
-                Image(systemName: "metronome.fill")
-                Text("\(Int(engine.bpm))")
-                    .monospacedDigit()
+        Group {
+            if engine.isPlaying {
+                HStack(spacing: 3) {
+                    Image(systemName: "metronome.fill")
+                    Text("\(Int(engine.bpm))")
+                        .monospacedDigit()
+                }
+            } else {
+                Image(systemName: "metronome")
             }
-        } else {
-            Image(systemName: "metronome")
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(engine.isPlaying ? Text("Pulstick, playing at \(Int(engine.bpm)) BPM") : Text("Pulstick, stopped"))
     }
 }

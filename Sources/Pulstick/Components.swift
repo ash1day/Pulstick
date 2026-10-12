@@ -9,6 +9,19 @@ extension View {
         pointerStyle(.link)
     }
 
+    /// onTapGesture だけだと VoiceOver からボタンとして扱われないため、
+    /// タップ処理とアクセシビリティ情報をまとめて付ける
+    func accessibleTap(
+        _ label: Text, value: Text? = nil, selected: Bool = false, action: @escaping () -> Void
+    ) -> some View {
+        onTapGesture(perform: action)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label)
+            .accessibilityValue(value ?? Text(""))
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { action() }
+    }
+
     /// プリセットや細分化など「選択中の1つがハイライトされるチップ」の共通装飾
     func chip(selected: Bool) -> some View {
         background(
@@ -34,6 +47,8 @@ struct CustomSlider: View {
     /// 値の刻み。BPM は整数、音量は 0.01 刻みにしたいので呼び出し側で指定する
     var step: Double = 1
     var tint: Color = .accentColor
+    /// VoiceOver の上下スワイプ1回で動かす量。省略時は step
+    var accessibilityStep: Double?
 
     private let trackHeight: CGFloat = 4
     private let thumbSize: CGFloat = 18
@@ -75,6 +90,16 @@ struct CustomSlider: View {
                     }
             )
         }
+        // VoiceOver では調整可能な要素として扱い、上下スワイプで1段階ずつ動かせるようにする
+        .accessibilityElement(children: .ignore)
+        .accessibilityAdjustableAction { direction in
+            let delta = accessibilityStep ?? step
+            switch direction {
+            case .increment: value = min(value + delta, range.upperBound)
+            case .decrement: value = max(value - delta, range.lowerBound)
+            @unknown default: break
+            }
+        }
     }
 }
 
@@ -97,10 +122,12 @@ struct MiniSwitch: View {
             }
             .animation(.easeOut(duration: 0.12), value: isOn)
             .contentShape(Rectangle())
-            .onTapGesture { isOn.toggle() }
             .pointingHandCursor()
-            .accessibilityAddTraits(.isButton)
-            .accessibilityValue(isOn ? "On" : "Off")
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isToggle)
+            .accessibilityValue(isOn ? Text("On") : Text("Off"))
+            .onTapGesture { isOn.toggle() }
+            .accessibilityAction { isOn.toggle() }
     }
 }
 
@@ -115,9 +142,12 @@ struct CheckBox: View {
             Text(title)
         }
         .contentShape(Rectangle())
-        .onTapGesture { isOn.toggle() }
         .pointingHandCursor()
-        .accessibilityAddTraits(.isButton)
-        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(title))
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(isOn ? Text("On") : Text("Off"))
+        .onTapGesture { isOn.toggle() }
+        .accessibilityAction { isOn.toggle() }
     }
 }

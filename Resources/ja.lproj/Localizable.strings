@@ -59,3 +59,13 @@
 "Today %lld min" = "今日 %lld 分";
 "%lld-day streak" = "%lld 日連続";
 "Practice time is counted while the metronome plays" = "メトロノームを鳴らしている時間を練習時間として記録します";
+
+/* Accessibility */
+"Beat %lld" = "%lld 拍目";
+"Accented" = "アクセントあり";
+"Not accented" = "アクセントなし";
+"Tempo" = "テンポ";
+"Preset %lld" = "プリセット %lld";
+"%lld beats" = "%lld 拍";
+"Pulstick, playing at %lld BPM" = "Pulstick、%lld BPM で再生中";
+"Pulstick, stopped" = "Pulstick、停止中";

@@ -26,7 +26,9 @@ struct PulstickView: View {
             controlsRow
             Divider()
             volumeControls
-            practiceSummary
+            if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty {
+                practiceSummary
+            }
             footerRow
         }
         .padding(.horizontal, 20)
@@ -92,7 +94,10 @@ struct PulstickView: View {
                             .frame(width: slot, height: geo.size.height)
                             .contentShape(Rectangle())
                             .pointingHandCursor()
-                            .onTapGesture {
+                            .accessibleTap(
+                                Text("Beat \(beat + 1)"),
+                                value: engine.accentBeats.contains(beat) ? Text("Accented") : Text("Not accented")
+                            ) {
                                 engine.toggleAccent(beat)
                             }
                     }
@@ -170,7 +175,7 @@ struct PulstickView: View {
                         .monospacedDigit()
                         .frame(height: 38)
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: beginEditingBPM)
+                        .accessibleTap(Text("Tempo"), value: Text("\(Int(engine.bpm)) BPM"), action: beginEditingBPM)
                         .help("Click to type a tempo")
                         .pointerStyle(.horizontalText)
                 }
@@ -221,6 +226,8 @@ struct PulstickView: View {
 
             CustomSlider(value: $engine.bpm, range: 40...240)
                 .frame(height: 20)
+                .accessibilityLabel(Text("Tempo"))
+                .accessibilityValue(Text("\(Int(engine.bpm)) BPM"))
 
             Button {
                 engine.incrementBPM()
@@ -272,7 +279,11 @@ struct PulstickView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .chip(selected: selected)
-        .onTapGesture {
+        .accessibleTap(
+            Text("Preset \(index + 1)"),
+            value: Text("\(preset.beats) beats"),
+            selected: selected
+        ) {
             engine.applyPreset(at: index)
         }
         .help("Preset \(index + 1) (key \(index + 1)) · right-click to save or reset")
@@ -299,7 +310,7 @@ struct PulstickView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 5)
                     .chip(selected: engine.subdivision == sub)
-                    .onTapGesture { engine.subdivision = sub }
+                    .accessibleTap(sub.label, selected: engine.subdivision == sub) { engine.subdivision = sub }
                     .help(sub.label)
             }
         }
@@ -385,8 +396,10 @@ struct PulstickView: View {
                 .fill(accent ? Color.orange.opacity(0.8) : Color.clear)
                 .overlay(Circle().stroke(accent ? Color.clear : Color.secondary.opacity(0.5), lineWidth: 1.2))
                 .frame(width: 7, height: 7)
-            CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .orange : .gray)
+            CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .orange : .gray, accessibilityStep: 0.05)
                 .frame(height: 16)
+                .accessibilityLabel(accent ? Text("Accent volume") : Text("Beat volume"))
+                .accessibilityValue(Text("\(Int(value.wrappedValue * 100))%"))
         }
         .help(accent ? LocalizedStringKey("Accent volume") : LocalizedStringKey("Beat volume"))
     }
@@ -471,12 +484,12 @@ extension Subdivision {
         }
     }
 
-    var label: LocalizedStringKey {
+    var label: Text {
         switch self {
-        case .quarter: "Quarter notes (no subdivision)"
-        case .eighth: "Eighth notes"
-        case .triplet: "Triplets"
-        case .sixteenth: "Sixteenth notes"
+        case .quarter: Text("Quarter notes (no subdivision)")
+        case .eighth: Text("Eighth notes")
+        case .triplet: Text("Triplets")
+        case .sixteenth: Text("Sixteenth notes")
         }
     }
 }
