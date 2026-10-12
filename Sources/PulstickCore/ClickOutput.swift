@@ -101,6 +101,9 @@ public final class AudioClickOutput: ClickOutput {
         case .subdivision: subdivisionPlayerNode
         }
         guard let buffer = bufferLock.withLock({ buffers[click] }) else { return }
+        // 出力先の変更でエンジンが止まってから再始動するまでの間に node.play() を呼ぶと、
+        // Objective-C の例外でアプリが落ちる。その間の拍は鳴らさずに見送る
+        guard audioEngine.isRunning else { return }
         node.stop()
         node.play()
         node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
