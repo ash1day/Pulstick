@@ -12,7 +12,7 @@ enum Snapshot {
         let dark = args.contains("--dark")
 
         MainActor.assumeIsolated {
-            let engine = PulstickEngine(defaults: InMemorySettingsStore())
+            let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
             if let i = args.firstIndex(of: "--beats"), i + 1 < args.count, let beats = Int(args[i + 1]) {
                 engine.setBeats(beats)
             }

@@ -191,56 +191,56 @@ struct PresetManagementTests {
 
 /// テストごとに独立したメモリ上のストアを使い、実アプリの設定やディスクを汚さない
 func makeEngine() -> PulstickEngine {
-    PulstickEngine(defaults: InMemorySettingsStore())
+    PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
 }
 
 @Suite("PulstickEngine: 設定の永続化")
 struct PersistenceTests {
     @Test func bpmIsRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults)
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         first.bpm = 96
-        let second = PulstickEngine(defaults: defaults)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.bpm == 96)
     }
 
     @Test func beatPatternIsRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults)
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         first.setBeats(5)
         first.toggleAccent(2)
-        let second = PulstickEngine(defaults: defaults)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.beatsPerMeasure == 5)
         #expect(second.accentBeats == [0, 2])
     }
 
     @Test func volumesAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults)
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         first.accentVolume = 0.4
         first.normalVolume = 0.2
-        let second = PulstickEngine(defaults: defaults)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.accentVolume == 0.4)
         #expect(second.normalVolume == 0.2)
     }
 
     @Test func subdivisionIsRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults)
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         first.subdivision = .triplet
-        let second = PulstickEngine(defaults: defaults)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.subdivision == .triplet)
     }
 
     @Test func presetsAreStoredInInjectedDefaults() {
         let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults)
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         first.setBeats(7)
         first.saveCurrentAsPreset(at: 1)
-        let second = PulstickEngine(defaults: defaults)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.presets[1].beats == 7)
         // 別の defaults を使うエンジンには漏れない
-        let other = PulstickEngine(defaults: InMemorySettingsStore())
+        let other = PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
         #expect(other.presets[1] == BeatPreset.defaults[1])
     }
 }
@@ -358,10 +358,10 @@ struct EngineSpeedTrainerTests {
 
     @Test func settingsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults)
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         first.speedTrainer = SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180)
         first.speedTrainerEnabled = true
-        let second = PulstickEngine(defaults: defaults)
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(second.speedTrainer == SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180))
         #expect(second.speedTrainerEnabled)
     }
@@ -396,5 +396,78 @@ struct ElapsedTimeTests {
     ])
     func formatsAsClock(seconds: Double, expected: String) {
         #expect(ElapsedTime.format(seconds) == expected)
+    }
+}
+
+// MARK: - TickSchedule
+
+@Suite("TickSchedule")
+struct TickScheduleTests {
+    @Test func nextDeadlineIsMeasuredFromLastFireNotFromNow() {
+        // 0.5秒間隔で 1_000ms に鳴った直後(1_100ms)にテンポ変更 → 次は 1_000 + 400ms
+        let next = TickSchedule.nextDeadline(lastFire: 1_000_000_000, interval: 0.4, now: 1_100_000_000)
+        #expect(next == 1_400_000_000)
+    }
+
+    @Test func overdueDeadlineFiresImmediately() {
+        // 新しい間隔だと既に過ぎている場合は待たずに今鳴らす
+        let next = TickSchedule.nextDeadline(lastFire: 1_000_000_000, interval: 0.2, now: 1_300_000_000)
+        #expect(next == 1_300_000_000)
+    }
+}
+
+// MARK: - PulstickEngine: 実際のタイマーを使った統合テスト
+// MainActor 上で await している間にメインキューへの dispatch が処理される
+
+@MainActor
+@Suite("PulstickEngine: 再生中の挙動", .serialized)
+struct PlaybackIntegrationTests {
+    private func spin(_ seconds: Double) async throws {
+        try await Task.sleep(for: .seconds(seconds))
+    }
+
+    @Test func speedTrainerRaisesTempoWhilePlaying() async throws {
+        let engine = makeEngine()
+        engine.setBeats(1)
+        engine.bpm = 200
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 1, targetBPM: 240)
+        engine.speedTrainerEnabled = true
+        engine.start()
+        try await spin(0.8)
+        engine.stop()
+        #expect(engine.bpm > 200)
+        #expect(engine.sessionStartBPM == 200)
+        #expect(engine.playStartedAt == nil)
+    }
+
+    @Test func beatsKeepComingWhileTempoIsDragged() async throws {
+        let engine = makeEngine()
+        engine.setBeats(4)
+        engine.bpm = 240
+        var beatChanges = 0
+        let cancellable = engine.$currentBeat.removeDuplicates().dropFirst().sink { _ in beatChanges += 1 }
+        engine.start()
+        // スライダーのドラッグを模して 20ms ごとにテンポを変え続ける（間隔 250ms より短い）
+        for i in 0..<40 {
+            engine.bpm = i.isMultiple(of: 2) ? 239 : 240
+            try await spin(0.02)
+        }
+        engine.stop()
+        cancellable.cancel()
+        #expect(beatChanges >= 2)
+    }
+
+    @Test func subdivisionClicksReachTheOutput() async throws {
+        let output = SilentClickOutput()
+        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
+        engine.setBeats(4)
+        engine.bpm = 240
+        engine.subdivision = .eighth
+        engine.start()
+        try await spin(0.4)  // 8分は 125ms 間隔 → 先頭 + 3回前後
+        engine.stop()
+        #expect(output.played.first == .accent)
+        #expect(output.played.contains(.subdivision))
+        #expect(output.played.contains(.normal))
     }
 }

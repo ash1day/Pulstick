@@ -8,7 +8,7 @@ struct PulstickApp: App {
 
     init() {
         Snapshot.runIfRequested()
-        let engine = PulstickEngine()
+        let engine = PulstickEngine(output: AudioClickOutput())
         _engine = StateObject(wrappedValue: engine)
         hotKeys = GlobalHotKeys(engine: engine)
     }

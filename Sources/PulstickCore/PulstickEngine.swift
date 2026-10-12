@@ -1,4 +1,4 @@
-import AVFoundation
+import Foundation
 import Combine
 
 public struct BeatPreset: Codable, Equatable {
@@ -21,7 +21,7 @@ public struct BeatPreset: Codable, Equatable {
 }
 
 /// メトロノームのオーディオ再生とタイミング制御を担当するエンジン。
-/// AVAudioEngine でクリック音をプログラム生成し、DispatchSourceTimer で正確なビート間隔を維持する。
+/// DispatchSourceTimer で正確なビート間隔を維持し、ClickOutput に音を鳴らさせる。
 public final class PulstickEngine: ObservableObject {
     /// UserDefaults のキー。値の型を変えるときはキー名も変えて旧データと衝突させないこと
     private enum Keys {
@@ -49,7 +49,7 @@ public final class PulstickEngine: ObservableObject {
             }
             if bpm != oldValue {
                 defaults.set(bpm, forKey: Keys.bpm)
-                restartTimerIfPlaying()
+                retimeIfPlaying()
             }
         }
     }
@@ -78,7 +78,7 @@ public final class PulstickEngine: ObservableObject {
             defaults.set(subdivision.rawValue, forKey: Keys.subdivision)
             syncSequencer()
             if subdivision != oldValue {
-                restartTimerIfPlaying()
+                retimeIfPlaying()
             }
         }
     }
@@ -99,25 +99,20 @@ public final class PulstickEngine: ObservableObject {
 
     @Published public var accentVolume: Double = 1.0 {
         didSet {
-            accentPlayerNode.volume = Float(accentVolume)
+            output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(accentVolume, forKey: Keys.accentVolume)
         }
     }
     @Published public var normalVolume: Double = 0.7 {
         didSet {
-            applyNormalVolume()
+            output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(normalVolume, forKey: Keys.normalVolume)
         }
     }
 
-    private var audioEngine: AVAudioEngine
-    private var accentPlayerNode: AVAudioPlayerNode
-    private var normalPlayerNode: AVAudioPlayerNode
-    /// 細分音は拍の音と重なっても途切れないよう専用ノードで鳴らす
-    private var subdivisionPlayerNode: AVAudioPlayerNode
-    private var accentBuffer: AVAudioPCMBuffer?
-    private var normalBuffer: AVAudioPCMBuffer?
-    private var subdivisionBuffer: AVAudioPCMBuffer?
+    private let output: ClickOutput
+    /// 直前に鳴らした時刻。タイマーキュー上でのみ読み書きする
+    private var lastFireTime: UInt64 = 0
     /// タイマーキュー上でのみ読み書きする
     private var sequencer = BeatSequencer(beatsPerMeasure: 4, accents: [0])
     private var timerSource: DispatchSourceTimer?
@@ -128,50 +123,21 @@ public final class PulstickEngine: ObservableObject {
     /// 他アプリのバックグラウンド処理（Spotlight 等）よりタイマー発火を優先させる。
     private let timerQueue = DispatchQueue(label: "com.pulstick.metronome", qos: .userInteractive)
 
-    private let sampleRate: Double = 44100
-    private let accentFrequency: Double = 1500
-    private let normalFrequency: Double = 800
-    private let subdivisionFrequency: Double = 2400
-    /// 細分音は拍を邪魔しないよう弱拍の音量に対してさらに控えめにする
-    private let subdivisionVolumeRatio: Float = 0.45
-    private let clickDuration: Double = 0.03  // 30ms のシャープなクリック
-
     private var tapTimes: [Date] = []
     private let maxTapCount = 4
     private let tapTimeout: TimeInterval = 2.0
 
     private let defaults: SettingsStore
 
-    public init(defaults: SettingsStore = UserDefaults.standard) {
+    /// - Parameter output: 本番は AudioClickOutput、テストは SilentClickOutput。
+    ///   テストで誤って音が鳴らないよう、あえてデフォルト値を持たせていない
+    public init(defaults: SettingsStore = UserDefaults.standard, output: ClickOutput) {
         self.defaults = defaults
-        audioEngine = AVAudioEngine()
-        accentPlayerNode = AVAudioPlayerNode()
-        normalPlayerNode = AVAudioPlayerNode()
-        subdivisionPlayerNode = AVAudioPlayerNode()
-        audioEngine.attach(accentPlayerNode)
-        audioEngine.attach(normalPlayerNode)
-        audioEngine.attach(subdivisionPlayerNode)
-
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-        audioEngine.connect(accentPlayerNode, to: audioEngine.mainMixerNode, format: format)
-        audioEngine.connect(normalPlayerNode, to: audioEngine.mainMixerNode, format: format)
-        audioEngine.connect(subdivisionPlayerNode, to: audioEngine.mainMixerNode, format: format)
-
-        accentBuffer = generateClickBuffer(format: format, frequency: accentFrequency)
-        normalBuffer = generateClickBuffer(format: format, frequency: normalFrequency)
-        subdivisionBuffer = generateClickBuffer(format: format, frequency: subdivisionFrequency)
-
+        self.output = output
         loadPresets()
         restoreSettings()
         syncSequencer()
-        accentPlayerNode.volume = Float(accentVolume)
-        applyNormalVolume()
-
-        do {
-            try audioEngine.start()
-        } catch {
-            print("Failed to start audio engine: \(error)")
-        }
+        self.output.setVolumes(accent: accentVolume, normal: normalVolume)
     }
 
     /// init から呼ばれるメソッド内の代入なので didSet は発火し、同じ値が書き戻される（無害）
@@ -207,10 +173,6 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
-    private func applyNormalVolume() {
-        normalPlayerNode.volume = Float(normalVolume)
-        subdivisionPlayerNode.volume = Float(normalVolume) * subdivisionVolumeRatio
-    }
 
     private func loadPresets() {
         if let data = defaults.object(forKey: Keys.presets) as? Data,
@@ -249,41 +211,6 @@ public final class PulstickEngine: ObservableObject {
         persistPresets()
     }
 
-    /// サイン波にエンベロープ（attack 2ms → sustain → release 8ms）を掛けて
-    /// クリック音のPCMバッファを生成する。外部ファイル不要。
-    private func generateClickBuffer(format: AVAudioFormat, frequency: Double) -> AVAudioPCMBuffer? {
-        let frameCount = AVAudioFrameCount(sampleRate * clickDuration)
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-            return nil
-        }
-        buffer.frameLength = frameCount
-
-        guard let floatData = buffer.floatChannelData?[0] else { return nil }
-
-        for i in 0..<Int(frameCount) {
-            let t = Double(i) / sampleRate
-            let sine = sin(2.0 * .pi * frequency * t)
-            // サイン波をいきなり開始/終了すると波形が不連続になりプチノイズが鳴る。
-            // Attack(2ms) で徐々に立ち上げ、Release(8ms) で徐々に減衰させることで滑らかにする。
-            // Release を Attack より長くしているのは、立ち下がりの方が耳につきやすいため。
-            let envelope: Double
-            let attackFrames = Int(sampleRate * 0.002)
-            let releaseStart = Int(frameCount) - Int(sampleRate * 0.008)
-            if i < attackFrames {
-                envelope = Double(i) / Double(attackFrames)
-            } else if i > releaseStart {
-                let remaining = Double(Int(frameCount) - i)
-                let releaseLength = Double(Int(frameCount) - releaseStart)
-                envelope = remaining / releaseLength
-            } else {
-                envelope = 1.0
-            }
-            floatData[i] = Float(sine * envelope * 0.8)
-        }
-
-        return buffer
-    }
-
     public func toggle() {
         if isPlaying {
             stop()
@@ -300,11 +227,10 @@ public final class PulstickEngine: ObservableObject {
         sessionStartBPM = bpm
         speedTrainer.restart()
 
-        if !audioEngine.isRunning {
-            try? audioEngine.start()
-        }
+        output.prepare()
 
         timerQueue.async { [self] in
+            lastFireTime = DispatchTime.now().uptimeNanoseconds
             play(sequencer.reset(), countsMeasure: false)
         }
         scheduleTimer()
@@ -322,9 +248,7 @@ public final class PulstickEngine: ObservableObject {
         playStartedAt = nil
         timerSource?.cancel()
         timerSource = nil
-        accentPlayerNode.stop()
-        normalPlayerNode.stop()
-        subdivisionPlayerNode.stop()
+        output.stopAll()
         currentBeat = 0
     }
 
@@ -398,10 +322,26 @@ public final class PulstickEngine: ObservableObject {
         bpm = next
     }
 
-    private func restartTimerIfPlaying() {
-        guard isPlaying else { return }
-        timerSource?.cancel()
-        scheduleTimer()
+    private var tickInterval: Double {
+        60.0 / bpm / Double(subdivision.rawValue)
+    }
+
+    /// テンポや細分が変わったとき、タイマーを作り直さず次の発火時刻だけ組み直す。
+    /// 作り直すと「今から1間隔後」に戻ってしまい、ドラッグ中に音が止まるため
+    private func retimeIfPlaying() {
+        guard isPlaying, let source = timerSource else { return }
+        let interval = tickInterval
+        timerQueue.async { [weak self] in
+            guard let self else { return }
+            let next = TickSchedule.nextDeadline(
+                lastFire: self.lastFireTime, interval: interval, now: DispatchTime.now().uptimeNanoseconds
+            )
+            source.schedule(
+                deadline: DispatchTime(uptimeNanoseconds: next),
+                repeating: interval,
+                leeway: .milliseconds(1)
+            )
+        }
     }
 
     /// DispatchSourceTimer を高優先度キューで駆動する。
@@ -409,7 +349,7 @@ public final class PulstickEngine: ObservableObject {
     /// 音を鳴らしてから UI 更新をメインスレッドに送ることで、
     /// 音とビート表示のズレを防ぐ。
     private func scheduleTimer() {
-        let interval = 60.0 / bpm / Double(subdivision.rawValue)
+        let interval = tickInterval
         // .strict: macOS は省電力のために複数タイマーの発火をまとめる（timer coalescing）が、
         // メトロノームでは数ms のズレも体感できるため、まとめずに即発火させる。
         let source = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
@@ -425,6 +365,7 @@ public final class PulstickEngine: ObservableObject {
             // 音の再生はタイマーキュー上で即実行する。
             // メインスレッドに送ると UI 処理の順番待ちで音が遅延するため。
             // 人間は視覚より聴覚のズレに敏感なので、音を優先し UI 更新だけ非同期で送る。
+            self.lastFireTime = DispatchTime.now().uptimeNanoseconds
             self.play(self.sequencer.advance(), countsMeasure: true)
         }
         source.resume()
@@ -446,18 +387,7 @@ public final class PulstickEngine: ObservableObject {
 
     /// タイマーキュー上で呼ぶ。音を先に鳴らし、UI 更新だけメインスレッドへ送る
     private func play(_ tick: Tick, countsMeasure: Bool) {
-        let node: AVAudioPlayerNode
-        let buffer: AVAudioPCMBuffer?
-        switch tick.click {
-        case .accent: (node, buffer) = (accentPlayerNode, accentBuffer)
-        case .normal: (node, buffer) = (normalPlayerNode, normalBuffer)
-        case .subdivision: (node, buffer) = (subdivisionPlayerNode, subdivisionBuffer)
-        }
-        if let buffer {
-            node.stop()
-            node.play()
-            node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-        }
+        output.play(tick.click)
         guard tick.click != .subdivision else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.isPlaying else { return }
@@ -469,8 +399,7 @@ public final class PulstickEngine: ObservableObject {
     }
 
     deinit {
-        stop()
-        audioEngine.stop()
+        timerSource?.cancel()
     }
 }
 
