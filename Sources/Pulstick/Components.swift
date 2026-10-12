@@ -34,9 +34,15 @@ extension View {
             .accessibilityAction { isOn.wrappedValue.toggle() }
     }
 
-    /// 曲リストの行のような「選択中の1つがハイライトされる項目」の共通装飾
-    func chip(selected: Bool) -> some View {
-        modifier(ChipStyle(selected: selected))
+    /// 曲リストの行で、選択中（いまの曲）の行を淡いアクセントカラーで示す
+    func selectedRow(_ selected: Bool) -> some View {
+        modifier(SelectedRowStyle(selected: selected))
+    }
+
+    /// 「コントラストを上げる」設定のときだけ、ほぼ透明な背景が周りに溶けないよう輪郭を付ける
+    /// - Parameter condition: 選択中やホバー中など、輪郭を出す場面を絞るとき
+    func contrastOutline<S: InsettableShape>(_ shape: S, when condition: Bool = true) -> some View {
+        modifier(ContrastOutline(shape: shape, condition: condition))
     }
 
     /// segmented control の 1 区画。選択中だけがトラックから浮き上がって見える
@@ -125,13 +131,11 @@ struct CustomSlider: View {
 
 struct MiniSwitch: View {
     @Binding var isOn: Bool
-    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Capsule()
             .fill(isOn ? Color.accentColor : Color.secondary.opacity(0.3))
-            // 「コントラストを上げる」設定では、オフのスイッチが背景に溶けないよう輪郭を付ける
-            .overlay(Capsule().stroke(contrast == .increased ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1))
+            .contrastOutline(Capsule())
             .frame(width: 26, height: 15)
             .overlay(alignment: isOn ? .trailing : .leading) {
                 Circle()
@@ -187,9 +191,8 @@ struct PopoverIconButton<Content: View>: View {
     }
 }
 
-/// 曲リストの行などで、選択中の項目を淡いアクセントカラーで示す。
 /// 「コントラストを上げる」設定のときは色を濃くして見分けやすくする
-private struct ChipStyle: ViewModifier {
+private struct SelectedRowStyle: ViewModifier {
     let selected: Bool
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -207,41 +210,44 @@ private struct ChipStyle: ViewModifier {
 private struct SegmentStyle: ViewModifier {
     let selected: Bool
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
-        let strong = contrast == .increased
         content
+            // 3 本のトラックで区画の高さをそろえ、縦のリズムを整える
+            .frame(height: 26)
             .background(
                 RoundedRectangle(cornerRadius: 5)
                     // macOS の segmented control と同じく、ライトでは白、ダークでは一段明るい灰色で浮かせる
                     .fill(selected ? (colorScheme == .dark ? Color.white.opacity(0.2) : Color.white) : Color.clear)
                     .shadow(color: .black.opacity(selected ? 0.15 : 0), radius: 1, y: 0.5)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(selected && strong ? Color.primary.opacity(0.6) : .clear, lineWidth: 1)
-            )
+            .contrastOutline(RoundedRectangle(cornerRadius: 5), when: selected)
             .contentShape(Rectangle())
             .pointingHandCursor()
     }
 }
 
 private struct SegmentedTrackStyle: ViewModifier {
-    @Environment(\.colorSchemeContrast) private var contrast
-
     func body(content: Content) -> some View {
-        let strong = contrast == .increased
         content
             .padding(2)
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .fill(Color.secondary.opacity(0.12))
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 7)
-                    .stroke(strong ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1)
-            )
+            .contrastOutline(RoundedRectangle(cornerRadius: 7))
+    }
+}
+
+private struct ContrastOutline<S: InsettableShape>: ViewModifier {
+    let shape: S
+    let condition: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        content.overlay(
+            shape.strokeBorder(contrast == .increased && condition ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1)
+        )
     }
 }
 
@@ -254,7 +260,6 @@ struct GlyphButtonStyle: ButtonStyle {
     private struct GlyphButton: View {
         let configuration: ButtonStyleConfiguration
         @State private var isHovering = false
-        @Environment(\.colorSchemeContrast) private var contrast
 
         var body: some View {
             configuration.label
@@ -262,7 +267,7 @@ struct GlyphButtonStyle: ButtonStyle {
                     Circle().fill(Color.secondary.opacity(configuration.isPressed ? 0.25 : isHovering ? 0.12 : 0))
                 )
                 // 「コントラストを上げる」設定でも常に枠を出すと拍の行の ⊖ ⊕ と似た別の記号に見えるので、ホバー中だけにする
-                .overlay(Circle().stroke(contrast == .increased && (isHovering || configuration.isPressed) ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1))
+                .contrastOutline(Circle(), when: isHovering || configuration.isPressed)
                 .onHover { isHovering = $0 }
         }
     }

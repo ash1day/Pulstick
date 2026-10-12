@@ -30,7 +30,7 @@ struct PulstickView: View {
                 BPMSlider(engine: engine)
             }
             PresetPicker(engine: engine)
-            ChipPicker(Text("Subdivision"), items: Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
+            SegmentedPicker(Text("Subdivision"), items: Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
                 SubdivisionGlyph(subdivision: sub)
                     .font(.system(size: 12, weight: .medium))
             } onSelect: { engine.subdivision = $0 }
@@ -42,7 +42,7 @@ struct PulstickView: View {
             Divider()
             VStack(spacing: 8) {
                 VolumeRow(engine: engine)
-                ChipPicker(Text("Click sound"), items: ClickSound.allCases, selection: engine.clickSound, label: \.name) { sound in
+                SegmentedPicker(Text("Click sound"), items: ClickSound.allCases, selection: engine.clickSound, label: \.name) { sound in
                     sound.name
                         .font(.system(size: 11, weight: .medium))
                 } onSelect: { sound in

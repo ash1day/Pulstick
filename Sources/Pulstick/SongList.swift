@@ -83,7 +83,9 @@ struct SongList: View {
     }
 
     private func row(_ song: Song, isCurrent: Bool) -> some View {
-        let practised = engine.practiceSeconds(for: song)
+        // 拍数、これまでに鳴らした最高テンポ、曲ごとの練習量（1 分未満は出さない）。行末が切れても目標に近い最高テンポは残る順にする
+        let details = details(beats: song.pattern.beats, practised: engine.practiceSeconds(for: song), best: song.bestBPM)
+        let delete = { engine.deleteSong(song) }
         return VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 8) {
                 Text(verbatim: song.name)
@@ -97,9 +99,7 @@ struct SongList: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .fixedSize()
-                Button {
-                    engine.deleteSong(song)
-                } label: {
+                Button(action: delete) {
                     Image(systemName: "xmark")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.secondary)
@@ -113,27 +113,33 @@ struct SongList: View {
                 .accessibilityLabel(Text("Delete \(song.name)"))
                 .pointingHandCursor()
             }
-            // 拍数、これまでに鳴らした最高テンポ、曲ごとの練習量（1 分未満は出さない）。行末が切れても目標に近い最高テンポは残る順にする。
             // 曲名の列は右のテンポ表記に挟まれて狭いので、曲名を削らないよう行の幅いっぱいを使う 2 行目に出す
-            details(beats: song.pattern.beats, practised: practised, best: song.bestBPM)
+            details
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .chip(selected: isCurrent)
-        .onHover { hoveredSongID = $0 ? song.id : (hoveredSongID == song.id ? nil : hoveredSongID) }
+        .selectedRow(isCurrent)
+        .onHover { isHovering in
+            if isHovering {
+                hoveredSongID = song.id
+            } else if hoveredSongID == song.id {
+                // 隣の行に移ったときは、先に届いた隣の行の hover を消さない
+                hoveredSongID = nil
+            }
+        }
         // 2 行目の拍数や最高テンポも VoiceOver に届くよう、値に含める
         .accessibleTap(
             Text(verbatim: song.name),
-            value: Text("\(Int(song.bpm)) BPM") + Text(verbatim: ", ") + details(beats: song.pattern.beats, practised: practised, best: song.bestBPM),
+            value: Text("\(Int(song.bpm)) BPM") + Text(verbatim: ", ") + details,
             selected: isCurrent
         ) {
             engine.applySong(song)
             dismiss()
         }
-        .accessibilityAction(named: Text("Delete")) { engine.deleteSong(song) }
+        .accessibilityAction(named: Text("Delete"), delete)
         // セットリストの順番を入れ替える
         .contextMenu {
             // 難しい曲は本来のテンポより遅く始め、慣れたら上げていく
@@ -160,7 +166,7 @@ struct SongList: View {
             Button("Move Down") { engine.moveSong(song, by: 1) }
                 .disabled(song.id == engine.songs.last?.id)
             Divider()
-            Button("Delete", role: .destructive) { engine.deleteSong(song) }
+            Button("Delete", role: .destructive, action: delete)
         }
     }
 

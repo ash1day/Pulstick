@@ -1,9 +1,6 @@
 import PulstickCore
 import SwiftUI
 
-/// 3 本の segmented track で区画の高さをそろえ、縦のリズムを整える
-private let segmentHeight: CGFloat = 26
-
 /// 各プリセットを小さな○で表現。強拍は大きめ・不透明、弱拍は小さめ・薄め。
 /// 右クリックで「現在のパターンで上書き」または「デフォルトに戻す」が可能。
 struct PresetPicker: View {
@@ -42,7 +39,6 @@ struct PresetPicker: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: segmentHeight)
         .segment(selected: selected)
         .accessibleTap(Text("Preset \(index + 1)"), value: Text("\(preset.beats) beats"), selected: selected) {
             engine.applyPreset(at: index)
@@ -59,8 +55,8 @@ struct PresetPicker: View {
     }
 }
 
-/// 選択中の1つがハイライトされる横並びのチップ。細分化や音色の選択に使う
-struct ChipPicker<Item: Hashable, Content: View>: View {
+/// 1 本のトラックに並んだ区画から 1 つを選ぶ（macOS の segmented control 風）。細分化や音色の選択に使う
+struct SegmentedPicker<Item: Hashable, Content: View>: View {
     /// VoiceOver で読み上げるグループ名
     let title: Text
     let items: [Item]
@@ -89,7 +85,6 @@ struct ChipPicker<Item: Hashable, Content: View>: View {
                 content(item)
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: segmentHeight)
                     .segment(selected: selected)
                     .accessibleTap(item[keyPath: label], selected: selected) { onSelect(item) }
                     .help(item[keyPath: label])
