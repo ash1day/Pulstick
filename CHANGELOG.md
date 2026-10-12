@@ -23,7 +23,7 @@
 ### Everyday use
 - Your settings are remembered between launches.
 - While playing, the menu bar shows the BPM.
-- Global shortcuts: ⌃⌥M play/stop and ⌃⌥T tap tempo, from any app. A keyboard button lists all shortcuts.
+- Global shortcuts: ⌃⌥M play/stop, ⌃⌥T tap tempo and ⌃⌥, / ⌃⌥. previous/next song, from any app. A keyboard button lists all shortcuts.
 - A one-time welcome on first launch shows where Pulstick lives.
 - Japanese localization, VoiceOver support, and Reduce Motion / Increase Contrast support.
 - New app icon.

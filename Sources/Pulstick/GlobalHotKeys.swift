@@ -6,15 +6,20 @@ import PulstickCore
 ///
 /// - ⌃⌥M: 再生 / 停止
 /// - ⌃⌥T: タップテンポ（他アプリで流している曲に合わせてテンポを取る用途）
+/// - ⌃⌥, / ⌃⌥.: セットリストの前の曲 / 次の曲（リハーサル中に楽器を持ったまま切り替える）。
+///   キーに < > が書かれていて向きが分かり、日本語配列でも位置が変わらないキーを選んでいる
 final class GlobalHotKeys {
     private enum Action: UInt32 {
         case toggle = 1
         case tap = 2
+        case previousSong = 3
+        case nextSong = 4
     }
 
     /// 他アプリと競合して登録できなかったショートカットは UI で案内しないようにする
     private(set) var isToggleAvailable = false
     private(set) var isTapAvailable = false
+    private(set) var isSongStepAvailable = false
 
     private weak var engine: PulstickEngine?
     private var hotKeyRefs: [EventHotKeyRef?] = []
@@ -25,6 +30,9 @@ final class GlobalHotKeys {
         installHandler()
         isToggleAvailable = register(.toggle, keyCode: UInt32(kVK_ANSI_M))
         isTapAvailable = register(.tap, keyCode: UInt32(kVK_ANSI_T))
+        let previous = register(.previousSong, keyCode: UInt32(kVK_ANSI_Comma))
+        let next = register(.nextSong, keyCode: UInt32(kVK_ANSI_Period))
+        isSongStepAvailable = previous && next
     }
 
     deinit {
@@ -66,6 +74,8 @@ final class GlobalHotKeys {
         switch action {
         case .toggle: engine.toggle()
         case .tap: engine.tapTempo()
+        case .previousSong: engine.applyAdjacentSong(-1)
+        case .nextSong: engine.applyAdjacentSong(1)
         case nil: break
         }
     }

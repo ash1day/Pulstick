@@ -19,7 +19,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Menu bar shows the BPM while playing; the Play button shows practice time
 - Practice timer and count-in: right-click Play to stop automatically after 5–60 minutes, or to hear one or two bars before you start
 - Practice log: minutes practised today, your streak of consecutive days, a 7-day chart and an optional weekly goal (right-click the summary)
-- Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo
+- Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo, <kbd>⌃⌥,</kbd> / <kbd>⌃⌥.</kbd> previous/next song
 - Settings are remembered between launches
 - English and Japanese UI (follows the system language)
 

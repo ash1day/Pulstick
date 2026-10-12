@@ -8,10 +8,11 @@ struct ShortcutHelp: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if hotKeys?.isToggleAvailable == true || hotKeys?.isTapAvailable == true {
+            if hotKeys?.isToggleAvailable == true || hotKeys?.isTapAvailable == true || hotKeys?.isSongStepAvailable == true {
                 section("From any app") {
                     if hotKeys?.isToggleAvailable == true { row("⌃⌥M", "Play / Stop") }
                     if hotKeys?.isTapAvailable == true { row("⌃⌥T", "Tap tempo") }
+                    if hotKeys?.isSongStepAvailable == true { row("⌃⌥, ⌃⌥.", "Previous / next song") }
                 }
             }
             section("In this window") {
