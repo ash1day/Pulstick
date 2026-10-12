@@ -89,3 +89,14 @@
 "Mute" = "ミュート";
 "Unmute (M)" = "ミュートを解除（M）";
 "Mute the click (M) · the beat display keeps going" = "クリック音を消す（M）・拍の表示は続きます";
+
+/* Shortcut help */
+"Keyboard shortcuts" = "キーボードショートカット";
+"From any app" = "どのアプリからでも";
+"In this window" = "このウインドウで";
+"Play / Stop" = "再生 / 停止";
+"Tap tempo" = "タップテンポ";
+"Tempo ±1" = "テンポ ±1";
+"Tempo ±5" = "テンポ ±5";
+"Mute / unmute" = "ミュート切り替え";
+"Choose a preset" = "プリセットを選ぶ";

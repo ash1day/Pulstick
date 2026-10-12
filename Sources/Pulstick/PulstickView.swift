@@ -43,7 +43,7 @@ struct PulstickView: View {
                 }
             }
             PracticeSummary(engine: engine)
-            FooterRow()
+            FooterRow(hotKeys: hotKeys)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
