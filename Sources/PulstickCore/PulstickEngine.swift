@@ -25,6 +25,7 @@ public final class PulstickEngine: ObservableObject {
         static let practiceLog = "pulstick.practiceLog"
         static let clickSound = "pulstick.clickSound"
         static let songs = "pulstick.songs"
+        static let selectedSong = "pulstick.selectedSong"
     }
 
     /// batchPatternChange の入れ子の深さ。0 より大きい間は、拍のパターン変更の反映を後回しにする
@@ -145,7 +146,13 @@ public final class PulstickEngine: ObservableObject {
         }
     }
     /// ユーザーが選んだ（呼び出した・保存した）曲。設定の一致から推測すると同じ設定の曲を区別できないため覚えておく
-    @Published public internal(set) var selectedSongID: UUID?
+    @Published public internal(set) var selectedSongID: UUID? {
+        didSet {
+            // 起動し直してもリハーサルの続き（[ ] で次の曲）から再開できるよう保存する
+            guard !isRestoring else { return }
+            defaults.set(selectedSongID?.uuidString, forKey: Keys.selectedSong)
+        }
+    }
 
     /// 曲ごとの練習時間のうち、この再生でまだ確定していない分
     var songPractice = SongPracticeTracker()
@@ -263,6 +270,11 @@ public final class PulstickEngine: ObservableObject {
         gapTrainerEnabled = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool ?? false
         practiceLog = defaults.codable(forKey: Keys.practiceLog, default: practiceLog)
         songs = defaults.codable([Song].self, forKey: Keys.songs) ?? []
+        if let saved = (defaults.object(forKey: Keys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),
+           songs.contains(where: { $0.id == saved })
+        {
+            selectedSongID = saved
+        }
     }
 
     /// プレビューやスクリーンショット用に、曲の練習時間を見本の値にする

@@ -287,15 +287,13 @@ struct SongTests {
     }
 
     @Test func nextSongStartsFromTheTopWhenNothingIsSelected() {
-        let defaults = InMemorySettingsStore()
-        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
-        first.bpm = 100
-        first.saveCurrentAsSong(named: "A")
-        first.bpm = 120
-        first.saveCurrentAsSong(named: "B")
-        // 起動し直すと曲の選択はなくなる。どの曲とも違う拍子を弾いている状態から ] を押す
-        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
-        engine.setBeats(3)
+        let engine = makeEngine()
+        for (name, bpm) in [("A", 100.0), ("B", 120), ("C", 140)] {
+            engine.bpm = bpm
+            engine.saveCurrentAsSong(named: name)
+        }
+        engine.deleteSong(engine.songs[2])  // 選択中の曲を消すと、何も選ばれていない状態になる
+        engine.setBeats(3)  // どの曲とも違う拍子を弾いている
         engine.applyAdjacentSong(1)
         #expect(engine.bpm == 100)
     }
@@ -555,6 +553,20 @@ struct SongTests {
         defaults.set(old.data(using: .utf8), forKey: "pulstick.songs")
         let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
         #expect(engine.songs.map(\.name) == ["Old"])
+    }
+
+    @Test func theChosenSongIsRememberedAcrossLaunches() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        for (name, bpm) in [("A", 100.0), ("B", 120), ("C", 140)] {
+            first.bpm = bpm
+            first.saveCurrentAsSong(named: name)
+        }
+        first.applySong(first.songs[1])
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.selectedSongID == second.songs[1].id)
+        second.applyAdjacentSong(1)  // 前回の続きから
+        #expect(second.bpm == 140)
     }
 
     @Test func songsAreRestoredOnNextLaunch() {
