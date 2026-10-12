@@ -292,6 +292,25 @@ struct SongTests {
         #expect(!engine.matchesCurrentSettings(song))
     }
 
+    @Test func resavingASongKeepsItsPracticeTime() {
+        let engine = makeEngine()
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.beginSongPractice(engine.songs.first?.id)
+        engine.activeSongSince = Date().addingTimeInterval(-600)
+        engine.creditSongPractice()
+        engine.bpm = 132
+        engine.saveCurrentAsSong(named: "Etude")  // テンポを変えて上書き
+        #expect((engine.songs.first?.practiceSeconds ?? 0) >= 600)
+    }
+
+    @Test func songsSavedBeforePracticeTimeExistedStillLoad() {
+        let defaults = InMemorySettingsStore()
+        let old = #"[{"id":"7C9E6B1E-1D1F-4B7A-9C1E-2A3B4C5D6E7F","name":"Old","bpm":90,"pattern":{"beats":3,"accents":[0]},"subdivision":1}]"#
+        defaults.set(old.data(using: .utf8), forKey: "pulstick.songs")
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(engine.songs.map(\.name) == ["Old"])
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
@@ -834,6 +853,32 @@ struct PlaybackIntegrationTests {
         try await spin(0.4)
         engine.stop()
         #expect(output.played.isEmpty)
+    }
+
+    @Test func playingASongAddsToItsPracticeTime() async throws {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        engine.bpm = 200
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 1, targetBPM: 240)
+        engine.speedTrainerEnabled = true  // 途中でテンポが変わっても同じ曲として数える
+        engine.start()
+        try await spin(0.3)
+        engine.stop()
+        let song = try #require(engine.songs.first)
+        #expect(song.practiceSeconds >= 0.3)
+    }
+
+    @Test func playingWithoutAMatchingSongCreditsNoSong() async throws {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "Slow")
+        engine.bpm = 140
+        engine.start()
+        try await spin(0.1)
+        engine.stop()
+        #expect(engine.songs.first?.practiceSeconds == 0)
     }
 
     @Test func subdivisionClicksReachTheOutput() async throws {

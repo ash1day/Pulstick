@@ -8,7 +8,9 @@ extension PulstickEngine {
         guard !trimmed.isEmpty else { return }
         var song = Song(name: trimmed, bpm: bpm, pattern: currentPattern, subdivision: subdivision)
         if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            // 同じ曲の設定を更新するだけなので、識別子と練習時間は引き継ぐ
             song.id = songs[index].id
+            song.practiceSeconds = songs[index].practiceSeconds
             songs[index] = song
         } else {
             let index = songs.firstIndex { trimmed.localizedStandardCompare($0.name) == .orderedAscending } ?? songs.endIndex
@@ -25,6 +27,9 @@ extension PulstickEngine {
         // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
         if isPlaying {
             restartSession()
+            // それまでの時間は前の曲に加算し、ここからは選んだ曲として数える
+            creditSongPractice()
+            beginSongPractice(song.id)
         }
     }
 
@@ -48,6 +53,21 @@ extension PulstickEngine {
         song.bpm == bpm && song.pattern.beats == beatsPerMeasure
             && song.pattern.accentSet == accentBeats && song.pattern.restSet == restBeats
             && song.subdivision == subdivision
+    }
+
+    /// 曲の練習時間を数え始める（nil なら数えない）
+    func beginSongPractice(_ id: UUID?) {
+        activeSongID = id
+        activeSongSince = id == nil ? nil : Date()
+    }
+
+    /// 数えていた曲に、ここまでの時間を加算する
+    func creditSongPractice() {
+        guard let id = activeSongID, let since = activeSongSince,
+              let index = songs.firstIndex(where: { $0.id == id })
+        else { return }
+        songs[index].practiceSeconds += Date().timeIntervalSince(since)
+        activeSongSince = Date()
     }
 
     public func deleteSong(_ song: Song) {

@@ -138,6 +138,9 @@ public final class PulstickEngine: ObservableObject {
             defaults.setCodable(practiceLog, forKey: Keys.practiceLog)
         }
     }
+    /// いま練習時間を数えている曲と、その曲を数え始めた時刻
+    var activeSongID: UUID?
+    var activeSongSince: Date?
     /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
     var minimumLoggedSession: TimeInterval = 5
 
@@ -244,6 +247,12 @@ public final class PulstickEngine: ObservableObject {
         gapTrainerEnabled = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool ?? false
         practiceLog = defaults.codable(forKey: Keys.practiceLog, default: practiceLog)
         songs = defaults.codable([Song].self, forKey: Keys.songs) ?? []
+    }
+
+    /// プレビューやスクリーンショット用に、曲の練習時間を見本の値にする
+    public func seedSongPractice(_ seconds: Double, forSongAt index: Int) {
+        guard songs.indices.contains(index) else { return }
+        songs[index].practiceSeconds = seconds
     }
 
     /// プレビューやスクリーンショット用に、見本の練習記録で置き換える

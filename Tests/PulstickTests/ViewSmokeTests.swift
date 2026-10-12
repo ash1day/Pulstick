@@ -70,8 +70,8 @@ struct ViewSmokeTests {
     }
 
     @Test func weeklyTotalUsesHoursOnlyWhenNeeded() {
-        let long = WeekBars.duration(2 * 3600 + 15 * 60)
+        let long = PracticeTime.format(2 * 3600 + 15 * 60)
         #expect(long.contains("2") && long.contains("15"))
-        #expect(!WeekBars.duration(45 * 60).contains("0"))  // "0 hr 45 min" のようにしない
+        #expect(!PracticeTime.format(45 * 60).contains("0"))  // "0 hr 45 min" のようにしない
     }
 }

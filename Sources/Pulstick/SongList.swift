@@ -65,10 +65,18 @@ struct SongList: View {
     private func row(_ song: Song) -> some View {
         let isCurrent = engine.matchesCurrentSettings(song)
         return HStack(spacing: 8) {
-            Text(verbatim: song.name)
-                .font(.system(size: 12, weight: isCurrent ? .semibold : .regular))
-                .lineLimit(1)
-                .truncationMode(.tail)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: song.name)
+                    .font(.system(size: 12, weight: isCurrent ? .semibold : .regular))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                // 曲ごとの練習量。1 分未満は出さない
+                if song.practiceSeconds >= 60 {
+                    Text("Practised \(PracticeTime.format(song.practiceSeconds))")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
             Spacer()
             Text("♩=\(Int(song.bpm)) · \(song.pattern.beats) beats")
                 .font(.system(size: 11, design: .rounded))

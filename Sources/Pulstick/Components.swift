@@ -198,3 +198,22 @@ private struct ChipStyle: ViewModifier {
             .pointingHandCursor()
     }
 }
+
+// MARK: - Practice Time
+
+/// 練習時間を "2時間15分" / "2 hr, 15 min" のように言語に合わせて表す
+enum PracticeTime {
+    private static let hoursFormatter = makeFormatter([.hour, .minute])
+    private static let minutesFormatter = makeFormatter([.minute])
+
+    private static func makeFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = units
+        formatter.unitsStyle = .short
+        return formatter
+    }
+
+    static func format(_ seconds: Double) -> String {
+        (seconds >= 3600 ? hoursFormatter : minutesFormatter).string(from: seconds) ?? ""
+    }
+}

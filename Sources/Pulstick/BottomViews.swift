@@ -239,22 +239,7 @@ struct WeekBars: View {
     }
 
     private var weekTotal: Text {
-        Text("Last 7 days: \(Self.duration(seconds.reduce(0, +)))")
-    }
-
-    private static let hoursFormatter = makeFormatter([.hour, .minute])
-    private static let minutesFormatter = makeFormatter([.minute])
-
-    private static func makeFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = units
-        formatter.unitsStyle = .short
-        return formatter
-    }
-
-    /// "2時間15分" / "2 hr, 15 min" のように、言語に合わせて時間をまとめて表す
-    static func duration(_ seconds: Double) -> String {
-        (seconds >= 3600 ? hoursFormatter : minutesFormatter).string(from: seconds) ?? ""
+        Text("Last 7 days: \(PracticeTime.format(seconds.reduce(0, +)))")
     }
 
     private func dayName(_ index: Int) -> String {
