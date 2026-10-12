@@ -13,6 +13,17 @@ struct PulstickApp: App {
         let engine = PulstickEngine(output: AudioClickOutput())
         self.engine = engine
         hotKeys = GlobalHotKeys(engine: engine)
+        // 「あと 3 小節で +2」の予告は画面にしか出ないので、VoiceOver の利用者には上がったテンポを読み上げる
+        engine.onTempoStep = { bpm in
+            guard NSWorkspace.shared.isVoiceOverEnabled else { return }
+            NSAccessibility.post(
+                element: NSApp as Any, notification: .announcementRequested,
+                userInfo: [
+                    .announcement: String(localized: "tempo.announcement", defaultValue: "Tempo \(Int(bpm))"),
+                    .priority: NSAccessibilityPriorityLevel.high.rawValue,
+                ]
+            )
+        }
         // 再生したまま終了しても、その練習時間を失わないよう停止して記録する
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main

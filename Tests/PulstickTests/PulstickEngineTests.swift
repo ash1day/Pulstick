@@ -1275,6 +1275,19 @@ struct EngineSpeedTrainerTests {
         engine.stop()
     }
 
+    @Test func tempoStepsAreReportedSoVoiceOverCanAnnounceThem() {
+        // 画面の予告が見えない人にも、トレーナーがテンポを変えたことを伝えられるように
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 200)
+        engine.speedTrainerEnabled = true
+        var reported: [Double] = []
+        engine.onTempoStep = { reported.append($0) }
+        engine.handleMeasureCompleted()
+        engine.bpm = 120  // 手で変えたときは知らせない（本人が分かっている）
+        #expect(reported == [105])
+    }
+
     @Test func keepsBPMWhenDisabled() {
         let engine = makeEngine()
         engine.bpm = 100

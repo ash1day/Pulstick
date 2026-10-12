@@ -125,6 +125,7 @@ extension PulstickEngine {
               let next = speedTrainerProgress.measureCompleted(speedTrainer, currentBPM: bpm, startBPM: sessionStartBPM)
         else { return }
         bpm = next
+        onTempoStep?(bpm)
     }
 
     /// スピードトレーナーが次にテンポを変えるまでの小節数を、表示用に BeatClock へ反映する。

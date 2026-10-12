@@ -105,6 +105,8 @@ public final class PulstickEngine: ObservableObject {
     }
     /// 設定と違い毎小節変わるので @Published にも保存対象にもしない
     var speedTrainerProgress = SpeedTrainerProgress()
+    /// スピードトレーナーがテンポを変えたときに、新しい BPM で呼ばれる（VoiceOver の読み上げに使う）
+    public var onTempoStep: ((Double) -> Void)?
 
     @Published public var gapTrainerEnabled = false {
         didSet {
