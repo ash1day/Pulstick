@@ -120,7 +120,7 @@ struct SongList: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .chip(selected: isCurrent, outlined: false)
+        .chip(selected: isCurrent)
         .accessibleTap(Text(verbatim: song.name), value: Text("\(Int(song.bpm)) BPM"), selected: isCurrent) {
             engine.applySong(song)
             dismiss()

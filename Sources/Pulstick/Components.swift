@@ -36,8 +36,18 @@ extension View {
 
     /// プリセットや細分化など「選択中の1つがハイライトされるチップ」の共通装飾
     /// - Parameter outlined: リストの行のように枠線が要らない場合は false
-    func chip(selected: Bool, outlined: Bool = true) -> some View {
-        modifier(ChipStyle(selected: selected, outlined: outlined))
+    func chip(selected: Bool) -> some View {
+        modifier(ChipStyle(selected: selected))
+    }
+
+    /// segmented control の 1 区画。選択中だけがトラックから浮き上がって見える
+    func segment(selected: Bool) -> some View {
+        modifier(SegmentStyle(selected: selected))
+    }
+
+    /// segment を並べる溝。区画ごとに枠を描くと箱が並んでフォームのように見えるので、まとめて 1 本にする
+    func segmentedTrack() -> some View {
+        modifier(SegmentedTrackStyle())
     }
 }
 
@@ -172,30 +182,61 @@ struct PopoverIconButton<Content: View>: View {
     }
 }
 
-/// 「コントラストを上げる」設定のときは枠線と選択色を濃くして、選択状態を見分けやすくする
+/// 曲リストの行などで、選択中の項目を淡いアクセントカラーで示す。
+/// 「コントラストを上げる」設定のときは色を濃くして見分けやすくする
 private struct ChipStyle: ViewModifier {
     let selected: Bool
-    let outlined: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(selected ? Color.accentColor.opacity(contrast == .increased ? 0.3 : 0.15) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .pointingHandCursor()
+    }
+}
+
+private struct SegmentStyle: ViewModifier {
+    let selected: Bool
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
         let strong = contrast == .increased
         content
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(selected ? Color.accentColor.opacity(strong ? 0.3 : 0.15) : Color.clear)
+                RoundedRectangle(cornerRadius: 5)
+                    // macOS の segmented control と同じく、ライトでは白、ダークでは一段明るい灰色で浮かせる
+                    .fill(selected ? (colorScheme == .dark ? Color.white.opacity(0.2) : Color.white) : Color.clear)
+                    .shadow(color: .black.opacity(selected ? 0.15 : 0), radius: 1, y: 0.5)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(
-                        outlined
-                            ? (selected ? Color.accentColor.opacity(strong ? 1 : 0.4) : Color.secondary.opacity(strong ? 0.6 : 0.2))
-                            : .clear,
-                        lineWidth: strong ? 1.5 : 1
-                    )
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(selected && strong ? Color.primary.opacity(0.6) : .clear, lineWidth: 1)
             )
             .contentShape(Rectangle())
             .pointingHandCursor()
+    }
+}
+
+private struct SegmentedTrackStyle: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let strong = contrast == .increased
+        content
+            .padding(2)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color.secondary.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(strong ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1)
+            )
     }
 }
 

@@ -7,11 +7,12 @@ struct PresetPicker: View {
     @ObservedObject var engine: PulstickEngine
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(engine.presets.indices, id: \.self) { index in
                 presetButton(index)
             }
         }
+        .segmentedTrack()
     }
 
     private func presetButton(_ index: Int) -> some View {
@@ -29,7 +30,7 @@ struct PresetPicker: View {
                     .fill(
                         isRest ? Color.clear
                             : isAccent
-                            ? (selected ? Color.accentColor : Color.accentColor.opacity(0.5))
+                            ? (selected ? Color.accentColor : Color.secondary.opacity(0.55))
                             : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
                     )
                     // 休符は輪郭だけの小さな○
@@ -38,8 +39,8 @@ struct PresetPicker: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .chip(selected: selected)
+        .padding(.vertical, 7)
+        .segment(selected: selected)
         .accessibleTap(Text("Preset \(index + 1)"), value: Text("\(preset.beats) beats"), selected: selected) {
             engine.applyPreset(at: index)
         }
@@ -76,17 +77,18 @@ struct ChipPicker<Item: Hashable, Content: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(items, id: \.self) { item in
                 let selected = item == selection
                 content(item)
                     .foregroundColor(selected ? .primary : .secondary)
                     .frame(maxWidth: .infinity)
-                    .chip(selected: selected)
+                    .segment(selected: selected)
                     .accessibleTap(item[keyPath: label], selected: selected) { onSelect(item) }
                     .help(item[keyPath: label])
             }
         }
+        .segmentedTrack()
     }
 }
 
