@@ -22,33 +22,33 @@ final class GlobalHotKeys {
     private(set) var isSongStepAvailable = false
 
     private weak var engine: PulstickEngine?
-    private var hotKeyRefs: [EventHotKeyRef?] = []
+    private var hotKeyRefs: [EventHotKeyRef] = []
     private var handlerRef: EventHandlerRef?
 
     init(engine: PulstickEngine) {
         self.engine = engine
         installHandler()
-        isToggleAvailable = keep(register(.toggle, keyCode: UInt32(kVK_ANSI_M)))
-        isTapAvailable = keep(register(.tap, keyCode: UInt32(kVK_ANSI_T)))
+        if let toggle = register(.toggle, keyCode: UInt32(kVK_ANSI_M)) {
+            hotKeyRefs.append(toggle)
+            isToggleAvailable = true
+        }
+        if let tap = register(.tap, keyCode: UInt32(kVK_ANSI_T)) {
+            hotKeyRefs.append(tap)
+            isTapAvailable = true
+        }
         // 前の曲・次の曲は対で使うもの。片方しか取れなければ両方とも諦め、案内とずれないようにする
         let previous = register(.previousSong, keyCode: UInt32(kVK_ANSI_Comma))
         let next = register(.nextSong, keyCode: UInt32(kVK_ANSI_Period))
         if let previous, let next {
-            isSongStepAvailable = keep(previous) && keep(next)
+            hotKeyRefs += [previous, next]
+            isSongStepAvailable = true
         } else {
-            [previous, next].forEach { if let ref = $0 { UnregisterEventHotKey(ref) } }
+            [previous, next].compactMap { $0 }.forEach { UnregisterEventHotKey($0) }
         }
     }
 
-    /// 登録できたホットキーを、終了時に外せるよう覚えておく
-    private func keep(_ ref: EventHotKeyRef?) -> Bool {
-        guard let ref else { return false }
-        hotKeyRefs.append(ref)
-        return true
-    }
-
     deinit {
-        hotKeyRefs.forEach { if let ref = $0 { UnregisterEventHotKey(ref) } }
+        hotKeyRefs.forEach { UnregisterEventHotKey($0) }
         if let handlerRef { RemoveEventHandler(handlerRef) }
     }
 

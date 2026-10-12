@@ -192,15 +192,22 @@ extension PulstickEngine {
         let subdivision = subdivision
         let gap = gapTrainerEnabled ? gapTrainer : nil
         let muted = isMuted
-        let countIn = TickPlan.CountInSounds(accentVolume: accentVolume, normalVolume: normalVolume)
+        syncCountInSounds()
         timerQueue.async { [weak self] in
-            self?.activeCountIn = countIn
             self?.activeGap = gap
             self?.activeMute = muted
             self?.sequencer.beatsPerMeasure = beats
             self?.sequencer.accents = accents
             self?.sequencer.rests = rests
             self?.sequencer.subdivision = subdivision
+        }
+    }
+
+    /// 音量が変わるとカウントインで鳴らす音の選び方も変わるので、タイマーキューへ反映する
+    func syncCountInSounds() {
+        let countIn = TickPlan.CountInSounds(accentVolume: accentVolume, normalVolume: normalVolume)
+        timerQueue.async { [weak self] in
+            self?.activeCountIn = countIn
         }
     }
 

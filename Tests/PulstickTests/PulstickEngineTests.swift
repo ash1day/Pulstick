@@ -1902,6 +1902,27 @@ struct TickPlanTests {
         #expect(TickPlan.plan(for: beat(0, starts: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false, countIn: normalOnly).sound == .normal)
     }
 
+    @Test func theCountInFollowsVolumesRestoredAtLaunch() {
+        // 弱拍を 0 にしたまま終了しても、次の起動直後の再生から聞こえる音でカウントインする
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.normalVolume = 0
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.timerQueue.sync { second.activeCountIn } == TickPlan.CountInSounds(accentVolume: second.accentVolume, normalVolume: 0))
+    }
+
+    @Test func theTempoSetDuringTheCountInBecomesTheSessionStart() {
+        // カウントイン中にテンポを直したら、↶ で戻る先はその値
+        let engine = makeEngine()
+        engine.countInBars = 1
+        engine.bpm = 120
+        engine.start()
+        engine.bpm = 140
+        engine.practiceDidBegin()
+        #expect(engine.sessionStartBPM == 140)
+        engine.stop()
+    }
+
     @Test func countInSkipsSubdivisionsAndRespectsMute() {
         #expect(TickPlan.plan(for: beat(0, click: .subdivision), measureIndex: -1, countsMeasure: true, gap: nil, muted: false).sound == nil)
         #expect(TickPlan.plan(for: beat(0, starts: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: true).sound == nil)

@@ -200,7 +200,7 @@ public final class PulstickEngine: ObservableObject {
             guard accentVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(accentVolume, forKey: SettingsKeys.accentVolume)
-            syncSequencer()  // カウントインで鳴らす音の選び方が変わる
+            syncCountInSounds()
         }
     }
     @Published public var normalVolume: Double = 0.7 {
@@ -208,7 +208,7 @@ public final class PulstickEngine: ObservableObject {
             guard normalVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
             defaults.set(normalVolume, forKey: SettingsKeys.normalVolume)
-            syncSequencer()  // カウントインで鳴らす音の選び方が変わる
+            syncCountInSounds()
         }
     }
 
