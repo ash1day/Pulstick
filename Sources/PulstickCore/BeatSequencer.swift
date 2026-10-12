@@ -6,7 +6,7 @@ public enum Subdivision: Int, CaseIterable, Codable {
     case sixteenth = 4
 }
 
-public enum ClickKind: Equatable {
+public enum ClickKind: Equatable, Sendable {
     case accent
     case normal
     case subdivision

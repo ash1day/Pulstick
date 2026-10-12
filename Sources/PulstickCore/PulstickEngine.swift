@@ -37,6 +37,7 @@ public final class PulstickEngine: ObservableObject {
         static let gapTrainerEnabled = "pulstick.gapTrainerEnabled"
         static let gapTrainer = "pulstick.gapTrainer"
         static let practiceLog = "pulstick.practiceLog"
+        static let clickSound = "pulstick.clickSound"
     }
 
     @Published public var presets: [BeatPreset] = []
@@ -127,6 +128,13 @@ public final class PulstickEngine: ObservableObject {
     /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
     var minimumLoggedSession: TimeInterval = 5
 
+    @Published public var clickSound: ClickSound = .beep {
+        didSet {
+            defaults.set(clickSound.rawValue, forKey: Keys.clickSound)
+            output.setSound(clickSound)
+        }
+    }
+
     @Published public var accentVolume: Double = 1.0 {
         didSet {
             output.setVolumes(accent: accentVolume, normal: normalVolume)
@@ -171,6 +179,7 @@ public final class PulstickEngine: ObservableObject {
         restoreSettings()
         syncSequencer()
         self.output.setVolumes(accent: accentVolume, normal: normalVolume)
+        self.output.setSound(clickSound)
     }
 
     /// init から呼ばれるメソッド内の代入なので didSet は発火し、同じ値が書き戻される（無害）
@@ -198,6 +207,11 @@ public final class PulstickEngine: ObservableObject {
         }
         if let saved = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool {
             speedTrainerEnabled = saved
+        }
+        if let raw = defaults.object(forKey: Keys.clickSound) as? String,
+           let saved = ClickSound(rawValue: raw)
+        {
+            clickSound = saved
         }
         if let data = defaults.object(forKey: Keys.practiceLog) as? Data,
            let saved = try? JSONDecoder().decode(PracticeLog.self, from: data)
@@ -281,6 +295,15 @@ public final class PulstickEngine: ObservableObject {
             play(sequencer.reset(), countsMeasure: false)
         }
         scheduleTimer()
+    }
+
+    /// 音色を選んだときの試聴。再生中は鳴らさない（次の拍で新しい音が聞こえるため）
+    public func previewClick() {
+        guard !isPlaying else { return }
+        output.prepare()
+        timerQueue.async { [output] in
+            output.play(.accent)
+        }
     }
 
     /// スピードトレーナーで上げたテンポを再生開始時の値に戻す

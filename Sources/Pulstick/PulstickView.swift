@@ -25,7 +25,10 @@ struct PulstickView: View {
             }
             controlsRow
             Divider()
-            volumeControls
+            VStack(spacing: 8) {
+                volumeControls
+                soundPicker
+            }
             if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty {
                 practiceSummary
             }
@@ -429,6 +432,26 @@ struct PulstickView: View {
         }
     }
 
+    // MARK: - Sound
+
+    private var soundPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(ClickSound.allCases, id: \.self) { sound in
+                sound.name
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(engine.clickSound == sound ? .primary : .secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 3)
+                    .chip(selected: engine.clickSound == sound)
+                    .accessibleTap(sound.name, value: Text("Click sound"), selected: engine.clickSound == sound) {
+                        engine.clickSound = sound
+                        engine.previewClick()
+                    }
+                    .help("Click sound")
+            }
+        }
+    }
+
     // MARK: - Footer
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -490,6 +513,16 @@ extension Subdivision {
         case .eighth: Text("Eighth notes")
         case .triplet: Text("Triplets")
         case .sixteenth: Text("Sixteenth notes")
+        }
+    }
+}
+
+extension ClickSound {
+    var name: Text {
+        switch self {
+        case .beep: Text("Beep")
+        case .wood: Text("Wood")
+        case .tick: Text("Tick")
         }
     }
 }

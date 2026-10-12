@@ -69,3 +69,9 @@
 "%lld beats" = "%lld 拍";
 "Pulstick, playing at %lld BPM" = "Pulstick、%lld BPM で再生中";
 "Pulstick, stopped" = "Pulstick、停止中";
+
+/* Click sound */
+"Click sound" = "クリックの音色";
+"Beep" = "電子音";
+"Wood" = "ウッド";
+"Tick" = "チック";

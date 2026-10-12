@@ -254,6 +254,16 @@ struct PersistenceTests {
         #expect(second.subdivision == .triplet)
     }
 
+    @Test func clickSoundIsRestoredAndAppliedToOutput() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.clickSound = .wood
+        let output = SilentClickOutput()
+        let second = PulstickEngine(defaults: defaults, output: output)
+        #expect(second.clickSound == .wood)
+        #expect(output.sound == .wood)
+    }
+
     @Test func presetsAreStoredInInjectedDefaults() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
@@ -594,5 +604,43 @@ struct PracticeLogTests {
         log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
         #expect(log.streak(endingAt: date(12, 8), calendar: calendar) == 1)
         #expect(log.streak(endingAt: date(13, 8), calendar: calendar) == 0)
+    }
+}
+
+// MARK: - ClickSynth
+// 実際に音を鳴らさず、波形の性質（長さ・端の連続性・クリップしないこと）を検証する
+
+@Suite("ClickSynth")
+struct ClickSynthTests {
+    @Test(arguments: ClickSound.allCases)
+    func everySoundIsShortAndStartsAndEndsSilently(sound: ClickSound) {
+        for kind in [ClickKind.accent, .normal, .subdivision] {
+            let wave = ClickSynth.samples(sound, kind)
+            #expect((441...4410).contains(wave.count), "\(sound) \(kind): 10〜100ms に収める")
+            // 端が 0 から離れていると再生開始・終了時にプチッと鳴る
+            #expect(abs(wave.first ?? 1) < 0.01)
+            #expect(abs(wave.last ?? 1) < 0.01)
+            #expect(wave.allSatisfy { abs($0) <= 0.9 }, "\(sound) \(kind): クリップしない")
+        }
+    }
+
+    private func zeroCrossings(_ wave: [Float]) -> Int {
+        zip(wave, wave.dropFirst()).filter { ($0 < 0) != ($1 < 0) }.count
+    }
+
+    @Test(arguments: [ClickSound.beep, .wood])
+    func accentIsHigherPitchedThanNormalBeat(sound: ClickSound) {
+        // 先頭 10ms のゼロ交差数でおおよその音程を比べる
+        let accent = Array(ClickSynth.samples(sound, .accent).prefix(441))
+        let normal = Array(ClickSynth.samples(sound, .normal).prefix(441))
+        #expect(zeroCrossings(accent) > zeroCrossings(normal))
+    }
+
+    @Test(arguments: ClickSound.allCases)
+    func soundDecaysOverTime(sound: ClickSound) {
+        let wave = ClickSynth.samples(sound, .normal)
+        let quarter = wave.count / 4
+        let energy = { (part: ArraySlice<Float>) in part.reduce(0) { $0 + $1 * $1 } }
+        #expect(energy(wave.suffix(quarter)) < energy(wave.prefix(quarter)))
     }
 }

@@ -8,6 +8,7 @@ public protocol ClickOutput: AnyObject {
     func play(_ click: ClickKind)
     func stopAll()
     func setVolumes(accent: Double, normal: Double)
+    func setSound(_ sound: ClickSound)
 }
 
 /// 何も鳴らさず、鳴らしたはずのクリックを記録するだけの出力。テストやスナップショット用
@@ -21,12 +22,20 @@ public final class SilentClickOutput: ClickOutput {
         lock.withLock { _played }
     }
 
+    public var sound: ClickSound? {
+        lock.withLock { _sound }
+    }
+    private var _sound: ClickSound?
+
     public func prepare() {}
     public func play(_ click: ClickKind) {
         lock.withLock { _played.append(click) }
     }
     public func stopAll() {}
     public func setVolumes(accent: Double, normal: Double) {}
+    public func setSound(_ sound: ClickSound) {
+        lock.withLock { _sound = sound }
+    }
 }
 
 /// AVAudioEngine でクリック音をプログラム生成して鳴らす本番用の出力
@@ -36,31 +45,22 @@ public final class AudioClickOutput: ClickOutput {
     private let normalPlayerNode = AVAudioPlayerNode()
     /// 細分音は拍の音と重なっても途切れないよう専用ノードで鳴らす
     private let subdivisionPlayerNode = AVAudioPlayerNode()
-    private var accentBuffer: AVAudioPCMBuffer?
-    private var normalBuffer: AVAudioPCMBuffer?
-    private var subdivisionBuffer: AVAudioPCMBuffer?
+    private let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+    /// 音色の切り替え（メインスレッド）と再生（タイマーキュー）が競合しないようロックで守る
+    private let bufferLock = NSLock()
+    private var buffers: [ClickKind: AVAudioPCMBuffer] = [:]
 
-    private let sampleRate: Double = 44100
-    private let accentFrequency: Double = 1500
-    private let normalFrequency: Double = 800
-    private let subdivisionFrequency: Double = 2400
     /// 細分音は拍を邪魔しないよう弱拍の音量に対してさらに控えめにする
     private let subdivisionVolumeRatio: Float = 0.45
-    private let clickDuration: Double = 0.03  // 30ms のシャープなクリック
 
     public init() {
         audioEngine.attach(accentPlayerNode)
         audioEngine.attach(normalPlayerNode)
         audioEngine.attach(subdivisionPlayerNode)
-
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         audioEngine.connect(accentPlayerNode, to: audioEngine.mainMixerNode, format: format)
         audioEngine.connect(normalPlayerNode, to: audioEngine.mainMixerNode, format: format)
         audioEngine.connect(subdivisionPlayerNode, to: audioEngine.mainMixerNode, format: format)
-
-        accentBuffer = generateClickBuffer(format: format, frequency: accentFrequency)
-        normalBuffer = generateClickBuffer(format: format, frequency: normalFrequency)
-        subdivisionBuffer = generateClickBuffer(format: format, frequency: subdivisionFrequency)
+        setSound(.beep)
 
         do {
             try audioEngine.start()
@@ -81,14 +81,12 @@ public final class AudioClickOutput: ClickOutput {
     }
 
     public func play(_ click: ClickKind) {
-        let node: AVAudioPlayerNode
-        let buffer: AVAudioPCMBuffer?
-        switch click {
-        case .accent: (node, buffer) = (accentPlayerNode, accentBuffer)
-        case .normal: (node, buffer) = (normalPlayerNode, normalBuffer)
-        case .subdivision: (node, buffer) = (subdivisionPlayerNode, subdivisionBuffer)
+        let node: AVAudioPlayerNode = switch click {
+        case .accent: accentPlayerNode
+        case .normal: normalPlayerNode
+        case .subdivision: subdivisionPlayerNode
         }
-        guard let buffer else { return }
+        guard let buffer = bufferLock.withLock({ buffers[click] }) else { return }
         node.stop()
         node.play()
         node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
@@ -106,38 +104,21 @@ public final class AudioClickOutput: ClickOutput {
         subdivisionPlayerNode.volume = Float(normal) * subdivisionVolumeRatio
     }
 
-    /// サイン波にエンベロープ（attack 2ms → sustain → release 8ms）を掛けて
-    /// クリック音のPCMバッファを生成する。外部ファイル不要。
-    private func generateClickBuffer(format: AVAudioFormat, frequency: Double) -> AVAudioPCMBuffer? {
-        let frameCount = AVAudioFrameCount(sampleRate * clickDuration)
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-            return nil
+    public func setSound(_ sound: ClickSound) {
+        var generated: [ClickKind: AVAudioPCMBuffer] = [:]
+        for kind in [ClickKind.accent, .normal, .subdivision] {
+            generated[kind] = makeBuffer(ClickSynth.samples(sound, kind, sampleRate: format.sampleRate))
         }
+        bufferLock.withLock { buffers = generated }
+    }
+
+    private func makeBuffer(_ samples: [Float]) -> AVAudioPCMBuffer? {
+        let frameCount = AVAudioFrameCount(samples.count)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount),
+              let channel = buffer.floatChannelData?[0]
+        else { return nil }
         buffer.frameLength = frameCount
-
-        guard let floatData = buffer.floatChannelData?[0] else { return nil }
-
-        for i in 0..<Int(frameCount) {
-            let t = Double(i) / sampleRate
-            let sine = sin(2.0 * .pi * frequency * t)
-            // サイン波をいきなり開始/終了すると波形が不連続になりプチノイズが鳴る。
-            // Attack(2ms) で徐々に立ち上げ、Release(8ms) で徐々に減衰させることで滑らかにする。
-            // Release を Attack より長くしているのは、立ち下がりの方が耳につきやすいため。
-            let envelope: Double
-            let attackFrames = Int(sampleRate * 0.002)
-            let releaseStart = Int(frameCount) - Int(sampleRate * 0.008)
-            if i < attackFrames {
-                envelope = Double(i) / Double(attackFrames)
-            } else if i > releaseStart {
-                let remaining = Double(Int(frameCount) - i)
-                let releaseLength = Double(Int(frameCount) - releaseStart)
-                envelope = remaining / releaseLength
-            } else {
-                envelope = 1.0
-            }
-            floatData[i] = Float(sine * envelope * 0.8)
-        }
-
+        samples.withUnsafeBufferPointer { channel.update(from: $0.baseAddress!, count: samples.count) }
         return buffer
     }
 }
