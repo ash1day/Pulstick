@@ -335,49 +335,51 @@ struct SongTests {
     }
 
     @Test func savingWhilePlayingStartsCountingThatSong() {
-        let engine = makeEngine()
-        engine.minimumLoggedSession = 0
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         engine.start()
         engine.saveCurrentAsSong(named: "New")
-        engine.activeSongSince = Date().addingTimeInterval(-120)
+        clock.advance(120)
         engine.stop()
-        #expect((engine.songs.first?.practiceSeconds ?? 0) >= 120)
+        #expect(engine.songs.first?.practiceSeconds == 120)
     }
 
     @Test func shortSessionsCreditNoSongEvenAfterSwitching() {
-        let engine = makeEngine()
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         engine.bpm = 100
         engine.saveCurrentAsSong(named: "A")
         engine.bpm = 120
         engine.saveCurrentAsSong(named: "B")
         engine.applySong(engine.songs[0])
         engine.start()
-        engine.activeSongSince = Date().addingTimeInterval(-3)
+        clock.advance(3)
         engine.applySong(engine.songs[1])
         engine.stop()  // セッション全体が 5 秒未満
         #expect(engine.songs.allSatisfy { $0.practiceSeconds == 0 })
     }
 
     @Test func practiceTimeIncludesTheSongPlayingNow() {
-        let engine = makeEngine()
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         engine.saveCurrentAsSong(named: "Etude")
         engine.applySong(engine.songs[0])
         engine.start()
-        engine.activeSongSince = Date().addingTimeInterval(-90)
-        #expect(engine.practiceSeconds(for: engine.songs[0]) >= 90)
+        clock.advance(90)
+        #expect(engine.practiceSeconds(for: engine.songs[0]) == 90)
         engine.stop()
     }
 
     @Test func choosingASongCreditsItEvenIfAnotherHasTheSameSettings() {
-        let engine = makeEngine()
-        engine.minimumLoggedSession = 0
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         for name in ["Warmup", "Ballad"] { engine.saveCurrentAsSong(named: name) }
         engine.applySong(engine.songs[1])
         engine.start()
-        engine.activeSongSince = Date().addingTimeInterval(-60)
+        clock.advance(60)
         engine.stop()
         #expect(engine.songs[0].practiceSeconds == 0)
-        #expect(engine.songs[1].practiceSeconds >= 60)
+        #expect(engine.songs[1].practiceSeconds == 60)
     }
 
     @Test func savingWithExistingNameUpdatesThatSong() {
@@ -440,37 +442,39 @@ struct SongTests {
     }
 
     @Test func switchingSongsAfterALongEnoughSessionSavesRightAway() {
-        let engine = makeEngine()
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         engine.bpm = 100
         engine.saveCurrentAsSong(named: "A")
         engine.bpm = 120
         engine.saveCurrentAsSong(named: "B")
         engine.applySong(engine.songs[0])
         engine.start()
-        engine.playStartedAt = Date().addingTimeInterval(-600)
-        engine.activeSongSince = Date().addingTimeInterval(-600)
+        clock.advance(600)
         engine.applySong(engine.songs[1])
         // 停止前（アプリが落ちても）A の 10 分はもう保存されている
-        #expect(engine.songs[0].practiceSeconds >= 600)
+        #expect(engine.songs[0].practiceSeconds == 600)
         engine.stop()
     }
 
     @Test func savingAfterChangingThePatternCreditsTheNewSongFromTheChange() {
-        let engine = makeEngine()
-        engine.minimumLoggedSession = 0
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         engine.saveCurrentAsSong(named: "A")
         engine.applySong(engine.songs[0])
         engine.start()
+        clock.advance(60)
         engine.setBeats(3)  // 別の拍子を弾き始めた
-        engine.activeSongSince = Date().addingTimeInterval(-300)
+        clock.advance(300)
         engine.saveCurrentAsSong(named: "Waltz")
         engine.stop()
-        #expect(engine.songs[0].practiceSeconds < 300)
-        #expect(engine.songs[1].practiceSeconds >= 300)
+        #expect(engine.songs[0].practiceSeconds == 60)
+        #expect(engine.songs[1].practiceSeconds == 300)
     }
 
     @Test func switchingSongsWhilePlayingSavesSongsOnce() {
-        let engine = makeEngine()
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
         engine.bpm = 100
         engine.saveCurrentAsSong(named: "A")
         engine.setBeats(3)
@@ -478,7 +482,7 @@ struct SongTests {
         engine.saveCurrentAsSong(named: "B")
         engine.applySong(engine.songs[0])
         engine.start()
-        engine.playStartedAt = Date().addingTimeInterval(-600)  // 記録に値する長さの再生
+        clock.advance(600)  // 記録に値する長さの再生
         var writes = 0
         let subscription = engine.$songs.dropFirst().sink { _ in writes += 1 }
         engine.applySong(engine.songs[1])  // 拍子も変わる曲への切り替え
@@ -569,6 +573,18 @@ struct PresetManagementTests {
 /// テストごとに独立したメモリ上のストアを使い、実アプリの設定やディスクを汚さない
 func makeEngine() -> PulstickEngine {
     PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
+}
+
+/// 練習時間のテストで、待たずに時間を進めるための時計
+final class TestClock {
+    var date = Date(timeIntervalSinceReferenceDate: 1_000_000)
+    func advance(_ seconds: TimeInterval) { date += seconds }
+}
+
+func makeEngine(clock: TestClock) -> PulstickEngine {
+    let engine = makeEngine()
+    engine.now = { clock.date }
+    return engine
 }
 
 @Suite("PulstickEngine: 設定の永続化")
@@ -1249,5 +1265,40 @@ struct TapTempoLogicTests {
     @Test func pauseStartsANewMeasurement() {
         // 90 BPM で叩いた後、3 秒空けて 150 BPM で 2 回
         #expect(taps([0.667, 0.667, 3.0, 0.4]) == 150)
+    }
+}
+
+// MARK: - SongPracticeTracker
+
+@Suite("SongPracticeTracker")
+struct SongPracticeTrackerTests {
+    private let a = UUID()
+    private let b = UUID()
+    private let t0 = Date(timeIntervalSinceReferenceDate: 0)
+
+    @Test func countsTimeForTheActiveSongAndSwitches() {
+        var tracker = SongPracticeTracker()
+        tracker.start(a, at: t0)
+        tracker.switchTo(b, at: t0.addingTimeInterval(60))
+        #expect(tracker.unsavedSeconds(for: a, at: t0.addingTimeInterval(90)) == 60)
+        #expect(tracker.unsavedSeconds(for: b, at: t0.addingTimeInterval(90)) == 30)
+    }
+
+    @Test func adoptingGivesTheUnnamedStretchToTheNewSong() {
+        var tracker = SongPracticeTracker()
+        tracker.start(nil, at: t0)
+        tracker.adopt(a)
+        tracker.stop(at: t0.addingTimeInterval(120))
+        #expect(tracker.takePending() == [a: 120])
+        #expect(tracker.takePending().isEmpty)
+        #expect(tracker.activeSongID == nil)
+    }
+
+    @Test func timeWithNoSongIsNotCredited() {
+        var tracker = SongPracticeTracker()
+        tracker.start(nil, at: t0)
+        tracker.switchTo(a, at: t0.addingTimeInterval(50))
+        tracker.stop(at: t0.addingTimeInterval(80))
+        #expect(tracker.takePending() == [a: 30])
     }
 }

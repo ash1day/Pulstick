@@ -16,9 +16,9 @@ extension PulstickEngine {
         playbackGeneration += 1
         let generation = playbackGeneration
         beatClock.current = 0
-        playStartedAt = Date()
+        playStartedAt = now()
         restartSession()
-        beginSongPractice(currentSong?.id)
+        songPractice.start(currentSong?.id, at: now())
 
         output.prepare()
         schedulePracticeTimer()
@@ -51,7 +51,7 @@ extension PulstickEngine {
     public func stop() {
         let isLongEnough = isLongEnoughToLog
         if isLongEnough, let startedAt = playStartedAt {
-            practiceLog.record(from: startedAt, to: Date())
+            practiceLog.record(from: startedAt, to: now())
         }
         finishSongPractice(record: isLongEnough)
         isPlaying = false
