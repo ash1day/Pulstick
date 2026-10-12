@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 ./build.sh > /dev/null
 APP=build/Pulstick.app/Contents/MacOS/Pulstick
-OPTIONS=(--trainer --gap --log)
+OPTIONS=(--trainer --gap --log --song)
 
 render() { # 言語 出力先ディレクトリ
     "$APP" --snapshot "$2/screenshot.png" "${OPTIONS[@]}" -AppleLanguages "($1)"
