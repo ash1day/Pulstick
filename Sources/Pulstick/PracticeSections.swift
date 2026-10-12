@@ -68,14 +68,24 @@ struct SpeedTrainerSection: View {
                 .pointingHandCursor()
             }
         } settings: {
-            MiniStepper(value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+")
-            // 語順が言語で異なるため、ステッパーの間に入る語は意味ベースのキーで訳す
-            Text(String(localized: "trainer.every", defaultValue: "BPM every"))
-            MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32)
-            Text(engine.speedTrainer.measuresPerStep == 1
-                 ? String(localized: "trainer.upTo.one", defaultValue: "bar, up to")
-                 : String(localized: "trainer.upTo.other", defaultValue: "bars, up to"))
-            MiniStepper(value: $engine.speedTrainer.targetBPM, range: 41...240, step: 5)
+            let increment = MiniStepper(value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+")
+            let measures = MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32)
+            let target = MiniStepper(value: $engine.speedTrainer.targetBPM, range: 41...240, step: 5)
+            // 文字列の訳だけでは語順を変えられないため、日本語ではステッパーの並びごと変える
+            if usesJapaneseWordOrder {
+                measures
+                Text(verbatim: "小節ごとに")
+                increment
+                Text(verbatim: "BPM（上限")
+                target
+                Text(verbatim: "）")
+            } else {
+                increment
+                Text(verbatim: "BPM every")
+                measures
+                Text(verbatim: engine.speedTrainer.measuresPerStep == 1 ? "bar, up to" : "bars, up to")
+                target
+            }
         }
     }
 }
@@ -106,6 +116,11 @@ struct GapTrainerSection: View {
             Text(String(localized: "gap.suffix", defaultValue: "silent"))
         }
     }
+}
+
+/// 実際に使われているローカライズ（システム言語ではなくバンドルが選んだもの）が日本語か
+private var usesJapaneseWordOrder: Bool {
+    Bundle.main.preferredLocalizations.first == "ja"
 }
 
 /// 左右の矢印で値を増減する小さなステッパー

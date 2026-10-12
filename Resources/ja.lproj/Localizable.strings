@@ -20,13 +20,10 @@
 "Triplets" = "3連符";
 "Sixteenth notes" = "16分音符";
 
-/* Speed trainer: "+2 BPM ／ 4 小節ごと、上限 160" */
+/* Speed trainer (the stepper row is laid out in code because word order differs) */
 "Speed Trainer" = "スピードトレーナー";
 "Gradually raise the tempo while playing" = "演奏しながら少しずつテンポを上げます";
 "Go back to the tempo you started at" = "開始時のテンポに戻す";
-"trainer.every" = "BPM ／";
-"trainer.upTo.one" = "小節ごと、上限";
-"trainer.upTo.other" = "小節ごと、上限";
 
 /* Silent bars: "2 小節鳴らして 2 小節休む" */
 "Silent Bars" = "サイレント小節";
