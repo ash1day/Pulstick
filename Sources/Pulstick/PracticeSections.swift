@@ -55,6 +55,14 @@ struct SpeedTrainerSection: View {
             help: "Gradually raise the tempo while playing",
             isOn: $engine.speedTrainerEnabled
         ) {
+            // 目標まで上がったことを、練習中にひと目で分かるようにする
+            if engine.speedTrainerEnabled, engine.isPlaying, engine.bpm >= Double(engine.speedTrainer.targetBPM) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.green)
+                    .help("Reached the target tempo")
+                    .accessibilityLabel(Text("Reached the target tempo"))
+            }
             if engine.speedTrainerEnabled, let start = engine.sessionStartBPM, engine.bpm != start {
                 Button {
                     engine.returnToSessionStartBPM()
