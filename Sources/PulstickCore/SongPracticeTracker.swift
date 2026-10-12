@@ -12,35 +12,42 @@ public struct SongPracticeTracker {
 
     public init() {}
 
+    // 曲を数え始めるとき（start・switchTo・adopt・adoptReplacing）は、必ずそのときのテンポも受け取って
+    // その曲の最高テンポに記録する。呼び出し側が記録の順番を気にしなくて済むように
+
     /// 再生開始。id が nil（どの曲でもない設定）でも、後で名前を付けられるよう時間は数える
-    public mutating func start(_ id: UUID?, at now: Date) {
+    public mutating func start(_ id: UUID?, at now: Date, bpm: Double) {
         activeSongID = id
         since = now
+        notePlaying(bpm: bpm)
     }
 
     /// 数える曲を切り替える。それまでの時間は前の曲の未確定分に積む
-    public mutating func switchTo(_ id: UUID?, at now: Date) {
+    public mutating func switchTo(_ id: UUID?, at now: Date, bpm: Double) {
         closeStretch(at: now)
         activeSongID = id
         since = now
+        notePlaying(bpm: bpm)
     }
 
     /// どの曲でもない設定を弾いていた時間を、いま名前を付けた曲として引き取る。
     /// 別の曲を数えていた場合は何もせず false を返す（呼び出し側で switchTo する）
     @discardableResult
-    public mutating func adopt(_ id: UUID) -> Bool {
+    public mutating func adopt(_ id: UUID, bpm: Double) -> Bool {
         guard activeSongID == nil else { return false }
         activeSongID = id
+        notePlaying(bpm: bpm)
         return true
     }
 
-    /// 数えていた曲が削除されたとき、その曲の未確定分と数えている途中の時間を別の曲（または無し）に付け替える
-    public mutating func adoptReplacing(_ removed: UUID, with replacement: UUID?) {
+    /// 数えていた曲が削除されたとき、その曲の時間を別の曲（または無し）に付け替える。
+    /// 最高テンポは削除した曲で鳴らした値なので引き継がない（付け替え先には今のテンポだけを記録する）
+    public mutating func adoptReplacing(_ removed: UUID, with replacement: UUID?, bpm: Double) {
         let carried = pending.removeValue(forKey: removed)
-        let peak = peaks.removeValue(forKey: removed)
+        peaks.removeValue(forKey: removed)
         if activeSongID == removed { activeSongID = replacement }
         if let replacement, let carried { pending[replacement, default: 0] += carried }
-        if let replacement, let peak { peaks[replacement] = max(peaks[replacement] ?? 0, peak) }
+        notePlaying(bpm: bpm)
     }
 
     /// 曲の未確定分と、いま数えている途中の時間の合計

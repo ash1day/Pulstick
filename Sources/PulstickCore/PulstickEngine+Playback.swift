@@ -19,8 +19,7 @@ extension PulstickEngine {
         playStartedAt = now()
         practiceTimerStartedAt = playStartedAt
         restartSession()
-        songPractice.start(currentSong?.id, at: now())
-        songPractice.notePlaying(bpm: bpm)
+        songPractice.start(currentSong?.id, at: now(), bpm: bpm)
 
         output.prepare()
         schedulePracticeTimer()
@@ -152,6 +151,8 @@ extension PulstickEngine {
     func patternDidChange() {
         guard patternBatchDepth == 0 else { return }
         syncSequencer()
+        // 一括変更の中でテンポも変わっていた場合、曲の切り替えが済んでから記録する
+        if isPlaying { songPractice.notePlaying(bpm: bpm) }
     }
 
     /// 拍数・アクセント・休符・細分などを続けて変えるときに使う。

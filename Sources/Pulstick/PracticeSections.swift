@@ -55,8 +55,10 @@ struct SpeedTrainerSection: View {
             help: "Gradually raise the tempo while playing",
             isOn: $engine.speedTrainerEnabled
         ) {
-            // 目標まで上がったことを、練習中にひと目で分かるようにする
-            if engine.speedTrainerEnabled, engine.isPlaying, engine.bpm >= Double(engine.speedTrainer.targetBPM) {
+            // この練習で目標まで上がったことを、ひと目で分かるようにする（最初から目標以上なら出さない）
+            if engine.speedTrainerEnabled, let start = engine.sessionStartBPM,
+               start < Double(engine.speedTrainer.targetBPM), engine.bpm >= Double(engine.speedTrainer.targetBPM)
+            {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 12))
                     .foregroundColor(.green)
@@ -178,16 +180,21 @@ struct MiniStepper: View {
         .accessibilityValue(Text(verbatim: "\(prefix)\(value)"))
         .accessibilityAdjustableAction { direction in
             switch direction {
-            case .increment: value = (value + step).clamped(to: range)
-            case .decrement: value = (value - step).clamped(to: range)
+            case .increment: adjust(by: step)
+            case .decrement: adjust(by: -step)
             @unknown default: break
             }
         }
     }
 
+    /// 矢印ボタンと VoiceOver の上下スワイプで共通の増減
+    private func adjust(by delta: Int) {
+        value = (value + delta).clamped(to: range)
+    }
+
     private func stepButton(_ symbol: String, delta: Int) -> some View {
         Button {
-            value = (value + delta).clamped(to: range)
+            adjust(by: delta)
         } label: {
             Image(systemName: symbol)
                 .font(.system(size: 8, weight: .bold))

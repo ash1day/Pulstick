@@ -61,11 +61,11 @@ public final class PulstickEngine: ObservableObject {
             guard !isRestoring, bpm != oldValue else { return }
             defaults.set(bpm, forKey: Keys.bpm)
             retimeIfPlaying()
+            // 曲の切り替えと一緒に変わったテンポを前の曲の記録にしないよう、一括変更中は後回しにする
+            // （一括変更の終わりに patternDidChange が曲を切り替えてから記録する）
             if patternBatchDepth == 0 {
                 followCurrentSongIfPlaying()
-            }
-            if isPlaying {
-                songPractice.notePlaying(bpm: bpm)
+                if isPlaying { songPractice.notePlaying(bpm: bpm) }
             }
         }
     }

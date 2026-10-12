@@ -23,7 +23,7 @@ extension PulstickEngine {
         guard isPlaying, songPractice.activeSongID != song.id else { return }
         // どの曲でもない設定を弾いていた時間は、いま名前を付けたこの曲の練習として引き取る。
         // 別の曲を数えていたなら、そこで区切ってこの曲に切り替える
-        if !songPractice.adopt(song.id) {
+        if !songPractice.adopt(song.id, bpm: bpm) {
             switchSongPractice(to: song.id)
         }
     }
@@ -53,7 +53,7 @@ extension PulstickEngine {
         if selectedSongID == song.id { selectedSongID = nil }
         // 数えていた曲が消えたら、その時間を捨てずに、いま一致する曲へ数え直す
         if songPractice.activeSongID == song.id {
-            songPractice.adoptReplacing(song.id, with: currentSong?.id)
+            songPractice.adoptReplacing(song.id, with: currentSong?.id, bpm: bpm)
         }
     }
 
@@ -112,6 +112,12 @@ extension PulstickEngine {
     /// 練習ログと曲ごとの練習時間・最高テンポを消す（新学期に付け直すときや、Mac を共有しているとき用）。
     /// 曲そのもの（テンポや拍子）は残す
     public func resetPracticeHistory() {
+        // 再生中なら、それまでの分を捨ててここから数え直す（停止時に消した記録が書き戻されないように）
+        if isPlaying {
+            playStartedAt = now()
+            songPractice = SongPracticeTracker()
+            songPractice.start(currentSong?.id, at: now(), bpm: bpm)
+        }
         practiceLog = PracticeLog()
         var cleared = songs
         for index in cleared.indices {
@@ -136,8 +142,7 @@ extension PulstickEngine {
 
     /// 数える曲を切り替える。再生がすでに記録に値する長さなら、それまでの分を即座に保存する
     func switchSongPractice(to id: UUID?) {
-        songPractice.switchTo(id, at: now())
-        songPractice.notePlaying(bpm: bpm)
+        songPractice.switchTo(id, at: now(), bpm: bpm)
         if isLongEnoughToLog {
             commitSongPractice()
         }

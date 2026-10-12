@@ -374,6 +374,63 @@ struct SongTests {
         #expect(engine.songs[0].bestBPM == 112)
     }
 
+    @Test func switchingSongsDoesNotGiveTheOldSongTheNewTempo() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.bpm = 180
+        engine.saveCurrentAsSong(named: "B")
+        engine.applySong(engine.songs[0])
+        engine.start()
+        clock.advance(60)
+        engine.applySong(engine.songs[1])
+        clock.advance(60)
+        engine.stop()
+        #expect(engine.songs[0].bestBPM == 100)
+        #expect(engine.songs[1].bestBPM == 180)
+    }
+
+    @Test func savingWhilePlayingRecordsTheTempoForTheNewSong() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.bpm = 120
+        engine.start()
+        clock.advance(60)
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.stop()
+        #expect(engine.songs[0].bestBPM == 120)
+    }
+
+    @Test func deletingASongDoesNotPassItsBestTempoOn() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        for name in ["A", "B"] { engine.saveCurrentAsSong(named: name) }  // 同じ設定 (120)
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.bpm = 200  // A で 200 まで上げてから戻す
+        clock.advance(30)
+        engine.bpm = 120
+        engine.deleteSong(engine.songs[0])
+        clock.advance(30)
+        engine.stop()
+        #expect(engine.songs[0].bestBPM == 120)
+    }
+
+    @Test func resettingWhilePlayingDoesNotBringTheHistoryBack() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.start()
+        clock.advance(600)
+        engine.resetPracticeHistory()
+        clock.advance(60)
+        engine.stop()
+        // リセット後の 1 分だけが残る
+        #expect(engine.practiceLog.seconds(on: clock.date) == 60)
+        #expect(engine.songs[0].practiceSeconds == 60)
+    }
+
     @Test func aShortRunDoesNotSetTheBestTempo() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
@@ -1428,26 +1485,34 @@ struct SongPracticeTrackerTests {
 
     @Test func countsTimeForTheActiveSongAndSwitches() {
         var tracker = SongPracticeTracker()
-        tracker.start(a, at: t0)
-        tracker.switchTo(b, at: t0.addingTimeInterval(60))
+        tracker.start(a, at: t0, bpm: 100)
+        tracker.switchTo(b, at: t0.addingTimeInterval(60), bpm: 100)
         #expect(tracker.unsavedSeconds(for: a, at: t0.addingTimeInterval(90)) == 60)
         #expect(tracker.unsavedSeconds(for: b, at: t0.addingTimeInterval(90)) == 30)
     }
 
     @Test func adoptingGivesTheUnnamedStretchToTheNewSong() {
         var tracker = SongPracticeTracker()
-        tracker.start(nil, at: t0)
-        tracker.adopt(a)
+        tracker.start(nil, at: t0, bpm: 100)
+        tracker.adopt(a, bpm: 100)
         tracker.stop(at: t0.addingTimeInterval(120))
         #expect(tracker.takePending() == [a: 120])
         #expect(tracker.takePending().isEmpty)
         #expect(tracker.activeSongID == nil)
     }
 
+    @Test func eachSongKeepsItsOwnPeakTempo() {
+        var tracker = SongPracticeTracker()
+        tracker.start(a, at: t0, bpm: 100)
+        tracker.notePlaying(bpm: 130)
+        tracker.switchTo(b, at: t0.addingTimeInterval(60), bpm: 90)
+        #expect(tracker.takePeaks() == [a: 130, b: 90])
+    }
+
     @Test func timeWithNoSongIsNotCredited() {
         var tracker = SongPracticeTracker()
-        tracker.start(nil, at: t0)
-        tracker.switchTo(a, at: t0.addingTimeInterval(50))
+        tracker.start(nil, at: t0, bpm: 100)
+        tracker.switchTo(a, at: t0.addingTimeInterval(50), bpm: 100)
         tracker.stop(at: t0.addingTimeInterval(80))
         #expect(tracker.takePending() == [a: 30])
     }
