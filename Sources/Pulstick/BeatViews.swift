@@ -88,6 +88,12 @@ struct BeatIndicator: View {
             }
         }
         .frame(width: diameter, height: diameter)
+        // 拡大しない設定では、強拍の濃さと現在の拍の濃さが近く見分けにくいので、外側の輪で現在の拍を示す
+        .overlay(
+            Circle()
+                .stroke(isCurrent && reduceMotion ? Color.accentColor : .clear, lineWidth: 1.5)
+                .padding(-3)
+        )
         // 無音小節中は拍の表示だけ進め、音が鳴っていないことを薄さで示す
         .opacity(clock.isInSilentBar ? 0.35 : 1)
         // 「視差効果を減らす」設定では拡大アニメーションをやめ、色の変化だけで拍を示す

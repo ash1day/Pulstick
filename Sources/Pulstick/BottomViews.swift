@@ -106,7 +106,7 @@ struct VolumeRow: View {
             // 録音に合わせるときや音を出せない場所では、音だけ止めて拍の表示で練習できる
             Image(systemName: engine.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                 .font(.system(size: 11))
-                .foregroundColor(engine.isMuted ? .primary : .secondary)
+                .foregroundColor(engine.isMuted ? .accentColor : .secondary)
                 .frame(width: 16)
                 .help(engine.isMuted ? "Unmute (M)" : "Mute the click (M) · the beat display keeps going")
                 .accessibleToggle($engine.isMuted, label: Text("Mute"))
