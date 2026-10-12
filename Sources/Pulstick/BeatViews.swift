@@ -200,14 +200,14 @@ private struct PulseRing: View {
     var body: some View {
         Circle()
             .stroke(Color.accentColor.opacity(opacity), lineWidth: 2)
-            .frame(width: 80, height: 80)
+            .frame(width: 84, height: 84)
             .scaleEffect(scale)
             .onChange(of: clock.current) {
                 guard isPlaying, !reduceMotion else { return }
                 scale = 1.0
                 opacity = 0.6
                 withAnimation(.easeOut(duration: 0.3)) {
-                    scale = 1.4
+                    scale = 1.25
                     opacity = 0.0
                 }
             }
@@ -258,9 +258,9 @@ struct BPMSlider: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.secondary)
                 .frame(width: 26, height: 26)
-                .contentShape(Rectangle())
+                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(GlyphButtonStyle())
         .pointingHandCursor()
     }
 }

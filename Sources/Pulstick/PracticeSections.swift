@@ -9,6 +9,7 @@ struct PracticeCard<Accessory: View, Settings: View>: View {
     @Binding var isOn: Bool
     @ViewBuilder var accessory: () -> Accessory
     @ViewBuilder var settings: () -> Settings
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -38,6 +39,11 @@ struct PracticeCard<Accessory: View, Settings: View>: View {
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.secondary.opacity(isOn ? 0.08 : 0.04))
+        )
+        // 「コントラストを上げる」設定では、ほぼ透明な背景だけではカードの境目が見えないので枠を付ける
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(contrast == .increased ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1)
         )
         .animation(.easeOut(duration: 0.15), value: isOn)
     }

@@ -1,6 +1,9 @@
 import PulstickCore
 import SwiftUI
 
+/// 3 本の segmented track で区画の高さをそろえ、縦のリズムを整える
+private let segmentHeight: CGFloat = 26
+
 /// 各プリセットを小さな○で表現。強拍は大きめ・不透明、弱拍は小さめ・薄め。
 /// 右クリックで「現在のパターンで上書き」または「デフォルトに戻す」が可能。
 struct PresetPicker: View {
@@ -12,7 +15,7 @@ struct PresetPicker: View {
                 presetButton(index)
             }
         }
-        .segmentedTrack()
+        .segmentedTrack(Text("Presets"))
     }
 
     private func presetButton(_ index: Int) -> some View {
@@ -39,7 +42,7 @@ struct PresetPicker: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 7)
+        .frame(height: segmentHeight)
         .segment(selected: selected)
         .accessibleTap(Text("Preset \(index + 1)"), value: Text("\(preset.beats) beats"), selected: selected) {
             engine.applyPreset(at: index)
@@ -58,6 +61,8 @@ struct PresetPicker: View {
 
 /// 選択中の1つがハイライトされる横並びのチップ。細分化や音色の選択に使う
 struct ChipPicker<Item: Hashable, Content: View>: View {
+    /// VoiceOver で読み上げるグループ名
+    let title: Text
     let items: [Item]
     let selection: Item
     /// ツールチップと VoiceOver で読み上げる名前
@@ -66,9 +71,10 @@ struct ChipPicker<Item: Hashable, Content: View>: View {
     let onSelect: (Item) -> Void
 
     init(
-        _ items: [Item], selection: Item, label: KeyPath<Item, Text>,
+        _ title: Text, items: [Item], selection: Item, label: KeyPath<Item, Text>,
         @ViewBuilder content: @escaping (Item) -> Content, onSelect: @escaping (Item) -> Void
     ) {
+        self.title = title
         self.items = items
         self.selection = selection
         self.label = label
@@ -81,14 +87,15 @@ struct ChipPicker<Item: Hashable, Content: View>: View {
             ForEach(items, id: \.self) { item in
                 let selected = item == selection
                 content(item)
-                    .foregroundColor(selected ? .primary : .secondary)
+                    .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
+                    .frame(height: segmentHeight)
                     .segment(selected: selected)
                     .accessibleTap(item[keyPath: label], selected: selected) { onSelect(item) }
                     .help(item[keyPath: label])
             }
         }
-        .segmentedTrack()
+        .segmentedTrack(title)
     }
 }
 

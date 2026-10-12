@@ -176,3 +176,8 @@
 "Save the current pattern" = "いまのパターンを保存";
 "A song" = "曲";
 "Practise slower, ramp up" = "遅めのテンポで練習、徐々に上げる";
+
+/* Group names for VoiceOver */
+"Presets" = "プリセット";
+"Subdivision" = "細分";
+"Click sound" = "クリック音";

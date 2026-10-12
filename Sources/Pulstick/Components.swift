@@ -34,8 +34,7 @@ extension View {
             .accessibilityAction { isOn.wrappedValue.toggle() }
     }
 
-    /// プリセットや細分化など「選択中の1つがハイライトされるチップ」の共通装飾
-    /// - Parameter outlined: リストの行のように枠線が要らない場合は false
+    /// 曲リストの行のような「選択中の1つがハイライトされる項目」の共通装飾
     func chip(selected: Bool) -> some View {
         modifier(ChipStyle(selected: selected))
     }
@@ -46,8 +45,11 @@ extension View {
     }
 
     /// segment を並べる溝。区画ごとに枠を描くと箱が並んでフォームのように見えるので、まとめて 1 本にする
-    func segmentedTrack() -> some View {
+    /// - Parameter title: VoiceOver で「何の選択肢か」を伝えるグループ名
+    func segmentedTrack(_ title: Text) -> some View {
         modifier(SegmentedTrackStyle())
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(title)
     }
 }
 
@@ -123,10 +125,13 @@ struct CustomSlider: View {
 
 struct MiniSwitch: View {
     @Binding var isOn: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Capsule()
             .fill(isOn ? Color.accentColor : Color.secondary.opacity(0.3))
+            // 「コントラストを上げる」設定では、オフのスイッチが背景に溶けないよう輪郭を付ける
+            .overlay(Capsule().stroke(contrast == .increased ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1))
             .frame(width: 26, height: 15)
             .overlay(alignment: isOn ? .trailing : .leading) {
                 Circle()
@@ -237,6 +242,28 @@ private struct SegmentedTrackStyle: ViewModifier {
                 RoundedRectangle(cornerRadius: 7)
                     .stroke(strong ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1)
             )
+    }
+}
+
+/// 記号だけの軽いボタン。ふだんは背景を出さず、ホバーと押下の間だけ丸い背景で押せることを示す
+struct GlyphButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        GlyphButton(configuration: configuration)
+    }
+
+    private struct GlyphButton: View {
+        let configuration: ButtonStyleConfiguration
+        @State private var isHovering = false
+        @Environment(\.colorSchemeContrast) private var contrast
+
+        var body: some View {
+            configuration.label
+                .background(
+                    Circle().fill(Color.secondary.opacity(configuration.isPressed ? 0.25 : isHovering ? 0.12 : 0))
+                )
+                .overlay(Circle().stroke(contrast == .increased ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1))
+                .onHover { isHovering = $0 }
+        }
     }
 }
 

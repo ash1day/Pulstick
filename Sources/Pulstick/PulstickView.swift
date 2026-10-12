@@ -21,7 +21,7 @@ struct PulstickView: View {
         VStack(spacing: 14) {
             BeatIndicator(engine: engine, clock: engine.beatClock)
             // 数字・スライダー・曲の呼び出しを 1 つのテンポのまとまりとして見せる
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 BPMDisplay(engine: engine, clock: engine.beatClock, isEditing: $isEditingBPM)
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .trailing) {
@@ -30,11 +30,10 @@ struct PulstickView: View {
                 BPMSlider(engine: engine)
             }
             PresetPicker(engine: engine)
-            ChipPicker(Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
+            ChipPicker(Text("Subdivision"), items: Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
                 Text(sub.symbol)
                     .font(.system(size: 12, weight: .medium))
                     .tracking(-2)
-                    .padding(.vertical, 5)
             } onSelect: { engine.subdivision = $0 }
             VStack(spacing: 6) {
                 SpeedTrainerSection(engine: engine)
@@ -44,10 +43,9 @@ struct PulstickView: View {
             Divider()
             VStack(spacing: 8) {
                 VolumeRow(engine: engine)
-                ChipPicker(ClickSound.allCases, selection: engine.clickSound, label: \.name) { sound in
+                ChipPicker(Text("Click sound"), items: ClickSound.allCases, selection: engine.clickSound, label: \.name) { sound in
                     sound.name
                         .font(.system(size: 11, weight: .medium))
-                        .padding(.vertical, 3)
                 } onSelect: { sound in
                     engine.clickSound = sound
                     engine.previewClick()
