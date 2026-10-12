@@ -87,5 +87,5 @@
 
 /* Mute */
 "Mute" = "ミュート";
-"Unmute" = "ミュートを解除";
-"Mute the click (the beat display keeps going)" = "クリック音を消す（拍の表示は続きます）";
+"Unmute (M)" = "ミュートを解除（M）";
+"Mute the click (M) · the beat display keeps going" = "クリック音を消す（M）・拍の表示は続きます";

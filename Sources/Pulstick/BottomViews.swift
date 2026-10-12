@@ -75,7 +75,7 @@ struct VolumeRow: View {
                 .font(.system(size: 11))
                 .foregroundColor(engine.isMuted ? .orange : .secondary)
                 .frame(width: 16)
-                .help(engine.isMuted ? "Unmute" : "Mute the click (the beat display keeps going)")
+                .help(engine.isMuted ? "Unmute (M)" : "Mute the click (M) · the beat display keeps going")
                 .accessibleToggle($engine.isMuted, label: Text("Mute"))
             Group {
                 volumeSlider(value: $engine.accentVolume, accent: true)

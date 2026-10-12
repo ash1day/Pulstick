@@ -62,6 +62,7 @@ struct PulstickView: View {
             shortcut(.upArrow, modifiers: .shift) { engine.incrementBPM(by: 5) }
             shortcut(.downArrow, modifiers: .shift) { engine.decrementBPM(by: 5) }
             shortcut("t") { engine.tapTempo() }
+            shortcut("m") { engine.isMuted.toggle() }
             ForEach(engine.presets.indices, id: \.self) { index in
                 shortcut(KeyEquivalent(Character("\(index + 1)"))) { engine.applyPreset(at: index) }
             }
