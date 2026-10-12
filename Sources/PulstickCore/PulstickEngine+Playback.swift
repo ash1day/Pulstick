@@ -20,6 +20,7 @@ extension PulstickEngine {
         practiceTimerStartedAt = playStartedAt
         restartSession()
         songPractice.start(currentSong?.id, at: now())
+        songPractice.notePlaying(bpm: bpm)
 
         output.prepare()
         schedulePracticeTimer()

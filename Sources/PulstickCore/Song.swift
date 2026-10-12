@@ -9,6 +9,8 @@ public struct Song: Codable, Equatable, Identifiable {
     public var subdivision: Subdivision
     /// この曲を鳴らしていた時間の合計（秒）
     public var practiceSeconds: Double = 0
+    /// この曲で鳴らした最高のテンポ（練習の到達点）。まだ記録がなければ nil
+    public var bestBPM: Double?
 
     public init(id: UUID = UUID(), name: String, bpm: Double, pattern: BeatPreset, subdivision: Subdivision) {
         self.id = id
@@ -28,5 +30,6 @@ public struct Song: Codable, Equatable, Identifiable {
         pattern = try container.decode(BeatPreset.self, forKey: .pattern)
         subdivision = try container.decode(Subdivision.self, forKey: .subdivision)
         practiceSeconds = try container.decodeIfPresent(Double.self, forKey: .practiceSeconds) ?? 0
+        bestBPM = try container.decodeIfPresent(Double.self, forKey: .bestBPM)
     }
 }

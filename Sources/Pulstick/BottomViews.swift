@@ -154,7 +154,7 @@ struct PracticeSummary: View {
                 .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
                     Button("Reset", role: .destructive) { engine.resetPracticeHistory() }
                 } message: {
-                    Text("This clears today's minutes, your streak, the 7-day chart and each song's practice time. Your songs stay.")
+                    Text("This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay.")
                 }
             }
         }

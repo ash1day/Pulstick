@@ -68,39 +68,41 @@ struct SongList: View {
 
     private func row(_ song: Song, isCurrent: Bool) -> some View {
         let practised = engine.practiceSeconds(for: song)
-        return HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
+        return VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 8) {
                 Text(verbatim: song.name)
                     .font(.system(size: 12, weight: isCurrent ? .semibold : .regular))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                // 曲ごとの練習量。1 分未満は出さない
-                if practised >= 60 {
-                    Text("Practised \(PracticeTime.format(practised))")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-            }
-            Spacer()
-            Text("♩=\(Int(song.bpm)) · \(song.pattern.beats) beats")
-                .font(.system(size: 11, design: .rounded))
-                .monospacedDigit()
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .fixedSize()
-            Button {
-                engine.deleteSong(song)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
+                Spacer()
+                Text("♩=\(Int(song.bpm)) · \(song.pattern.beats) beats")
+                    .font(.system(size: 11, design: .rounded))
+                    .monospacedDigit()
                     .foregroundColor(.secondary)
-                    .frame(width: 16, height: 16)
-                    .contentShape(Rectangle())
+                    .lineLimit(1)
+                    .fixedSize()
+                Button {
+                    engine.deleteSong(song)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 16, height: 16)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete")
+                .accessibilityLabel(Text("Delete \(song.name)"))
+                .pointingHandCursor()
             }
-            .buttonStyle(.plain)
-            .help("Delete")
-            .accessibilityLabel(Text("Delete \(song.name)"))
-            .pointingHandCursor()
+            // 曲ごとの練習量（1 分未満は出さない）と、これまでに鳴らした最高テンポ。
+            // 曲名の列は右のテンポ表記に挟まれて狭いので、行の幅いっぱいを使う 2 行目に出す
+            if let progress = progressText(practised: practised, best: song.bestBPM) {
+                progress
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -115,6 +117,17 @@ struct SongList: View {
                 .disabled(song.id == engine.songs.first?.id)
             Button("Move Down") { engine.moveSong(song, by: 1) }
                 .disabled(song.id == engine.songs.last?.id)
+        }
+    }
+
+    private func progressText(practised: Double, best: Double?) -> Text? {
+        let time = practised >= 60 ? Text("Practised \(PracticeTime.format(practised))") : nil
+        let peak = best.map { Text("Best ♩=\(Int($0))") }
+        switch (time, peak) {
+        case let (time?, peak?): return time + Text(verbatim: " · ") + peak
+        case let (time?, nil): return time
+        case let (nil, peak?): return peak
+        case (nil, nil): return nil
         }
     }
 

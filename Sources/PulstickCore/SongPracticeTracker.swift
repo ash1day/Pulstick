@@ -7,6 +7,8 @@ public struct SongPracticeTracker {
     /// いまの区間を数え始めた時刻。nil なら数えていない（停止中）
     private var since: Date?
     private var pending: [UUID: Double] = [:]
+    /// この再生で曲ごとに鳴らした最高テンポ（まだ確定していないもの）
+    private var peaks: [UUID: Double] = [:]
 
     public init() {}
 
@@ -35,8 +37,10 @@ public struct SongPracticeTracker {
     /// 数えていた曲が削除されたとき、その曲の未確定分と数えている途中の時間を別の曲（または無し）に付け替える
     public mutating func adoptReplacing(_ removed: UUID, with replacement: UUID?) {
         let carried = pending.removeValue(forKey: removed)
+        let peak = peaks.removeValue(forKey: removed)
         if activeSongID == removed { activeSongID = replacement }
         if let replacement, let carried { pending[replacement, default: 0] += carried }
+        if let replacement, let peak { peaks[replacement] = max(peaks[replacement] ?? 0, peak) }
     }
 
     /// 曲の未確定分と、いま数えている途中の時間の合計
@@ -52,6 +56,18 @@ public struct SongPracticeTracker {
     public mutating func takePending() -> [UUID: Double] {
         defer { pending = [:] }
         return pending
+    }
+
+    /// いま数えている曲で、このテンポを鳴らしたことを記録する
+    public mutating func notePlaying(bpm: Double) {
+        guard let id = activeSongID else { return }
+        peaks[id] = max(peaks[id] ?? 0, bpm)
+    }
+
+    /// 確定させる最高テンポを取り出して空にする
+    public mutating func takePeaks() -> [UUID: Double] {
+        defer { peaks = [:] }
+        return peaks
     }
 
     /// 再生終了。数えていた時間を未確定分に積んで止める

@@ -64,6 +64,9 @@ public final class PulstickEngine: ObservableObject {
             if patternBatchDepth == 0 {
                 followCurrentSongIfPlaying()
             }
+            if isPlaying {
+                songPractice.notePlaying(bpm: bpm)
+            }
         }
     }
     @Published public var isPlaying: Bool = false
@@ -284,9 +287,10 @@ public final class PulstickEngine: ObservableObject {
     }
 
     /// プレビューやスクリーンショット用に、曲の練習時間を見本の値にする
-    public func seedSongPractice(_ seconds: Double, forSongAt index: Int) {
+    public func seedSongPractice(_ seconds: Double, bestBPM: Double? = nil, forSongAt index: Int) {
         guard songs.indices.contains(index) else { return }
         songs[index].practiceSeconds = seconds
+        songs[index].bestBPM = bestBPM
     }
 
     /// プレビューやスクリーンショット用に、見本の練習記録で置き換える

@@ -47,7 +47,7 @@ enum Snapshot {
                     engine.saveCurrentAsSong(named: name)
                 }
                 // 見本: 1 曲目に練習時間を付ける
-                engine.seedSongPractice(80 * 60, forSongAt: 0)
+                engine.seedSongPractice(80 * 60, bestBPM: 152, forSongAt: 0)
             }
             let view = Group {
                 if showSongs {

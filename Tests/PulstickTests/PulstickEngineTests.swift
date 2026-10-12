@@ -357,6 +357,33 @@ struct SongTests {
         #expect(engine.practiceLog.secondsByDay.isEmpty)
         #expect(engine.songs.map(\.name) == ["Etude"])
         #expect(engine.songs[0].practiceSeconds == 0)
+        #expect(engine.songs[0].bestBPM == nil)
+    }
+
+    @Test func theFastestTempoPlayedIsRememberedPerSong() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.start()
+        clock.advance(30)
+        engine.bpm = 112  // トレーナーや ↑ キーで上がった
+        clock.advance(30)
+        engine.bpm = 108
+        engine.stop()
+        #expect(engine.songs[0].bestBPM == 112)
+    }
+
+    @Test func aShortRunDoesNotSetTheBestTempo() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.start()
+        engine.bpm = 180  // 間違えて上げてすぐ止めた
+        clock.advance(2)
+        engine.stop()
+        #expect(engine.songs[0].bestBPM == nil)
     }
 
     @Test func savingWhilePlayingStartsCountingThatSong() {
@@ -555,9 +582,11 @@ struct SongTests {
         let engine = makeEngine()
         engine.saveCurrentAsSong(named: "Etude")
         engine.seedSongPractice(600, forSongAt: 0)
+        engine.songs[0].bestBPM = 150
         engine.bpm = 132
         engine.saveCurrentAsSong(named: "Etude")  // テンポを変えて上書き
         #expect((engine.songs.first?.practiceSeconds ?? 0) >= 600)
+        #expect(engine.songs.first?.bestBPM == 150)
     }
 
     @Test func songsSavedBeforePracticeTimeExistedStillLoad() {
@@ -1441,6 +1470,7 @@ struct CodableRoundTripTests {
             name: "Etude", bpm: 132, pattern: BeatPreset(beats: 3, accents: [0], rests: [2]), subdivision: .triplet
         )
         song.practiceSeconds = 4_321
+        song.bestBPM = 152
         let decoded = try JSONDecoder().decode(Song.self, from: JSONEncoder().encode(song))
         #expect(decoded == song)
     }

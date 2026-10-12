@@ -9,9 +9,10 @@ extension PulstickEngine {
         guard !trimmed.isEmpty else { return }
         var song = Song(name: trimmed, bpm: bpm, pattern: currentPattern, subdivision: subdivision)
         if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            // 同じ曲の設定を更新するだけなので、識別子と練習時間は引き継ぐ
+            // 同じ曲の設定を更新するだけなので、識別子と練習の記録は引き継ぐ
             song.id = songs[index].id
             song.practiceSeconds = songs[index].practiceSeconds
+            song.bestBPM = songs[index].bestBPM
             songs[index] = song
         } else {
             // セットリストとして使えるよう、名前順ではなく追加した順に並べる
@@ -108,13 +109,14 @@ extension PulstickEngine {
     // 数えている曲と未確定の時間は SongPracticeTracker が持つ。
     // 練習ログと同じく 5 秒未満の再生は曲にも記録しないため、短いうちは停止時まで保留する
 
-    /// 練習ログと曲ごとの練習時間を消す（新学期に付け直すときや、Mac を共有しているとき用）。
+    /// 練習ログと曲ごとの練習時間・最高テンポを消す（新学期に付け直すときや、Mac を共有しているとき用）。
     /// 曲そのもの（テンポや拍子）は残す
     public func resetPracticeHistory() {
         practiceLog = PracticeLog()
         var cleared = songs
         for index in cleared.indices {
             cleared[index].practiceSeconds = 0
+            cleared[index].bestBPM = nil
         }
         songs = cleared
     }
@@ -135,8 +137,9 @@ extension PulstickEngine {
     /// 数える曲を切り替える。再生がすでに記録に値する長さなら、それまでの分を即座に保存する
     func switchSongPractice(to id: UUID?) {
         songPractice.switchTo(id, at: now())
+        songPractice.notePlaying(bpm: bpm)
         if isLongEnoughToLog {
-            commitSongPractice(songPractice.takePending())
+            commitSongPractice()
         }
     }
 
@@ -155,18 +158,26 @@ extension PulstickEngine {
     /// 停止時に呼ぶ。記録に値する長さの再生なら未確定分を曲に加え、そうでなければ捨てる
     func finishSongPractice(record: Bool) {
         songPractice.stop(at: now())
-        let pending = songPractice.takePending()
         if record {
-            commitSongPractice(pending)
+            commitSongPractice()
+        } else {
+            _ = songPractice.takePending()
+            _ = songPractice.takePeaks()
         }
     }
 
-    /// 時間を曲に加える。手元のコピーで足してから 1 回で代入し、保存を 1 回で済ませる
-    private func commitSongPractice(_ seconds: [UUID: Double]) {
-        guard !seconds.isEmpty else { return }
+    /// 保留中の練習時間と最高テンポを曲に加える。手元のコピーで更新してから 1 回で代入し、保存を 1 回で済ませる
+    private func commitSongPractice() {
+        let seconds = songPractice.takePending()
+        let peaks = songPractice.takePeaks()
+        guard !seconds.isEmpty || !peaks.isEmpty else { return }
         var updated = songs
         for index in updated.indices {
-            updated[index].practiceSeconds += seconds[updated[index].id] ?? 0
+            let id = updated[index].id
+            updated[index].practiceSeconds += seconds[id] ?? 0
+            if let peak = peaks[id] {
+                updated[index].bestBPM = max(updated[index].bestBPM ?? 0, peak)
+            }
         }
         songs = updated
     }
