@@ -2,7 +2,9 @@
 
 A minimal metronome that lives in your macOS menu bar.
 
-**https://ash1day.github.io/Pulstick/**
+**https://ash1day.github.io/Pulstick/** ([日本語](https://ash1day.github.io/Pulstick/ja/))
+
+<img src="docs/screenshot.png" alt="Pulstick popover" width="320">
 
 ## Features
 
