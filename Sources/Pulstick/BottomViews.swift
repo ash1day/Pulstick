@@ -231,9 +231,18 @@ struct WeekBars: View {
                 .help(Text("\(dayName(index)) \(Int(value / 60)) min"))
             }
         }
+        .help(Text("Last 7 days: \(Self.duration(seconds.reduce(0, +)))"))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Last 7 days"))
         .accessibilityValue(Text(seconds.indices.map { "\(dayName($0)) \(Int(seconds[$0] / 60))" }.joined(separator: ", ")))
+    }
+
+    /// "2時間15分" / "2 hr, 15 min" のように、言語に合わせて時間をまとめて表す
+    static func duration(_ seconds: Double) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
+        formatter.unitsStyle = .short
+        return formatter.string(from: seconds) ?? ""
     }
 
     private func dayName(_ index: Int) -> String {
