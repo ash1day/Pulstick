@@ -1,4 +1,5 @@
 import Foundation
+import PulstickCore
 import Testing
 
 /// 語順の都合で意味ベースのキー（"trainer.every" など）を使っている箇所は、
@@ -38,5 +39,33 @@ struct LocalizationTests {
         #expect(!keys.isEmpty)
         let translated = Set(try japaneseStrings().keys)
         #expect(keys.subtracting(translated).isEmpty, "missing: \(keys.subtracting(translated).sorted())")
+    }
+
+    /// ステッパーを差し込む文の訳で、差し込み番号が英語と食い違っていないこと。
+    /// 食い違うと実行時はステッパーが黙って欠けるので、ここで検出する
+    @Test func sentenceTemplatesUseTheSameSlotsAsEnglish() throws {
+        let dir = root.appendingPathComponent("Sources/Pulstick")
+        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+        let regex = try NSRegularExpression(pattern: #"String\(localized: "([^"]+)", defaultValue: "([^"]*%\d+\$@[^"]*)"\)"#)
+        let japanese = try japaneseStrings()
+        var checked = 0
+        for file in files where file.pathExtension == "swift" {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                let key = String(text[Range(match.range(at: 1), in: text)!])
+                let english = String(text[Range(match.range(at: 2), in: text)!])
+                let translated = try #require(japanese[key], "missing: \(key)")
+                #expect(slots(in: translated) == slots(in: english), "\(key)")
+                #expect(slots(in: english) == Set(0..<slots(in: english).count), "\(key) は 1 から連番にする")
+                checked += 1
+            }
+        }
+        #expect(checked >= 4)
+    }
+
+    private func slots(in template: String) -> Set<Int> {
+        Set(SentenceTemplate.parse(template).compactMap {
+            if case .slot(let index) = $0 { index } else { nil }
+        })
     }
 }

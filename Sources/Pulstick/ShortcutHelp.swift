@@ -2,32 +2,9 @@ import SwiftUI
 
 /// フッターから開くショートカット一覧。ツールチップだけでは
 /// グローバルショートカット（⌃⌥M など）の存在に気付きにくいため
-struct ShortcutHelpButton: View {
-    let hotKeys: GlobalHotKeys?
-    @Binding var isShowing: Bool
-
-    var body: some View {
-        Button {
-            isShowing.toggle()
-        } label: {
-            Image(systemName: "keyboard")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .frame(width: 20, height: 16)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("Keyboard shortcuts")
-        .accessibilityLabel(Text("Keyboard shortcuts"))
-        .pointingHandCursor()
-        .popover(isPresented: $isShowing, arrowEdge: .bottom) {
-            ShortcutHelp(hotKeys: hotKeys)
-        }
-    }
-}
-
 struct ShortcutHelp: View {
     let hotKeys: GlobalHotKeys?
+    let presetCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -38,12 +15,9 @@ struct ShortcutHelp: View {
                 }
             }
             section("In this window") {
-                row("Space", "Play / Stop")
-                row("↑ ↓", "Tempo ±1")
-                row("⇧↑ ⇧↓", "Tempo ±5")
-                row("T", "Tap tempo")
-                row("M", "Mute / unmute")
-                row("1–4", "Choose a preset")
+                ForEach(PopoverShortcut.all(presetCount: presetCount), id: \.display) { shortcut in
+                    row(shortcut.display, shortcut.label)
+                }
             }
         }
         .padding(12)

@@ -26,7 +26,8 @@ public final class PulstickEngine: ObservableObject {
     public static let bpmRange: ClosedRange<Double> = 30...300
     public static let beatsRange: ClosedRange<Int> = 1...16
 
-    /// UserDefaults のキー。値の型を変えるときはキー名も変えて旧データと衝突させないこと
+    /// UserDefaults のキー。フィールドの追加は codable(forKey:default:) が吸収するが、
+    /// 既存フィールドの型や意味を変えるときはキー名も変えて旧データと衝突させないこと
     private enum Keys {
         static let presets = "pulstick.presets"
         static let bpm = "pulstick.bpm"
@@ -49,15 +50,10 @@ public final class PulstickEngine: ObservableObject {
     private var isRestoring = false
 
     @Published public var presets: [BeatPreset] = []
-    /// 名前順に並べて保存する
+    /// 名前順に並んだ状態を保つ（追加は saveCurrentAsSong が並び順の位置に挿入する）
     @Published public private(set) var songs: [Song] = [] {
         didSet {
             guard !isRestoring else { return }
-            let sorted = songs.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-            if sorted != songs {
-                songs = sorted
-                return
-            }
             defaults.setCodable(songs, forKey: Keys.songs)
         }
     }
@@ -245,11 +241,11 @@ public final class PulstickEngine: ObservableObject {
         if let raw = defaults.object(forKey: Keys.clickSound) as? String, let saved = ClickSound(rawValue: raw) {
             clickSound = saved
         }
-        speedTrainer = defaults.codable(SpeedTrainer.self, forKey: Keys.speedTrainer) ?? speedTrainer
+        speedTrainer = defaults.codable(forKey: Keys.speedTrainer, default: speedTrainer)
         speedTrainerEnabled = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool ?? false
-        gapTrainer = defaults.codable(GapTrainer.self, forKey: Keys.gapTrainer) ?? gapTrainer
+        gapTrainer = defaults.codable(forKey: Keys.gapTrainer, default: gapTrainer)
         gapTrainerEnabled = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool ?? false
-        practiceLog = defaults.codable(PracticeLog.self, forKey: Keys.practiceLog) ?? practiceLog
+        practiceLog = defaults.codable(forKey: Keys.practiceLog, default: practiceLog)
         songs = defaults.codable([Song].self, forKey: Keys.songs) ?? []
     }
 
@@ -276,28 +272,35 @@ public final class PulstickEngine: ObservableObject {
     public func saveCurrentAsSong(named name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        var song = Song(
-            name: trimmed, bpm: bpm, beats: beatsPerMeasure,
-            accents: Array(accentBeats).sorted(), subdivision: subdivision
-        )
+        var song = Song(name: trimmed, bpm: bpm, pattern: currentPattern, subdivision: subdivision)
         if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
             song.id = songs[index].id
             songs[index] = song
         } else {
-            songs.append(song)
+            let index = songs.firstIndex { trimmed.localizedStandardCompare($0.name) == .orderedAscending } ?? songs.endIndex
+            songs.insert(song, at: index)
         }
     }
 
     public func applySong(_ song: Song) {
         bpm = song.bpm
-        beatsPerMeasure = song.beats.clamped(to: Self.beatsRange)
-        accentBeats = validAccents(song.accents)
+        beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
+        accentBeats = validAccents(song.pattern.accents)
         subdivision = song.subdivision
         // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
         if isPlaying {
-            sessionStartBPM = bpm
-            speedTrainerProgress.restart()
+            restartSession()
         }
+    }
+
+    private var currentPattern: BeatPreset {
+        BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted())
+    }
+
+    /// いまのテンポをスピードトレーナーの起点にし、小節の数え直しを始める
+    private func restartSession() {
+        sessionStartBPM = bpm
+        speedTrainerProgress.restart()
     }
 
     /// 保存データや曲から読んだアクセント位置のうち、いまの拍数の範囲にあるものだけを残す
@@ -307,8 +310,8 @@ public final class PulstickEngine: ObservableObject {
 
     /// 曲リストで「いま使っている曲」を強調するための判定
     public func matchesCurrentSettings(_ song: Song) -> Bool {
-        song.bpm == bpm && song.beats == beatsPerMeasure
-            && Set(song.accents) == accentBeats && song.subdivision == subdivision
+        song.bpm == bpm && song.pattern.beats == beatsPerMeasure
+            && song.pattern.accentSet == accentBeats && song.subdivision == subdivision
     }
 
     public func deleteSong(_ song: Song) {
@@ -324,7 +327,7 @@ public final class PulstickEngine: ObservableObject {
 
     public func saveCurrentAsPreset(at index: Int) {
         guard index < presets.count else { return }
-        presets[index] = BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted())
+        presets[index] = currentPattern
         persistPresets()
     }
 
@@ -349,8 +352,7 @@ public final class PulstickEngine: ObservableObject {
         let generation = playbackGeneration
         beatClock.current = 0
         playStartedAt = Date()
-        sessionStartBPM = bpm
-        speedTrainerProgress.restart()
+        restartSession()
 
         output.prepare()
 
@@ -375,7 +377,7 @@ public final class PulstickEngine: ObservableObject {
     public func returnToSessionStartBPM() {
         guard let start = sessionStartBPM else { return }
         bpm = start
-        speedTrainerProgress.restart()
+        restartSession()
     }
 
     /// 停止し、再生していた時間を練習ログに記録する。アプリ終了時にも呼ぶ

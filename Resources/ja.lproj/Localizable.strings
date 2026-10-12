@@ -38,10 +38,11 @@
 "Play" = "再生";
 "Tap along to set the tempo (T, or ⌃⌥T from any app)" = "リズムに合わせて叩くとテンポを設定（T、どのアプリからでも ⌃⌥T）";
 "Tap along to set the tempo (T)" = "リズムに合わせて叩くとテンポを設定（T）";
-"Stop (Space, or ⌃⌥M from any app) · right-click for a practice timer" = "停止（Space、どのアプリからでも ⌃⌥M）・右クリックで練習タイマー";
-"Stop (Space) · right-click for a practice timer" = "停止（Space）・右クリックで練習タイマー";
-"Play (Space, or ⌃⌥M from any app) · right-click for a practice timer" = "再生（Space、どのアプリからでも ⌃⌥M）・右クリックで練習タイマー";
-"Play (Space) · right-click for a practice timer" = "再生（Space）・右クリックで練習タイマー";
+"Stop (Space, or ⌃⌥M from any app)" = "停止（Space、どのアプリからでも ⌃⌥M）";
+"Stop (Space)" = "停止（Space）";
+"Play (Space, or ⌃⌥M from any app)" = "再生（Space、どのアプリからでも ⌃⌥M）";
+"Play (Space)" = "再生（Space）";
+"Right-click for a practice timer" = "右クリックで練習タイマー";
 
 /* Volume & footer */
 "Accent volume" = "強拍の音量";
@@ -67,7 +68,6 @@
 "Pulstick, stopped" = "Pulstick、停止中";
 
 /* Click sound */
-"Click sound" = "クリックの音色";
 "Beep" = "電子音";
 "Wood" = "ウッド";
 "Tick" = "チック";

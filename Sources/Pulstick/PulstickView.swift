@@ -9,7 +9,6 @@ struct PulstickView: View {
     let hotKeys: GlobalHotKeys?
     @State private var isEditingBPM = false
     @State private var isShowingSongs = false
-    @State private var isShowingShortcuts = false
 
     var body: some View {
         VStack(spacing: 14) {
@@ -31,7 +30,7 @@ struct PulstickView: View {
                 SpeedTrainerSection(engine: engine)
                 GapTrainerSection(engine: engine)
             }
-            TransportRow(engine: engine, hotKeys: hotKeys, spaceShortcutEnabled: !isTypingElsewhere)
+            TransportRow(engine: engine, hotKeys: hotKeys)
             Divider()
             VStack(spacing: 8) {
                 VolumeRow(engine: engine)
@@ -45,7 +44,7 @@ struct PulstickView: View {
                 }
             }
             PracticeSummary(engine: engine)
-            FooterRow(hotKeys: hotKeys, isShowingShortcuts: $isShowingShortcuts)
+            FooterRow(engine: engine, hotKeys: hotKeys)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -56,31 +55,19 @@ struct PulstickView: View {
     // MARK: - Keyboard Shortcuts
     // 楽器を持ったまま操作できるよう、ポップオーバーを開いていればキーだけで主要操作ができる。
     // BPM 入力中や、曲名を入力できる子ポップオーバーを開いている間は、
-    // 文字キーや矢印キーをテキスト入力に譲るため無効化する
+    // スペースや文字キーをテキスト入力に譲るため無効化する
 
     private var keyboardShortcuts: some View {
-        ZStack {
-            shortcut(.upArrow) { engine.incrementBPM() }
-            shortcut(.downArrow) { engine.decrementBPM() }
-            shortcut(.upArrow, modifiers: .shift) { engine.incrementBPM(by: 5) }
-            shortcut(.downArrow, modifiers: .shift) { engine.decrementBPM(by: 5) }
-            shortcut("t") { engine.tapTempo() }
-            shortcut("m") { engine.isMuted.toggle() }
-            ForEach(engine.presets.indices, id: \.self) { index in
-                shortcut(KeyEquivalent(Character("\(index + 1)"))) { engine.applyPreset(at: index) }
+        let bindings = PopoverShortcut.all(presetCount: engine.presets.count).flatMap(\.bindings)
+        return ZStack {
+            ForEach(bindings.indices, id: \.self) { index in
+                let binding = bindings[index]
+                Button("") { binding.action(engine) }
+                    .keyboardShortcut(binding.key, modifiers: binding.modifiers)
             }
         }
         .opacity(0)
         .allowsHitTesting(false)
-        .disabled(isTypingElsewhere)
-    }
-
-    private var isTypingElsewhere: Bool {
-        isEditingBPM || isShowingSongs || isShowingShortcuts
-    }
-
-    private func shortcut(_ key: KeyEquivalent, modifiers: EventModifiers = [], action: @escaping () -> Void) -> some View {
-        Button("", action: action)
-            .keyboardShortcut(key, modifiers: modifiers)
+        .disabled(isEditingBPM || isShowingSongs)
     }
 }

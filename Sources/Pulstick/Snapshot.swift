@@ -41,7 +41,7 @@ enum Snapshot {
                 if showSongs {
                     SongList(engine: engine) {}
                 } else if args.contains("--shortcuts") {
-                    ShortcutHelp(hotKeys: nil)
+                    ShortcutHelp(hotKeys: nil, presetCount: engine.presets.count)
                 } else {
                     PulstickView(engine: engine, hotKeys: nil)
                 }

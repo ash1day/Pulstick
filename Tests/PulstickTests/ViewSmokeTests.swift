@@ -15,7 +15,7 @@ struct ViewSmokeTests {
     }
 
     private func engine(configure: (PulstickEngine) -> Void = { _ in }) -> PulstickEngine {
-        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: SilentClickOutput())
+        let engine = makeEngine()
         configure(engine)
         return engine
     }
@@ -55,7 +55,7 @@ struct ViewSmokeTests {
     }
 
     @Test func shortcutHelpRenders() {
-        #expect(render(ShortcutHelp(hotKeys: nil)) != nil)
+        #expect(render(ShortcutHelp(hotKeys: nil, presetCount: 4)) != nil)
     }
 
     @Test func stepperSentenceIgnoresBadPlaceholders() {

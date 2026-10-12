@@ -11,15 +11,6 @@ public struct SpeedTrainer: Codable, Equatable {
         self.targetBPM = targetBPM
         self.loops = loops
     }
-
-    /// loops は後から追加した項目。保存済みの古いデータに無くても設定を失わないよう、無ければ false とする
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        measuresPerStep = try container.decode(Int.self, forKey: .measuresPerStep)
-        bpmIncrement = try container.decode(Int.self, forKey: .bpmIncrement)
-        targetBPM = try container.decode(Int.self, forKey: .targetBPM)
-        loops = try container.decodeIfPresent(Bool.self, forKey: .loops) ?? false
-    }
 }
 
 /// スピードトレーナーの進行状況。再生ごとに変わる実行時の値なので設定とは分けて保存しない
@@ -36,16 +27,12 @@ public struct SpeedTrainerProgress {
     /// 小節が1つ終わるたびに呼ぶ。テンポを上げるべきときは新しい BPM を返す
     public mutating func measureCompleted(_ settings: SpeedTrainer, currentBPM: Double, startBPM: Double? = nil) -> Double? {
         let target = Double(settings.targetBPM)
-        let atTarget = currentBPM >= target
-        // 目標に達したら、繰り返しモードでなければそのまま維持する
-        guard !atTarget || (settings.loops && startBPM != nil) else { return nil }
+        // 目標に達したら、繰り返しモードなら同じ小節数を弾いた後に開始テンポへ戻り、そうでなければ維持する
+        let restartBPM = currentBPM >= target ? (settings.loops ? startBPM : nil) : nil
+        guard currentBPM < target || restartBPM != nil else { return nil }
         measuresSinceStep += 1
         guard measuresSinceStep >= settings.measuresPerStep else { return nil }
         measuresSinceStep = 0
-        if atTarget, let startBPM {
-            // 目標テンポでも同じ小節数を弾いたら、開始テンポからやり直す
-            return startBPM
-        }
-        return min(currentBPM + Double(settings.bpmIncrement), target)
+        return restartBPM ?? min(currentBPM + Double(settings.bpmIncrement), target)
     }
 }

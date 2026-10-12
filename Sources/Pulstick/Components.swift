@@ -35,14 +35,18 @@ extension View {
     }
 
     /// プリセットや細分化など「選択中の1つがハイライトされるチップ」の共通装飾
-    func chip(selected: Bool) -> some View {
+    /// - Parameter outlined: リストの行のように枠線が要らない場合は false
+    func chip(selected: Bool, outlined: Bool = true) -> some View {
         background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(selected ? Color.accentColor.opacity(0.15) : Color.clear)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
+                .stroke(
+                    outlined ? (selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2)) : .clear,
+                    lineWidth: 1
+                )
         )
         .contentShape(Rectangle())
         .pointingHandCursor()
@@ -148,5 +152,34 @@ struct CheckBox: View {
             Text(title)
         }
         .accessibleToggle($isOn, label: Text(title))
+    }
+}
+
+// MARK: - Popover Icon Button
+
+/// 小さなグレーのアイコンを押すとポップオーバーを開くボタン（曲リスト・ショートカット一覧）
+struct PopoverIconButton<Content: View>: View {
+    let systemName: String
+    var size: CGFloat = 11
+    let help: LocalizedStringKey
+    var label: Text?
+    @Binding var isPresented: Bool
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: size))
+                .foregroundColor(.secondary)
+                .frame(width: size + 10, height: size + 10)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(label ?? Text(help))
+        .pointingHandCursor()
+        .popover(isPresented: $isPresented, arrowEdge: .bottom, content: content)
     }
 }

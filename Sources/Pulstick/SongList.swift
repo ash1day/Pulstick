@@ -8,20 +8,10 @@ struct SongListButton: View {
     @Binding var isShowingList: Bool
 
     var body: some View {
-        Button {
-            isShowingList.toggle()
-        } label: {
-            Image(systemName: "music.note.list")
-                .font(.system(size: 14))
-                .foregroundColor(.secondary)
-                .frame(width: 24, height: 24)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("Songs: save and recall tempos")
-        .accessibilityLabel(Text("Songs"))
-        .pointingHandCursor()
-        .popover(isPresented: $isShowingList, arrowEdge: .bottom) {
+        PopoverIconButton(
+            systemName: "music.note.list", size: 14, help: "Songs: save and recall tempos",
+            label: Text("Songs"), isPresented: $isShowingList
+        ) {
             SongList(engine: engine) { isShowingList = false }
         }
     }
@@ -80,7 +70,7 @@ struct SongList: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer()
-            Text("♩=\(Int(song.bpm)) · \(song.beats) beats")
+            Text("♩=\(Int(song.bpm)) · \(song.pattern.beats) beats")
                 .font(.system(size: 11, design: .rounded))
                 .monospacedDigit()
                 .foregroundColor(.secondary)
@@ -102,15 +92,11 @@ struct SongList: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(
-            RoundedRectangle(cornerRadius: 5)
-                .fill(isCurrent ? Color.accentColor.opacity(0.15) : Color.clear)
-        )
+        .chip(selected: isCurrent, outlined: false)
         .accessibleTap(Text(verbatim: song.name), value: Text("\(Int(song.bpm)) BPM"), selected: isCurrent) {
             engine.applySong(song)
             dismiss()
         }
-        .pointingHandCursor()
     }
 
     private func save() {

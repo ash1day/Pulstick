@@ -5,8 +5,6 @@ import SwiftUI
 struct TransportRow: View {
     @ObservedObject var engine: PulstickEngine
     let hotKeys: GlobalHotKeys?
-    /// 文字入力中はスペースを入力に譲る
-    var spaceShortcutEnabled = true
 
     var body: some View {
         HStack(spacing: 8) {
@@ -34,7 +32,6 @@ struct TransportRow: View {
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
             .tint(engine.isPlaying ? .red : .accentColor)
-            .keyboardShortcut(spaceShortcutEnabled ? KeyboardShortcut(.space, modifiers: []) : nil)
             .help(playButtonHelp)
             .pointingHandCursor()
             // 「15 分だけ集中して練習」のための自動停止。画面を増やさないよう右クリックメニューに置く
@@ -50,13 +47,14 @@ struct TransportRow: View {
         }
     }
 
-    private var playButtonHelp: LocalizedStringKey {
-        switch (engine.isPlaying, hotKeys?.isToggleAvailable == true) {
-        case (true, true): "Stop (Space, or ⌃⌥M from any app) · right-click for a practice timer"
-        case (true, false): "Stop (Space) · right-click for a practice timer"
-        case (false, true): "Play (Space, or ⌃⌥M from any app) · right-click for a practice timer"
-        case (false, false): "Play (Space) · right-click for a practice timer"
+    private var playButtonHelp: Text {
+        let base: Text = switch (engine.isPlaying, hotKeys?.isToggleAvailable == true) {
+        case (true, true): Text("Stop (Space, or ⌃⌥M from any app)")
+        case (true, false): Text("Stop (Space)")
+        case (false, true): Text("Play (Space, or ⌃⌥M from any app)")
+        case (false, false): Text("Play (Space)")
         }
+        return base + Text(verbatim: " · ") + Text("Right-click for a practice timer")
     }
 
     /// 再生中は経過時間（練習タイマー設定時は残り時間）を表示し、どれだけ練習したか分かるようにする
@@ -158,8 +156,9 @@ struct PracticeSummary: View {
 }
 
 struct FooterRow: View {
+    @ObservedObject var engine: PulstickEngine
     let hotKeys: GlobalHotKeys?
-    @Binding var isShowingShortcuts: Bool
+    @State private var isShowingShortcuts = false
     /// SMAppService への問い合わせはプロセス間通信なので、表示時に一度だけ行う
     @State private var launchAtLogin = false
 
@@ -181,7 +180,11 @@ struct FooterRow: View {
                     }
                 }
             Spacer()
-            ShortcutHelpButton(hotKeys: hotKeys, isShowing: $isShowingShortcuts)
+            PopoverIconButton(
+                systemName: "keyboard", help: "Keyboard shortcuts", isPresented: $isShowingShortcuts
+            ) {
+                ShortcutHelp(hotKeys: hotKeys, presetCount: engine.presets.count)
+            }
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }

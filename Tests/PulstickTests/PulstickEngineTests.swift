@@ -179,8 +179,7 @@ struct SongTests {
         let song = try #require(engine.songs.first)
         #expect(song.name == "Waltz")
         #expect(song.bpm == 132)
-        #expect(song.beats == 3)
-        #expect(song.accents == [0])
+        #expect(song.pattern == BeatPreset(beats: 3, accents: [0]))
         #expect(song.subdivision == .triplet)
     }
 
@@ -331,6 +330,15 @@ struct PersistenceTests {
         #expect(second.accentBeats == [0, 2])
     }
 
+    @Test func savedSettingsMissingNewerFieldsKeepTheRest() {
+        // 将来フィールドを足しても、それ以前に保存された値が既定値に戻らないこと
+        let defaults = InMemorySettingsStore()
+        defaults.set(#"{"playBars":5}"#.data(using: .utf8), forKey: "pulstick.gapTrainer")
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(engine.gapTrainer.playBars == 5)
+        #expect(engine.gapTrainer.muteBars == GapTrainer().muteBars)
+    }
+
     @Test func invalidSavedAccentsAreDropped() {
         let defaults = InMemorySettingsStore()
         defaults.set(4, forKey: "pulstick.beats")
@@ -477,10 +485,11 @@ struct SpeedTrainerTests {
         #expect(progress.measureCompleted(settings, currentBPM: 110, startBPM: 100) == 100)
     }
 
-    @Test func settingsSavedBeforeLoopingExistedStillDecode() throws {
-        let old = #"{"measuresPerStep":8,"bpmIncrement":3,"targetBPM":180}"#.data(using: .utf8)!
-        let decoded = try JSONDecoder().decode(SpeedTrainer.self, from: old)
-        #expect(decoded == SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180, loops: false))
+    @Test func settingsSavedBeforeLoopingExistedStillLoad() {
+        let defaults = InMemorySettingsStore()
+        defaults.set(#"{"measuresPerStep":8,"bpmIncrement":3,"targetBPM":180}"#.data(using: .utf8), forKey: "pulstick.speedTrainer")
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(engine.speedTrainer == SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180, loops: false))
     }
 
     @Test func restartResetsMeasureCount() {
@@ -710,7 +719,7 @@ struct PlaybackIntegrationTests {
         engine.bpm = 300
         engine.subdivision = .sixteenth  // 50ms 間隔で、停止の瞬間にハンドラが走っている確率を上げる
         engine.start()
-        try await spin(0.33)
+        try await spin(0.12)
         engine.stop()
         let playedAtStop = output.played.count
         try await spin(0.2)
@@ -720,9 +729,9 @@ struct PlaybackIntegrationTests {
     @Test func practiceTimerStopsPlaybackWhenTimeIsUp() async throws {
         let engine = makeEngine()
         engine.bpm = 300
-        engine.stopAfter = 0.3
+        engine.stopAfter = 0.05
         engine.start()
-        try await spin(0.7)
+        try await spin(0.45)  // 300 BPM の 1 拍は 200ms。拍ごとに確かめるので 2 拍以内に止まる
         #expect(!engine.isPlaying)
     }
 
