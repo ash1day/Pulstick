@@ -843,3 +843,33 @@ struct SentenceTemplateTests {
         ])
     }
 }
+
+// MARK: - TapTempo
+
+@Suite("TapTempo")
+struct TapTempoLogicTests {
+    private func taps(_ intervals: [Double]) -> Double? {
+        var tempo = TapTempo()
+        var time = Date(timeIntervalSinceReferenceDate: 0)
+        var result = tempo.tap(at: time)
+        for interval in intervals {
+            time = time.addingTimeInterval(interval)
+            result = tempo.tap(at: time)
+        }
+        return result
+    }
+
+    @Test func oneSloppyTapDoesNotThrowOffTheTempo() {
+        // 120 BPM (0.5 秒間隔) の途中で 1 回だけ大きく遅れた
+        #expect(taps([0.5, 0.5, 0.8, 0.5, 0.5]) == 120)
+    }
+
+    @Test func firstTapGivesNoTempo() {
+        #expect(taps([]) == nil)
+    }
+
+    @Test func pauseStartsANewMeasurement() {
+        // 90 BPM で叩いた後、3 秒空けて 150 BPM で 2 回
+        #expect(taps([0.667, 0.667, 3.0, 0.4]) == 150)
+    }
+}

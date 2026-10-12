@@ -202,9 +202,7 @@ public final class PulstickEngine: ObservableObject {
     /// 他アプリのバックグラウンド処理（Spotlight 等）よりタイマー発火を優先させる。
     private let timerQueue = DispatchQueue(label: "com.pulstick.metronome", qos: .userInteractive)
 
-    private var tapTimes: [Date] = []
-    private let maxTapCount = 4
-    private let tapTimeout: TimeInterval = 2.0
+    private var tapTempoEstimator = TapTempo()
 
     private let defaults: SettingsStore
 
@@ -405,30 +403,10 @@ public final class PulstickEngine: ObservableObject {
         bpm -= step
     }
 
-    /// 直近の最大4回のタップ間隔の平均からBPMを算出する。
-    /// 2秒以上間隔が空くとタップ履歴をリセット。
     public func tapTempo(at now: Date = Date()) {
-
-        if let lastTap = tapTimes.last, now.timeIntervalSince(lastTap) > tapTimeout {
-            tapTimes.removeAll()
+        if let tapped = tapTempoEstimator.tap(at: now) {
+            bpm = tapped
         }
-
-        tapTimes.append(now)
-
-        if tapTimes.count > maxTapCount {
-            tapTimes.removeFirst(tapTimes.count - maxTapCount)
-        }
-
-        guard tapTimes.count >= 2 else { return }
-
-        var totalInterval: TimeInterval = 0
-        for i in 1..<tapTimes.count {
-            totalInterval += tapTimes[i].timeIntervalSince(tapTimes[i - 1])
-        }
-        let averageInterval = totalInterval / Double(tapTimes.count - 1)
-
-        // 小数の BPM は表示と食い違い、±ボタンでも端数が残るため整数に丸める
-        bpm = (60.0 / averageInterval).rounded()
     }
 
     public func setBeats(_ beats: Int) {
