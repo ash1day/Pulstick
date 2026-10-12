@@ -121,3 +121,7 @@
 "Move Up" = "上へ";
 "Move Down" = "下へ";
 "Previous / next song" = "前の曲 / 次の曲";
+
+/* Same in Japanese, listed so the coverage test knows they are intentional */
+"%lld BPM" = "%lld BPM";
+"%@ · BPM" = "%@ · BPM";

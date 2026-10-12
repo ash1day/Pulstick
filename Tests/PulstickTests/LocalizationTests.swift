@@ -68,4 +68,63 @@ struct LocalizationTests {
             if case .slot(let index) = $0 { index } else { nil }
         })
     }
+
+    /// Text("…") や .help("…") などに直接書いた文言に日本語訳があること。
+    /// 訳が無いと日本語の画面に英語がそのまま出るので、ここで検出する
+    @Test func everyLiteralUIStringHasJapaneseTranslation() throws {
+        let dir = root.appendingPathComponent("Sources/Pulstick")
+        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+        let callSites = [
+            #"(?<![A-Za-z])Text\("((?:[^"\\]|\\.)*)"\)"#,
+            #"\.help\("((?:[^"\\]|\\.)*)""#,
+            #"(?<![A-Za-z])Button\("((?:[^"\\]|\\.)*)""#,
+            #"(?<![A-Za-z])Label\("((?:[^"\\]|\\.)*)", systemImage"#,
+            #"Picker\("((?:[^"\\]|\\.)*)""#,
+            #"(?:title|help|label): "((?:[^"\\]|\\.)*)""#,
+            #"LocalizedStringKey\("((?:[^"\\]|\\.)*)"\)"#,
+            #"case \([a-z]+, [a-z]+\): "((?:[^"\\]|\\.)*)""#,
+        ]
+        let japanese = try japaneseStrings()
+        var missing: [String] = []
+        for file in files where file.pathExtension == "swift" && file.lastPathComponent != "Snapshot.swift" {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            for pattern in callSites {
+                let regex = try NSRegularExpression(pattern: pattern)
+                for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                    let literal = String(text[Range(match.range(at: 1), in: text)!])
+                    guard isTranslatable(literal) else { continue }
+                    if !candidateKeys(for: literal).contains(where: { japanese[$0] != nil }) {
+                        missing.append("\(file.lastPathComponent): \(literal)")
+                    }
+                }
+            }
+        }
+        #expect(missing.isEmpty, "missing ja: \(Set(missing).sorted())")
+    }
+
+    /// 記号・数字・補間だけの文言は訳さない
+    private func isTranslatable(_ literal: String) -> Bool {
+        let withoutInterpolation = literal.replacingOccurrences(of: #"\\\([^)]*\)+"#, with: "", options: .regularExpression)
+        return withoutInterpolation.rangeOfCharacter(from: .letters) != nil
+    }
+
+    /// \(…) を %lld か %@ に置き換えたキーの候補（LocalizedStringKey の補間と同じ規則）
+    private func candidateKeys(for literal: String) -> [String] {
+        let parts = literal.components(separatedBy: #"\("#)
+        guard parts.count > 1 else { return [literal] }
+        var keys = [parts[0]]
+        for part in parts.dropFirst() {
+            // 補間の閉じ括弧の位置を、括弧の対応で探す
+            var depth = 1
+            var end = part.startIndex
+            for index in part.indices {
+                if part[index] == "(" { depth += 1 }
+                if part[index] == ")" { depth -= 1 }
+                if depth == 0 { end = index; break }
+            }
+            let rest = String(part[part.index(after: end)...])
+            keys = keys.flatMap { [$0 + "%lld" + rest, $0 + "%@" + rest] }
+        }
+        return keys
+    }
 }
