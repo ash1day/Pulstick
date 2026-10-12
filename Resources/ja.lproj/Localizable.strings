@@ -84,7 +84,6 @@
 "Save the current tempo and beat pattern under a song name to recall it with one click. Songs stay in the order you add them, like a setlist." = "いまのテンポと拍のパターンに曲名を付けて保存すると、ワンクリックで呼び出せます。曲は追加した順に並ぶので、セットリストとして使えます。";
 "Delete" = "削除";
 "Delete %@" = "%@ を削除";
-"♩=%lld · %lld beats" = "♩=%1$lld · %2$lld 拍";
 
 /* Mute */
 "Mute" = "ミュート";

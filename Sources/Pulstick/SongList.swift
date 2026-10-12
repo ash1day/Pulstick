@@ -89,7 +89,7 @@ struct SongList: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer()
-                Text("♩=\(Int(song.bpm)) · \(song.pattern.beats) beats")
+                Text(verbatim: "♩=\(Int(song.bpm))")
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
                     .foregroundColor(.secondary)
@@ -109,14 +109,12 @@ struct SongList: View {
                 .accessibilityLabel(Text("Delete \(song.name)"))
                 .pointingHandCursor()
             }
-            // 曲ごとの練習量（1 分未満は出さない）と、これまでに鳴らした最高テンポ。
-            // 曲名の列は右のテンポ表記に挟まれて狭いので、行の幅いっぱいを使う 2 行目に出す
-            if let progress = progressText(practised: practised, best: song.bestBPM) {
-                progress
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
+            // 拍数、曲ごとの練習量（1 分未満は出さない）、これまでに鳴らした最高テンポ。
+            // 曲名の列は右のテンポ表記に挟まれて狭いので、曲名を削らないよう行の幅いっぱいを使う 2 行目に出す
+            details(beats: song.pattern.beats, practised: practised, best: song.bestBPM)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
@@ -153,15 +151,10 @@ struct SongList: View {
         }
     }
 
-    private func progressText(practised: Double, best: Double?) -> Text? {
+    private func details(beats: Int, practised: Double, best: Double?) -> Text {
         let time = practised >= 60 ? Text("Practised \(PracticeTime.format(practised))") : nil
         let peak = best.map { Text("Best ♩=\(Int($0))") }
-        switch (time, peak) {
-        case let (time?, peak?): return time + Text(verbatim: " · ") + peak
-        case let (time?, nil): return time
-        case let (nil, peak?): return peak
-        case (nil, nil): return nil
-        }
+        return [time, peak].compactMap { $0 }.reduce(Text("\(beats) beats")) { $0 + Text(verbatim: " · ") + $1 }
     }
 
     private func shareButton(_ symbol: String, help: LocalizedStringKey, action: @escaping () -> Void) -> some View {
