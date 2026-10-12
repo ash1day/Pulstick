@@ -688,6 +688,19 @@ struct PlaybackIntegrationTests {
         #expect(engineChanges == 0)
     }
 
+    @Test func noClicksArePlayedAfterStop() async throws {
+        let output = SilentClickOutput()
+        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
+        engine.bpm = 300
+        engine.subdivision = .sixteenth  // 50ms 間隔で、停止の瞬間にハンドラが走っている確率を上げる
+        engine.start()
+        try await spin(0.33)
+        engine.stop()
+        let playedAtStop = output.played.count
+        try await spin(0.2)
+        #expect(output.played.count == playedAtStop)
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)

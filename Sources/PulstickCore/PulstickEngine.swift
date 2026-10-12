@@ -388,6 +388,9 @@ public final class PulstickEngine: ObservableObject {
         sessionStartBPM = nil
         timerSource?.cancel()
         timerSource = nil
+        // キャンセル時点で実行中だったハンドラの終了を待ってから音を止め、停止後に 1 回鳴るのを防ぐ。
+        // タイマー側はメインスレッドへ async でしか送らないので、ここで sync してもデッドロックしない
+        timerQueue.sync {}
         output.stopAll()
         beatClock.current = 0
         beatClock.isInSilentBar = false
