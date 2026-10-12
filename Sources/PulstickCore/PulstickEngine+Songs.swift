@@ -108,6 +108,17 @@ extension PulstickEngine {
     // 数えている曲と未確定の時間は SongPracticeTracker が持つ。
     // 練習ログと同じく 5 秒未満の再生は曲にも記録しないため、短いうちは停止時まで保留する
 
+    /// 練習ログと曲ごとの練習時間を消す（新学期に付け直すときや、Mac を共有しているとき用）。
+    /// 曲そのもの（テンポや拍子）は残す
+    public func resetPracticeHistory() {
+        practiceLog = PracticeLog()
+        var cleared = songs
+        for index in cleared.indices {
+            cleared[index].practiceSeconds = 0
+        }
+        songs = cleared
+    }
+
     /// 曲の練習時間。確定済みの分に、この再生でまだ確定していない分を足して返す
     public func practiceSeconds(for song: Song) -> Double {
         song.practiceSeconds + songPractice.unsavedSeconds(for: song.id, at: now())

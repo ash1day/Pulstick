@@ -125,6 +125,7 @@ struct VolumeRow: View {
 /// 今日の練習時間と連続日数。再生中のセッションも含めて 30 秒ごとに更新する
 struct PracticeSummary: View {
     @ObservedObject var engine: PulstickEngine
+    @State private var isConfirmingReset = false
 
     var body: some View {
         if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty {
@@ -146,6 +147,15 @@ struct PracticeSummary: View {
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .help("Practice time is counted while the metronome plays")
+                // 新学期に付け直すときや Mac を共有しているとき用。消すと戻せないので必ず確認する
+                .contextMenu {
+                    Button("Reset Practice History…") { isConfirmingReset = true }
+                }
+                .confirmationDialog("Reset practice history?", isPresented: $isConfirmingReset) {
+                    Button("Reset", role: .destructive) { engine.resetPracticeHistory() }
+                } message: {
+                    Text("This clears today's minutes, your streak, the 7-day chart and each song's practice time. Your songs stay.")
+                }
             }
         }
     }

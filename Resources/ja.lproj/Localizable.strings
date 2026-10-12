@@ -135,3 +135,9 @@
 "Slower" = "遅く";
 "Faster" = "速く";
 "Reached the target tempo" = "目標テンポに到達";
+
+/* Reset practice history */
+"Reset Practice History…" = "練習記録をリセット…";
+"Reset practice history?" = "練習記録をリセットしますか？";
+"Reset" = "リセット";
+"This clears today's minutes, your streak, the 7-day chart and each song's practice time. Your songs stay." = "今日の練習時間、連続日数、7 日間のグラフ、曲ごとの練習時間を消します。曲そのものは残ります。";

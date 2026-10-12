@@ -346,6 +346,19 @@ struct SongTests {
         engine.stop()
     }
 
+    @Test func resettingPracticeHistoryClearsTheLogAndSongTimesButKeepsSongs() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.start()
+        clock.advance(600)
+        engine.stop()
+        engine.resetPracticeHistory()
+        #expect(engine.practiceLog.secondsByDay.isEmpty)
+        #expect(engine.songs.map(\.name) == ["Etude"])
+        #expect(engine.songs[0].practiceSeconds == 0)
+    }
+
     @Test func savingWhilePlayingStartsCountingThatSong() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)

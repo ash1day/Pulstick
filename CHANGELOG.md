@@ -8,7 +8,7 @@
 - **Subdivisions**: eighths, triplets and sixteenths with a softer click.
 - **Rest beats**: click a beat to cycle normal → accent → rest, e.g. a click only on 2 and 4.
 - **Songs**: save tempo, beat pattern and subdivision under a name, keep them in setlist order, step through them with `[` and `]` (Pulstick remembers where you were), and see how long you have practised each one. The current song's name appears under the BPM.
-- **Practice log**: today's minutes, your streak of days and a 7-day chart.
+- **Practice log**: today's minutes, your streak of days and a 7-day chart. Right-click it to reset the history.
 - **Practice timer**: right-click Play to stop after 5–60 minutes.
 - **Mute**: silence the click and follow the beat display (the menu bar shows the beat number).
 
