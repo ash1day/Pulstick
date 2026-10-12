@@ -7,9 +7,8 @@ import SwiftUI
 /// タップで強弱を切り替え。−/＋ボタンで拍を削除・追加。
 struct BeatIndicator: View {
     @ObservedObject var engine: PulstickEngine
-    @ObservedObject var clock: BeatClock
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorSchemeContrast) private var contrast
+    /// 拍ごとに変わる表示は BeatDot だけが購読する（この本体は拍ごとに再描画しない）
+    let clock: BeatClock
 
     var body: some View {
         HStack(spacing: 4) {
@@ -25,7 +24,11 @@ struct BeatIndicator: View {
                 let diameter = max(8, min(20, slot - 6))
                 HStack(spacing: 0) {
                     ForEach(0..<engine.beatsPerMeasure, id: \.self) { beat in
-                        beatDot(beat: beat, diameter: diameter)
+                        BeatDot(
+                            clock: clock, beat: beat,
+                            isAccented: engine.accentBeats.contains(beat), isRested: engine.restBeats.contains(beat),
+                            isPlaying: engine.isPlaying, diameter: diameter
+                        )
                             .frame(width: slot, height: geo.size.height)
                             .contentShape(Rectangle())
                             .pointingHandCursor()
@@ -79,14 +82,27 @@ struct BeatIndicator: View {
         case .normal: Text("Not accented")
         }
     }
+}
 
-    private func beatDot(beat: Int, diameter: CGFloat) -> some View {
+/// 拍の丸 1 つ。拍ごとに変わる BeatClock はここだけが購読し、
+/// 親の拍の行（クリック・右クリック・ツールチップを持つ）を拍ごとに組み立て直さない
+private struct BeatDot: View {
+    @ObservedObject var clock: BeatClock
+    let beat: Int
+    let isAccented: Bool
+    let isRested: Bool
+    let isPlaying: Bool
+    let diameter: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
         // カウントイン中は音と同じく、休符もアクセントも無視して頭の拍だけを強拍として見せる
-        let isAccent = clock.isCountingIn ? beat == 0 : engine.accentBeats.contains(beat)
-        let isRest = clock.isCountingIn ? false : engine.restBeats.contains(beat)
-        let isCurrent = engine.isPlaying && clock.current == beat
+        let isAccent = clock.isCountingIn ? beat == 0 : isAccented
+        let isRest = clock.isCountingIn ? false : isRested
+        let isCurrent = isPlaying && clock.current == beat
         let outline = Color.secondary.opacity(contrast == .increased ? 0.8 : 0.35)
-        return ZStack {
+        ZStack {
             if isRest {
                 // 休符: 鳴らない拍は点線の輪郭だけで示す
                 Circle()
