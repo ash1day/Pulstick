@@ -146,6 +146,11 @@ public final class PulstickEngine: ObservableObject {
     @Published public internal(set) var practiceTimerStartedAt: Date?
     var practiceTimer: DispatchWorkItem?
 
+    /// 再生開始時に鳴らす予備の小節数（0 ならすぐ始める）。楽器を構える間や録音の入りのため
+    @Published public var countInBars = 0 {
+        didSet { defaults.set(countInBars, forKey: SettingsKeys.countInBars) }
+    }
+
     /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない
     @Published public var isMuted = false {
         didSet { patternDidChange() }
@@ -222,6 +227,7 @@ public final class PulstickEngine: ObservableObject {
         _presets = Published(initialValue: stored.presets)
         _songs = Published(initialValue: stored.songs)
         _selectedSongID = Published(initialValue: stored.selectedSongID)
+        _countInBars = Published(initialValue: stored.countInBars)
         // 終了時の設定がその曲のままでなければ、仮の選択（[ ] の起点）として戻す
         if let selected = songs.first(where: { $0.id == selectedSongID }) {
             selectedSongIsTentative = !matchesCurrentSettings(selected)

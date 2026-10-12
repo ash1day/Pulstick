@@ -203,13 +203,15 @@ private struct PulseRing: View {
     }
 }
 
-/// 無音小節の間だけ「数え続けて」を出し、それ以外は親から渡された小見出しを出す
+/// カウントイン中・無音小節の間だけその旨を出し、それ以外は親から渡された小見出しを出す
 private struct SubtitleLabel<Normal: View>: View {
     @ObservedObject var clock: BeatClock
     let normal: Normal
 
     var body: some View {
-        if clock.isInSilentBar {
+        if clock.isCountingIn {
+            Label("Count-in", systemImage: "hourglass")
+        } else if clock.isInSilentBar {
             Label("Silent bar · keep counting", systemImage: "speaker.slash.fill")
         } else {
             normal

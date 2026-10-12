@@ -24,9 +24,11 @@ extension PulstickEngine {
         output.prepare()
         schedulePracticeTimer()
 
+        // カウントインの小節は負の番号にし、練習の小節は 0 から数える
+        let firstMeasure = -countInBars
         timerQueue.async { [self] in
             lastFireTime = DispatchTime.now().uptimeNanoseconds
-            measureIndex = 0
+            measureIndex = firstMeasure
             play(sequencer.reset(), countsMeasure: false, generation: generation)
         }
         scheduleTimer(generation: generation)
@@ -70,6 +72,7 @@ extension PulstickEngine {
         output.stopAll()
         beatClock.current = 0
         beatClock.isInSilentBar = false
+        beatClock.isCountingIn = false
     }
 
     /// 再生開始時と、再生中に時間を変えたときに、止める時刻へ一度だけ発火するタイマーを仕掛け直す。
@@ -202,6 +205,9 @@ extension PulstickEngine {
             self.beatClock.current = tick.beat
             if self.beatClock.isInSilentBar != plan.isSilentBar {
                 self.beatClock.isInSilentBar = plan.isSilentBar
+            }
+            if self.beatClock.isCountingIn != plan.isCountingIn {
+                self.beatClock.isCountingIn = plan.isCountingIn
             }
             if plan.completesPracticeMeasure {
                 self.handleMeasureCompleted()

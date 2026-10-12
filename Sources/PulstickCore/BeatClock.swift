@@ -6,6 +6,8 @@ public final class BeatClock: ObservableObject {
     @Published public internal(set) var current = 0
     /// いま無音の小節を再生中か。UI で「心の中で数えて」と示すために使う
     @Published public internal(set) var isInSilentBar = false
+    /// 再生開始時の予備の小節を鳴らしている最中か
+    @Published public internal(set) var isCountingIn = false
 
     public init() {}
 }

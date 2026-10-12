@@ -42,7 +42,7 @@
 "Stop (Space)" = "停止（Space）";
 "Play (Space, or ⌃⌥M from any app)" = "再生（Space、どのアプリからでも ⌃⌥M）";
 "Play (Space)" = "再生（Space）";
-"Right-click for a practice timer" = "右クリックで練習タイマー";
+"Right-click for a practice timer and count-in" = "右クリックで練習タイマーとカウントイン";
 
 /* Volume & footer */
 "Accent volume" = "強拍の音量";
@@ -145,3 +145,9 @@
 "Practise at %@" = "%@ のテンポで練習";
 "Ramp Up from 70%% to ♩=%lld" = "70%% から ♩=%lld まで上げていく";
 "Start at 70% of the tempo and let the speed trainer raise it to the song's tempo" = "本来のテンポの 70% から始め、スピードトレーナーで曲のテンポまで上げていきます";
+
+/* Count-in */
+"Count-in" = "カウントイン";
+"No Count-in" = "カウントインなし";
+"1 Bar" = "1 小節";
+"2 Bars" = "2 小節";

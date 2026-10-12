@@ -19,6 +19,7 @@ enum SettingsKeys {
     static let clickSound = "pulstick.clickSound"
     static let songs = "pulstick.songs"
     static let selectedSong = "pulstick.selectedSong"
+    static let countInBars = "pulstick.countInBars"
 }
 
 /// 起動時に読む保存済みの設定。読み込みと検証（範囲外・壊れた値の補正）だけを行う。
@@ -41,6 +42,7 @@ struct StoredSettings {
     var songs: [Song] = []
     /// 保存されていた選択。曲が残っているときだけ値を持つ
     var selectedSongID: UUID?
+    var countInBars = 0
 
     init() {}
 
@@ -80,6 +82,9 @@ struct StoredSettings {
            saved.count == BeatPreset.defaults.count
         {
             presets = saved
+        }
+        if let saved = store.object(forKey: SettingsKeys.countInBars) as? Int {
+            countInBars = saved.clamped(to: 0...4)
         }
         songs = store.codable([Song].self, forKey: SettingsKeys.songs) ?? []
         if let saved = (store.object(forKey: SettingsKeys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),

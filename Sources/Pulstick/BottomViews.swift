@@ -43,6 +43,13 @@ struct TransportRow: View {
                     }
                 }
                 .pickerStyle(.inline)
+                // 楽器を構える間や録音の入りのために、始める前に予備の小節を鳴らす
+                Picker("Count-in", selection: $engine.countInBars) {
+                    Text("No Count-in").tag(0)
+                    Text("1 Bar").tag(1)
+                    Text("2 Bars").tag(2)
+                }
+                .pickerStyle(.inline)
             }
         }
     }
@@ -54,7 +61,7 @@ struct TransportRow: View {
         case (false, true): Text("Play (Space, or ⌃⌥M from any app)")
         case (false, false): Text("Play (Space)")
         }
-        return base + Text(verbatim: " · ") + Text("Right-click for a practice timer")
+        return base + Text(verbatim: " · ") + Text("Right-click for a practice timer and count-in")
     }
 
     /// 再生中は経過時間（練習タイマー設定時は残り時間）を表示し、どれだけ練習したか分かるようにする

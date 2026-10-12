@@ -1344,6 +1344,32 @@ struct PlaybackIntegrationTests {
         #expect(engine.songs.first?.practiceSeconds == 0)
     }
 
+    @Test func countInSoundsEveryBeatOfItsBarEvenRests() async throws {
+        let output = SilentClickOutput()
+        let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
+        engine.setBeats(2)
+        engine.cycleBeat(0); engine.cycleBeat(1); engine.cycleBeat(1)  // 両方の拍を休みに
+        engine.bpm = 240  // 1 小節 0.5 秒
+        engine.countInBars = 1
+        engine.start()
+        try await spin(0.9)
+        engine.stop()
+        #expect(output.played == [.accent, .accent])  // カウントインの 2 拍だけ鳴り、その後は休み
+    }
+
+    @Test func theSpeedTrainerWaitsForTheCountIn() async throws {
+        let engine = makeEngine()
+        engine.setBeats(1)
+        engine.bpm = 240  // 1 小節 0.25 秒
+        engine.countInBars = 2
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 1, targetBPM: 300)
+        engine.speedTrainerEnabled = true
+        engine.start()
+        try await spin(0.4)  // まだカウントイン中
+        #expect(engine.bpm == 240)
+        engine.stop()
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
@@ -1611,6 +1637,12 @@ struct StoredSettingsTests {
         #expect(stored.subdivision == .triplet)
         #expect(stored.clickSound == .wood)
         #expect(stored.gapTrainerEnabled)
+    }
+
+    @Test func countInIsRememberedAndKeptInRange() {
+        let store = InMemorySettingsStore()
+        store.set(9, forKey: "pulstick.countInBars")
+        #expect(StoredSettings(reading: store).countInBars == 4)
     }
 
     @Test func aSelectionWithoutItsSongIsDropped() {

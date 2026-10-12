@@ -17,7 +17,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Speed trainer: raise the tempo by N BPM every M bars up to a target, optionally repeating from the start tempo
 - Silent bars: play N bars, then mute M bars to check you hold the tempo yourself
 - Menu bar shows the BPM while playing; the Play button shows practice time
-- Practice timer: right-click Play to stop automatically after 5–60 minutes
+- Practice timer and count-in: right-click Play to stop automatically after 5–60 minutes, or to hear one or two bars before you start
 - Practice log: minutes practised today, your streak of consecutive days and a 7-day chart
 - Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo
 - Settings are remembered between launches
