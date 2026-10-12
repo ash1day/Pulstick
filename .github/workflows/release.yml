@@ -15,7 +15,7 @@ jobs:
       - name: Test
         run: swift test
       - name: Build app bundle
-        run: ./build.sh
+        run: UNIVERSAL=1 ./build.sh
       # Finder でのコピーと同じく、拡張属性やリソースを保ったまま zip にする
       - name: Package
         run: ditto -c -k --keepParent build/Pulstick.app Pulstick.zip
