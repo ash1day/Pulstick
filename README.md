@@ -14,14 +14,14 @@ A minimal metronome that lives in your macOS menu bar.
 - Subdivisions: eighths, triplets, sixteenths
 - Three click sounds (beep, wood, tick), all synthesized in code
 - Mute: click the speaker to silence the click while the beat display (and the menu bar beat number) keeps going
-- Speed trainer: raise the tempo by N BPM every M bars up to a target, optionally repeating from the start tempo
+- Speed trainer: raise the tempo by N BPM every M bars up to a target, optionally repeating from the start tempo. The line under the BPM counts down to the next step, and VoiceOver announces each new tempo
 - Silent bars: play N bars, then mute M bars to check you hold the tempo yourself
 - Menu bar shows the BPM while playing; the Play button shows practice time
 - Practice timer and count-in: right-click Play to stop automatically after 5–60 minutes, or to hear one or two bars before you start
-- Practice log: minutes practised today, your streak of consecutive days, a 7-day chart and an optional weekly goal (right-click the summary)
+- Practice log: minutes practised today, your streak of consecutive days, a 7-day chart and an optional weekly goal. Right-click the summary to set the goal or copy the last 7 days as text
 - Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo, <kbd>⌃⌥,</kbd> / <kbd>⌃⌥.</kbd> previous/next song
 - Settings are remembered between launches
-- English and Japanese UI (follows the system language)
+- English and Japanese UI (follows the system language), VoiceOver labels, and Reduce Motion / Increase Contrast support
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
