@@ -907,6 +907,11 @@ struct TapTempoLogicTests {
         #expect(taps([0.5, 0.5, 0.8, 0.5, 0.5]) == 120)
     }
 
+    @Test func followsATempoChangeWithinThreeTaps() {
+        // 120 BPM で 7 回叩いた後、休まずに 90 BPM へ切り替える
+        #expect(taps([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.667, 0.667, 0.667]) == 90)
+    }
+
     @Test func firstTapGivesNoTempo() {
         #expect(taps([]) == nil)
     }
