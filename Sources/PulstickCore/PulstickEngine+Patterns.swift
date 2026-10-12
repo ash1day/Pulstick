@@ -83,22 +83,20 @@ extension PulstickEngine {
     }
 
     /// 拍をタップしたときの切り替え: 弱 → 強 → 休み → 弱
+    /// 拍の状態。強と休みを同時に持つことはないので、休みを先に見る
+    public func beatState(_ beat: Int) -> BeatState {
+        if restBeats.contains(beat) { return .rest }
+        return accentBeats.contains(beat) ? .accent : .normal
+    }
+
+    /// クリックで 弱 → 強 → 休み → 弱 と巡回する
     public func cycleBeat(_ beat: Int) {
-        // 強 → 休み のように 2 つの集合を変えるので、途中の状態を反映しないよう 1 回の変更として扱う
-        batchPatternChange {
-            if restBeats.contains(beat) {
-                restBeats.remove(beat)
-            } else if accentBeats.contains(beat) {
-                accentBeats.remove(beat)
-                restBeats.insert(beat)
-            } else {
-                accentBeats.insert(beat)
-            }
-        }
+        setBeat(beat, to: beatState(beat).next)
     }
 
     /// 右クリックから状態を直接選ぶ。cycleBeat と違い、休みにするとき強拍を経由しない
     public func setBeat(_ beat: Int, to state: BeatState) {
+        // 強 → 休み のように 2 つの集合を変えるので、途中の状態を反映しないよう 1 回の変更として扱う
         batchPatternChange {
             accentBeats.remove(beat)
             restBeats.remove(beat)
@@ -119,6 +117,22 @@ extension PulstickEngine {
                 restBeats.remove(beat)
                 accentBeats.insert(beat)
             }
+        }
+    }
+}
+
+/// 1 つの拍の状態。拍の表示で切り替える 3 つ
+public enum BeatState: Sendable {
+    case normal
+    case accent
+    case rest
+
+    /// クリックで巡回するときの次の状態
+    var next: BeatState {
+        switch self {
+        case .normal: .accent
+        case .accent: .rest
+        case .rest: .normal
         }
     }
 }

@@ -35,7 +35,7 @@ struct BeatIndicator: View {
                             // クリックで巡回すると休みの手前で一度強拍になるので、右クリックから直接選べるようにする
                             .contextMenu {
                                 Picker("Beat \(beat + 1)", selection: Binding(
-                                    get: { beatState(beat) },
+                                    get: { engine.beatState(beat) },
                                     set: { engine.setBeat(beat, to: $0) }
                                 )) {
                                     Text("Normal").tag(BeatState.normal)
@@ -72,14 +72,12 @@ struct BeatIndicator: View {
         .pointingHandCursor()
     }
 
-    private func beatState(_ beat: Int) -> BeatState {
-        if engine.restBeats.contains(beat) { return .rest }
-        return engine.accentBeats.contains(beat) ? .accent : .normal
-    }
-
     private func beatStateName(_ beat: Int) -> Text {
-        if engine.restBeats.contains(beat) { return Text("Rest") }
-        return engine.accentBeats.contains(beat) ? Text("Accented") : Text("Not accented")
+        switch engine.beatState(beat) {
+        case .rest: Text("Rest")
+        case .accent: Text("Accented")
+        case .normal: Text("Not accented")
+        }
     }
 
     private func beatDot(beat: Int, diameter: CGFloat) -> some View {

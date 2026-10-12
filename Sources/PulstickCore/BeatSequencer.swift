@@ -6,13 +6,6 @@ public enum Subdivision: Int, CaseIterable, Codable, Sendable {
     case sixteenth = 4
 }
 
-/// 1 つの拍の状態。拍の表示で切り替える 3 つ
-public enum BeatState: CaseIterable, Sendable {
-    case normal
-    case accent
-    case rest
-}
-
 public enum ClickKind: Equatable, Sendable {
     case accent
     case normal

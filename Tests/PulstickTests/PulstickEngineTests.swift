@@ -104,6 +104,15 @@ struct RestBeatTests {
         #expect(engine.restBeats.contains(0))
     }
 
+    @Test func settingARestBeatToAccentClearsTheRest() {
+        let engine = makeEngine()
+        engine.setBeats(4)
+        engine.setBeat(2, to: .rest)
+        engine.setBeat(2, to: .accent)
+        #expect(engine.beatState(2) == .accent)
+        #expect(!engine.restBeats.contains(2))
+    }
+
     @Test func settingARestBeatToNormalClearsTheRest() {
         let engine = makeEngine()
         engine.setBeats(4)
