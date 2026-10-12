@@ -32,6 +32,8 @@ public final class PulstickEngine: ObservableObject {
         static let accentVolume = "pulstick.accentVolume"
         static let normalVolume = "pulstick.normalVolume"
         static let subdivision = "pulstick.subdivision"
+        static let speedTrainerEnabled = "pulstick.speedTrainerEnabled"
+        static let speedTrainer = "pulstick.speedTrainer"
     }
 
     @Published public var presets: [BeatPreset] = []
@@ -52,6 +54,10 @@ public final class PulstickEngine: ObservableObject {
         }
     }
     @Published public var isPlaying: Bool = false
+    /// 再生開始時刻。練習時間の表示に使う
+    @Published public private(set) var playStartedAt: Date?
+    /// 再生開始時の BPM。スピードトレーナーで上がったテンポを元に戻すために使う
+    @Published public private(set) var sessionStartBPM: Double?
     @Published public var beatsPerMeasure: Int = 4 {
         didSet {
             defaults.set(beatsPerMeasure, forKey: Keys.beats)
@@ -73,6 +79,20 @@ public final class PulstickEngine: ObservableObject {
             syncSequencer()
             if subdivision != oldValue {
                 restartTimerIfPlaying()
+            }
+        }
+    }
+
+    @Published public var speedTrainerEnabled = false {
+        didSet {
+            defaults.set(speedTrainerEnabled, forKey: Keys.speedTrainerEnabled)
+            speedTrainer.restart()
+        }
+    }
+    @Published public var speedTrainer = SpeedTrainer() {
+        didSet {
+            if let data = try? JSONEncoder().encode(speedTrainer) {
+                defaults.set(data, forKey: Keys.speedTrainer)
             }
         }
     }
@@ -171,6 +191,15 @@ public final class PulstickEngine: ObservableObject {
         if let saved = defaults.object(forKey: Keys.normalVolume) as? Double {
             normalVolume = saved.clamped(to: 0...1)
         }
+        // enabled の didSet が speedTrainer を書き戻すため、先に speedTrainer を復元する
+        if let data = defaults.object(forKey: Keys.speedTrainer) as? Data,
+           let saved = try? JSONDecoder().decode(SpeedTrainer.self, from: data)
+        {
+            speedTrainer = saved
+        }
+        if let saved = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool {
+            speedTrainerEnabled = saved
+        }
         if let raw = defaults.object(forKey: Keys.subdivision) as? Int,
            let saved = Subdivision(rawValue: raw)
         {
@@ -267,19 +296,30 @@ public final class PulstickEngine: ObservableObject {
         guard !isPlaying else { return }
         isPlaying = true
         currentBeat = 0
+        playStartedAt = Date()
+        sessionStartBPM = bpm
+        speedTrainer.restart()
 
         if !audioEngine.isRunning {
             try? audioEngine.start()
         }
 
         timerQueue.async { [self] in
-            play(sequencer.reset())
+            play(sequencer.reset(), countsMeasure: false)
         }
         scheduleTimer()
     }
 
+    /// スピードトレーナーで上げたテンポを再生開始時の値に戻す
+    public func returnToSessionStartBPM() {
+        guard let start = sessionStartBPM else { return }
+        bpm = start
+        speedTrainer.restart()
+    }
+
     public func stop() {
         isPlaying = false
+        playStartedAt = nil
         timerSource?.cancel()
         timerSource = nil
         accentPlayerNode.stop()
@@ -352,6 +392,12 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
+    /// 小節の終わりごとにメインスレッドで呼ばれる
+    func handleMeasureCompleted() {
+        guard speedTrainerEnabled, let next = speedTrainer.measureCompleted(currentBPM: bpm) else { return }
+        bpm = next
+    }
+
     private func restartTimerIfPlaying() {
         guard isPlaying else { return }
         timerSource?.cancel()
@@ -379,7 +425,7 @@ public final class PulstickEngine: ObservableObject {
             // 音の再生はタイマーキュー上で即実行する。
             // メインスレッドに送ると UI 処理の順番待ちで音が遅延するため。
             // 人間は視覚より聴覚のズレに敏感なので、音を優先し UI 更新だけ非同期で送る。
-            self.play(self.sequencer.advance())
+            self.play(self.sequencer.advance(), countsMeasure: true)
         }
         source.resume()
         timerSource = source
@@ -399,7 +445,7 @@ public final class PulstickEngine: ObservableObject {
     }
 
     /// タイマーキュー上で呼ぶ。音を先に鳴らし、UI 更新だけメインスレッドへ送る
-    private func play(_ tick: Tick) {
+    private func play(_ tick: Tick, countsMeasure: Bool) {
         let node: AVAudioPlayerNode
         let buffer: AVAudioPCMBuffer?
         switch tick.click {
@@ -416,6 +462,9 @@ public final class PulstickEngine: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.isPlaying else { return }
             self.currentBeat = tick.beat
+            if countsMeasure, tick.startsMeasure {
+                self.handleMeasureCompleted()
+            }
         }
     }
 

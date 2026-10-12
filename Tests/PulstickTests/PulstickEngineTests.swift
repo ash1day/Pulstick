@@ -304,3 +304,85 @@ struct BeatSequencerResetTests {
         #expect(seq.reset().click == .normal)
     }
 }
+
+// MARK: - SpeedTrainer
+
+@Suite("SpeedTrainer")
+struct SpeedTrainerTests {
+    @Test func raisesTempoAfterConfiguredMeasures() {
+        var trainer = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 5, targetBPM: 200)
+        #expect(trainer.measureCompleted(currentBPM: 100) == nil)
+        #expect(trainer.measureCompleted(currentBPM: 100) == 105)
+    }
+
+    @Test func stopsAtTargetTempo() {
+        var trainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 103)
+        #expect(trainer.measureCompleted(currentBPM: 100) == 103)
+        #expect(trainer.measureCompleted(currentBPM: 103) == nil)
+    }
+
+    @Test func countsAgainFromZeroAfterRaising() {
+        var trainer = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
+        _ = trainer.measureCompleted(currentBPM: 100)
+        _ = trainer.measureCompleted(currentBPM: 100)  // 101 へ
+        #expect(trainer.measureCompleted(currentBPM: 101) == nil)
+        #expect(trainer.measureCompleted(currentBPM: 101) == 102)
+    }
+
+    @Test func restartResetsMeasureCount() {
+        var trainer = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
+        _ = trainer.measureCompleted(currentBPM: 100)
+        trainer.restart()
+        #expect(trainer.measureCompleted(currentBPM: 100) == nil)
+    }
+}
+
+@Suite("PulstickEngine: スピードトレーナー")
+struct EngineSpeedTrainerTests {
+    @Test func raisesBPMWhenEnabled() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 200)
+        engine.speedTrainerEnabled = true
+        engine.handleMeasureCompleted()
+        #expect(engine.bpm == 105)
+    }
+
+    @Test func keepsBPMWhenDisabled() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 200)
+        engine.handleMeasureCompleted()
+        #expect(engine.bpm == 100)
+    }
+
+    @Test func settingsAreRestoredOnNextLaunch() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults)
+        first.speedTrainer = SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180)
+        first.speedTrainerEnabled = true
+        let second = PulstickEngine(defaults: defaults)
+        #expect(second.speedTrainer == SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180))
+        #expect(second.speedTrainerEnabled)
+    }
+}
+
+// MARK: - TempoMarking
+
+@Suite("TempoMarking")
+struct TempoMarkingTests {
+    @Test(arguments: [
+        (40.0, "Largo"), (59.0, "Largo"),
+        (60.0, "Larghetto"),
+        (66.0, "Adagio"),
+        (76.0, "Andante"), (107.0, "Andante"),
+        (108.0, "Moderato"),
+        (120.0, "Allegro"), (155.0, "Allegro"),
+        (156.0, "Vivace"),
+        (176.0, "Presto"),
+        (200.0, "Prestissimo"), (240.0, "Prestissimo"),
+    ])
+    func nameMatchesTempoRange(bpm: Double, expected: String) {
+        #expect(TempoMarking.name(for: bpm) == expected)
+    }
+}
