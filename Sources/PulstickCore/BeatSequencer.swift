@@ -52,7 +52,8 @@ public struct BeatSequencer {
             return Tick(beat: beat, click: .subdivision, startsMeasure: false, isRest: rests.contains(beat))
         }
         step = 0
-        beat = (beat + 1) % beatsPerMeasure
+        // 再生中に拍数が減って beat が範囲外になっていたら、小節頭に戻る（2 拍目などへ飛ばさない）
+        beat = beat + 1 >= beatsPerMeasure ? 0 : beat + 1
         return beatTick(beat)
     }
 

@@ -21,9 +21,10 @@ extension PulstickEngine {
         guard index < presets.count else { return }
         let preset = presets[index]
         batchPatternChange {
-            beatsPerMeasure = preset.beats
-            accentBeats = preset.accentSet
-            restBeats = preset.restSet
+            // 保存データが壊れていても拍数 0（ゼロ除算）や範囲外の拍にならないよう、曲と同じく検証する
+            beatsPerMeasure = preset.beats.clamped(to: Self.beatsRange)
+            accentBeats = validBeatIndices(preset.accents)
+            restBeats = validBeatIndices(preset.rests)
         }
     }
 
@@ -70,34 +71,41 @@ extension PulstickEngine {
 
     public func removeBeat() {
         guard beatsPerMeasure > Self.beatsRange.lowerBound else { return }
-        let last = beatsPerMeasure - 1
-        accentBeats.remove(last)
-        restBeats.remove(last)
-        beatsPerMeasure -= 1
-        if beatClock.current >= beatsPerMeasure {
-            beatClock.current = 0
+        batchPatternChange {
+            let last = beatsPerMeasure - 1
+            accentBeats.remove(last)
+            restBeats.remove(last)
+            beatsPerMeasure -= 1
+            if beatClock.current >= beatsPerMeasure {
+                beatClock.current = 0
+            }
         }
     }
 
     /// 拍をタップしたときの切り替え: 弱 → 強 → 休み → 弱
     public func cycleBeat(_ beat: Int) {
-        if restBeats.contains(beat) {
-            restBeats.remove(beat)
-        } else if accentBeats.contains(beat) {
-            accentBeats.remove(beat)
-            restBeats.insert(beat)
-        } else {
-            accentBeats.insert(beat)
+        // 強 → 休み のように 2 つの集合を変えるので、途中の状態を反映しないよう 1 回の変更として扱う
+        batchPatternChange {
+            if restBeats.contains(beat) {
+                restBeats.remove(beat)
+            } else if accentBeats.contains(beat) {
+                accentBeats.remove(beat)
+                restBeats.insert(beat)
+            } else {
+                accentBeats.insert(beat)
+            }
         }
     }
 
     public func toggleAccent(_ beat: Int) {
-        if accentBeats.contains(beat) {
-            accentBeats.remove(beat)
-        } else {
-            // 強と休みを同時に持たせない
-            restBeats.remove(beat)
-            accentBeats.insert(beat)
+        batchPatternChange {
+            if accentBeats.contains(beat) {
+                accentBeats.remove(beat)
+            } else {
+                // 強と休みを同時に持たせない
+                restBeats.remove(beat)
+                accentBeats.insert(beat)
+            }
         }
     }
 }

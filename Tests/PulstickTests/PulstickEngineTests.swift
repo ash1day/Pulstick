@@ -334,6 +334,20 @@ struct SongTests {
         #expect(engine.bpm == 110)
     }
 
+    @Test func unsavedPracticeTodayFollowsTheLoggingRules() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let clock = TestClock()
+        clock.date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 12, hour: 23, minute: 50))!
+        let engine = makeEngine(clock: clock)
+        engine.start()
+        clock.advance(3)
+        #expect(engine.unsavedPracticeToday(calendar: calendar) == 0)  // 5 秒未満はまだ数えない
+        clock.advance(20 * 60 - 3)  // 0:10 まで
+        #expect(engine.unsavedPracticeToday(calendar: calendar) == 10 * 60)  // 日付が変わってからの分だけ
+        engine.stop()
+    }
+
     @Test func savingWhilePlayingStartsCountingThatSong() {
         let clock = TestClock()
         let engine = makeEngine(clock: clock)
@@ -413,15 +427,50 @@ struct SongTests {
         #expect(!engine.matchesCurrentSettings(song))
     }
 
-    @Test func anExactMatchWinsOverTheDriftedSelection() {
+    @Test func theChosenSongStaysCurrentWhenItsTempoDriftsOntoAnother() {
+        // スピードトレーナーなどで A のテンポが B と同じになっても、選んだ A のまま（B に乗っ取られない）
         let engine = makeEngine()
         engine.bpm = 100
         engine.saveCurrentAsSong(named: "A")
         engine.bpm = 120
         engine.saveCurrentAsSong(named: "B")
         engine.applySong(engine.songs[0])
-        engine.bpm = 120  // B と完全に同じ設定になった
+        engine.bpm = 120
+        #expect(engine.currentSong?.name == "A")
+    }
+
+    @Test func anExactMatchIsUsedWhenTheChosenSongNoLongerFits() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.setBeats(3)
+        engine.bpm = 120
+        engine.saveCurrentAsSong(named: "B")  // 3 拍子
+        engine.applySong(engine.songs[0])
+        engine.setBeats(3)
+        engine.bpm = 120  // A の拍子から外れ、B と完全一致
         #expect(engine.currentSong?.name == "B")
+    }
+
+    @Test func deletingTheSongBeingPractisedKeepsCountingTheSongThatMatches() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        for name in ["A", "B"] { engine.saveCurrentAsSong(named: name) }  // 同じ設定
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.deleteSong(engine.songs[0])
+        clock.advance(60)
+        engine.stop()
+        #expect(engine.songs.first?.practiceSeconds == 60)
+    }
+
+    @Test func corruptPresetsCannotSetZeroBeats() {
+        let defaults = InMemorySettingsStore()
+        let bad = #"[{"beats":0,"accents":[0]},{"beats":3,"accents":[0]},{"beats":6,"accents":[0,3]},{"beats":9,"accents":[0,3,6]}]"#
+        defaults.set(bad.data(using: .utf8), forKey: "pulstick.presets")
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        engine.applyPreset(at: 0)
+        #expect(engine.beatsPerMeasure >= 1)
     }
 
     @Test func songsCanMoveMoreThanOneStep() {
@@ -711,6 +760,16 @@ struct BeatSequencerRestTests {
         #expect(seq.advance().isRest)   // 1 拍目のウラ
         #expect(!seq.advance().isRest)  // 2 拍目
         #expect(!seq.advance().isRest)  // 2 拍目のウラ
+    }
+}
+
+@Suite("BeatSequencer: 拍数の変更")
+struct BeatSequencerShrinkTests {
+    @Test func shrinkingTheBarWhilePlayingGoesBackToTheDownbeat() {
+        var seq = BeatSequencer(beatsPerMeasure: 4, accents: [0])
+        _ = seq.advance(); _ = seq.advance(); _ = seq.advance()  // 4 拍目
+        seq.beatsPerMeasure = 3
+        #expect(seq.advance() == Tick(beat: 0, click: .accent, startsMeasure: true))
     }
 }
 
@@ -1041,6 +1100,17 @@ struct PlaybackIntegrationTests {
         engine.stopAfter = 0.3  // 再生中に設定しても効く
         try await spin(0.6)
         #expect(!engine.isPlaying)
+    }
+
+    @Test func practiceTimerSetWhilePlayingCountsFromThatMoment() async throws {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.start()
+        clock.advance(720)  // 12 分練習してから
+        engine.stopAfter = 600  // 「10 分」を選ぶ
+        try await spin(0.1)
+        #expect(engine.isPlaying)
+        engine.stop()
     }
 
     @Test func playbackContinuesWithoutPracticeTimer() async throws {

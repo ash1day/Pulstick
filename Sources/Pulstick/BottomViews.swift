@@ -63,8 +63,10 @@ struct TransportRow: View {
         if engine.isPlaying, let startedAt = engine.playStartedAt {
             TimelineView(.periodic(from: startedAt, by: 1)) { context in
                 let elapsed = context.date.timeIntervalSince(startedAt)
+                // 練習タイマーは再生中に選び直すとそこから数えるので、残り時間はタイマーの起点から求める
+                let timerElapsed = context.date.timeIntervalSince(engine.practiceTimerStartedAt ?? startedAt)
                 Label {
-                    Text(ElapsedTime.format(engine.stopAfter.map { $0 - elapsed } ?? elapsed))
+                    Text(ElapsedTime.format(engine.stopAfter.map { $0 - timerElapsed } ?? elapsed))
                         .monospacedDigit()
                 } icon: {
                     Image(systemName: engine.stopAfter == nil ? "stop.fill" : "timer")
@@ -128,7 +130,8 @@ struct PracticeSummary: View {
         if engine.isPlaying || !engine.practiceLog.secondsByDay.isEmpty {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let now = context.date
-                let running = engine.playStartedAt.map { now.timeIntervalSince($0) } ?? 0
+                // 記録と同じ規則（5 秒未満は数えない・日付をまたいだら今日の分だけ）で再生中の時間を足す
+                let running = engine.unsavedPracticeToday()
                 let today = engine.practiceLog.seconds(on: now) + running
                 let streak = engine.practiceLog.streak(endingAt: now, practisingNow: running > 0)
                 let week = recentWeek(endingAt: now, running: running)

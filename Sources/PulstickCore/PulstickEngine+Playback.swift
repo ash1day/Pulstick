@@ -17,6 +17,7 @@ extension PulstickEngine {
         let generation = playbackGeneration
         beatClock.current = 0
         playStartedAt = now()
+        practiceTimerStartedAt = playStartedAt
         restartSession()
         songPractice.start(currentSong?.id, at: now())
 
@@ -75,14 +76,14 @@ extension PulstickEngine {
     func schedulePracticeTimer() {
         practiceTimer?.cancel()
         practiceTimer = nil
-        guard isPlaying, let limit = stopAfter, let startedAt = playStartedAt else { return }
+        guard isPlaying, let limit = stopAfter, let startedAt = practiceTimerStartedAt else { return }
         let generation = playbackGeneration
         let item = DispatchWorkItem { [weak self] in
             guard let self, self.isPlaying, self.playbackGeneration == generation else { return }
             self.stop()
         }
         practiceTimer = item
-        let remaining = max(0, limit - Date().timeIntervalSince(startedAt))
+        let remaining = max(0, limit - now().timeIntervalSince(startedAt))
         // スリープ中も時間が進むよう、起動時間ではなく実時間（wallDeadline）で指定する
         DispatchQueue.main.asyncAfter(wallDeadline: .now() + remaining, execute: item)
     }

@@ -60,6 +60,9 @@ public final class PulstickEngine: ObservableObject {
             guard !isRestoring, bpm != oldValue else { return }
             defaults.set(bpm, forKey: Keys.bpm)
             retimeIfPlaying()
+            if patternBatchDepth == 0 {
+                followCurrentSongIfPlaying()
+            }
         }
     }
     @Published public var isPlaying: Bool = false
@@ -153,8 +156,14 @@ public final class PulstickEngine: ObservableObject {
 
     /// 練習タイマー。設定すると、再生開始からこの秒数で自動的に止まる。nil なら止まらない
     @Published public var stopAfter: TimeInterval? {
-        didSet { schedulePracticeTimer() }
+        didSet {
+            // 再生中に選んだら「ここから N 分」。経過時間より短い値を選んでも即座には止めない
+            if isPlaying { practiceTimerStartedAt = now() }
+            schedulePracticeTimer()
+        }
     }
+    /// 練習タイマーを数え始めた時刻（再生開始時、または再生中にタイマーを選んだ時刻）
+    @Published public internal(set) var practiceTimerStartedAt: Date?
     var practiceTimer: DispatchWorkItem?
 
     /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない

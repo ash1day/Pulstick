@@ -108,11 +108,12 @@ struct LocalizationTests {
         return withoutInterpolation.rangeOfCharacter(from: .letters) != nil
     }
 
-    /// \(…) を %lld か %@ に置き換えたキーの候補（LocalizedStringKey の補間と同じ規則）
+    /// \(…) を、補間する値の型に合わせて %lld か %@ に置き換えたキー（LocalizedStringKey の補間と同じ規則）。
+    /// 型を取り違えた訳（"Today %@ min" など）は実行時に見つからないので、両方を許さず 1 つに決める
     private func candidateKeys(for literal: String) -> [String] {
         let parts = literal.components(separatedBy: #"\("#)
         guard parts.count > 1 else { return [literal] }
-        var keys = [parts[0]]
+        var key = parts[0]
         for part in parts.dropFirst() {
             // 補間の閉じ括弧の位置を、括弧の対応で探す
             var depth = 1
@@ -122,9 +123,17 @@ struct LocalizationTests {
                 if part[index] == ")" { depth -= 1 }
                 if depth == 0 { end = index; break }
             }
-            let rest = String(part[part.index(after: end)...])
-            keys = keys.flatMap { [$0 + "%lld" + rest, $0 + "%@" + rest] }
+            let expression = String(part[..<end])
+            key += specifier(for: expression) + String(part[part.index(after: end)...])
         }
-        return keys
+        return [key]
+    }
+
+    /// 補間している式から型を判断する。このアプリで補間しているのは整数か文字列だけ
+    private func specifier(for expression: String) -> String {
+        let integerNames: Set = ["streak", "minutes", "value", "index"]
+        let isInteger = expression.hasPrefix("Int(") || expression.hasSuffix("+ 1")
+            || expression.hasSuffix(".beats") || integerNames.contains(expression)
+        return isInteger ? "%lld" : "%@"
     }
 }

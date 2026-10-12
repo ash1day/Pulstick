@@ -29,6 +29,13 @@ public struct SongPracticeTracker {
         activeSongID = id
     }
 
+    /// 数えていた曲が削除されたとき、その曲の未確定分と数えている途中の時間を別の曲（または無し）に付け替える
+    public mutating func adoptReplacing(_ removed: UUID, with replacement: UUID?) {
+        let carried = pending.removeValue(forKey: removed)
+        if activeSongID == removed { activeSongID = replacement }
+        if let replacement, let carried { pending[replacement, default: 0] += carried }
+    }
+
     /// 曲の未確定分と、いま数えている途中の時間の合計
     public func unsavedSeconds(for id: UUID, at now: Date) -> Double {
         var total = pending[id] ?? 0

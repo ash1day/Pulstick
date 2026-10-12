@@ -49,6 +49,10 @@ extension PulstickEngine {
     public func deleteSong(_ song: Song) {
         songs.removeAll { $0.id == song.id }
         if selectedSongID == song.id { selectedSongID = nil }
+        // 数えていた曲が消えたら、その時間を捨てずに、いま一致する曲へ数え直す
+        if songPractice.activeSongID == song.id {
+            songPractice.adoptReplacing(song.id, with: currentSong?.id)
+        }
     }
 
     /// 設定が完全に一致するか
@@ -57,14 +61,14 @@ extension PulstickEngine {
     }
 
     /// いま使っている曲。
-    /// 1. 設定が完全に一致する曲（同じ設定の曲が複数あれば選んだ曲を優先）
-    /// 2. 選んだ曲の拍子と細分が変わっていなければ、テンポが練習で上下していてもその曲
+    /// 1. 選んだ曲の拍子と細分が変わっていなければ、その曲（テンポがトレーナーや矢印キーで上下して
+    ///    別の曲の BPM と重なっても乗り換えない）
+    /// 2. そうでなければ、設定が完全に一致する最初の曲
     public var currentSong: Song? {
-        let selected = songs.first { $0.id == selectedSongID }
-        if let selected, matchesCurrentSettings(selected) { return selected }
-        if let exact = songs.first(where: matchesCurrentSettings) { return exact }
-        if let selected, matchesCurrentPattern(selected) { return selected }
-        return nil
+        if let selected = songs.first(where: { $0.id == selectedSongID }), matchesCurrentPattern(selected) {
+            return selected
+        }
+        return songs.first(where: matchesCurrentSettings)
     }
 
     private func matchesCurrentPattern(_ song: Song) -> Bool {
@@ -119,6 +123,14 @@ extension PulstickEngine {
         if isLongEnoughToLog {
             commitSongPractice(songPractice.takePending())
         }
+    }
+
+    /// 再生中でまだ練習ログに記録していない時間のうち、今日の分。
+    /// 記録と同じく 5 秒未満は数えず、日付をまたいだら今日の 0 時以降だけを数える
+    public func unsavedPracticeToday(calendar: Calendar = .current) -> TimeInterval {
+        guard isLongEnoughToLog, let startedAt = playStartedAt else { return 0 }
+        let current = now()
+        return current.timeIntervalSince(max(startedAt, calendar.startOfDay(for: current)))
     }
 
     var isLongEnoughToLog: Bool {
