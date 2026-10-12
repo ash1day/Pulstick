@@ -113,6 +113,18 @@ struct SongList: View {
         }
         // セットリストの順番を入れ替える
         .contextMenu {
+            // 難しい曲は本来のテンポより遅く始め、慣れたら上げていく
+            ForEach([70, 80, 90], id: \.self) { percent in
+                Button {
+                    engine.applySong(song, tempoPercent: percent)
+                    dismiss()
+                } label: {
+                    let percentText = "\(percent)%"
+                    let tempo = Int((song.bpm * Double(percent) / 100).rounded())
+                    Text("Practise at \(percentText)") + Text(verbatim: " (♩=\(tempo))")
+                }
+            }
+            Divider()
             Button("Move Up") { engine.moveSong(song, by: -1) }
                 .disabled(song.id == engine.songs.first?.id)
             Button("Move Down") { engine.moveSong(song, by: 1) }

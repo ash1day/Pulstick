@@ -694,6 +694,29 @@ struct SongTests {
         #expect(third.bpm == 140)
     }
 
+    @Test func aSongCanBePractisedAtAFractionOfItsTempo() {
+        let engine = makeEngine()
+        engine.bpm = 160
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.bpm = 100
+        engine.applySong(engine.songs[0], tempoPercent: 80)
+        #expect(engine.bpm == 128)
+        #expect(engine.currentSong?.name == "Etude")  // テンポを落としても同じ曲の練習
+    }
+
+    @Test func practisingAtAFractionRecordsTheSlowerTempoAsBest() {
+        let clock = TestClock()
+        let engine = makeEngine(clock: clock)
+        engine.bpm = 160
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.setBeats(3)  // 別の曲を弾いている状態から
+        engine.start()
+        engine.applySong(engine.songs[0], tempoPercent: 80)
+        clock.advance(60)
+        engine.stop()
+        #expect(engine.songs[0].bestBPM == 128)  // 本来の 160 を一瞬でも記録しない
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

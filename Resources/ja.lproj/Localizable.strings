@@ -142,3 +142,4 @@
 "Reset" = "リセット";
 "This clears today's minutes, your streak, the 7-day chart and each song's practice time and best tempo. Your songs stay." = "今日の練習時間、連続日数、7 日間のグラフ、曲ごとの練習時間と最高テンポを消します。曲そのものは残ります。";
 "Best ♩=%lld" = "最高 ♩=%lld";
+"Practise at %@" = "%@ のテンポで練習";

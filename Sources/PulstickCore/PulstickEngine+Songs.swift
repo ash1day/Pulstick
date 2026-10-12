@@ -29,11 +29,18 @@ extension PulstickEngine {
     }
 
     public func applySong(_ song: Song) {
+        applySong(song, tempoPercent: 100)
+    }
+
+    /// 曲を呼び出す。tempoPercent を指定すると、本来のテンポの何 % で練習するかを選べる
+    /// （難しい曲を 70〜80% から始める定番の練習法。拍子は同じなので、その曲の練習として数える）
+    public func applySong(_ song: Song, tempoPercent: Int) {
         // 先に選択しておくと、パターンの反映時に曲の切り替えが 1 回で済む
         selectedSongID = song.id
         selectedSongIsTentative = false
         batchPatternChange {
-            bpm = song.bpm
+            // テンポも一括変更の中で決める。先に本来のテンポを入れると、再生中はそれが最高テンポに記録されてしまう
+            bpm = (song.bpm * Double(tempoPercent) / 100).rounded()
             applyPattern(song.pattern)
             subdivision = song.subdivision
         }
