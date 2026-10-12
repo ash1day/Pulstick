@@ -30,6 +30,13 @@ struct PulstickApp: App {
         ) { _ in
             MainActor.assumeIsolated { engine.stop() }
         }
+        // 再生したまま蓋を閉じると、起きるまでの何時間もが練習として記録されてしまう。
+        // スリープの直前に止めて、そこまでを記録する（スリープ中は音も出ないので、続けて鳴らす意味もない）
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { engine.stop() }
+        }
         NotificationCenter.default.addObserver(
             forName: NSApplication.didFinishLaunchingNotification, object: nil, queue: .main
         ) { _ in

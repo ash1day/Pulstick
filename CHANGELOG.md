@@ -33,6 +33,7 @@
 - A possible crash when changing the beat pattern while playing (data race).
 - After a quick stop and start, a beat from the previous run could appear.
 - A click could sound once after stopping.
+- Playback now stops when the Mac goes to sleep, so a night with the lid closed is not logged as practice.
 
 ### Distribution
 - Releases are built for both Apple Silicon and Intel, ad-hoc signed and attached as `Pulstick.zip` by GitHub Actions.
