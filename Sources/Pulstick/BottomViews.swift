@@ -61,7 +61,14 @@ struct TransportRow: View {
         case (false, true): Text("Play (Space, or ⌃⌥M from any app)")
         case (false, false): Text("Play (Space)")
         }
-        return base + Text(verbatim: " · ") + Text("Right-click for a practice timer and count-in")
+        // カウントインを入れたまま忘れていても、再生前に気付けるように
+        let countIn: Text? = switch engine.countInBars {
+        case 1: Text("1-bar count-in")
+        case 2: Text("2-bar count-in")
+        default: nil
+        }
+        let settings = countIn.map { Text(verbatim: " · ") + $0 } ?? Text(verbatim: "")
+        return base + settings + Text(verbatim: " · ") + Text("Right-click for a practice timer and count-in")
     }
 
     /// 再生中は経過時間（練習タイマー設定時は残り時間）を表示し、どれだけ練習したか分かるようにする

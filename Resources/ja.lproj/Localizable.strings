@@ -158,6 +158,8 @@
 /* Count-in */
 "Count-in" = "カウントイン";
 "No Count-in" = "カウントインなし";
+"1-bar count-in" = "カウントイン 1 小節";
+"2-bar count-in" = "カウントイン 2 小節";
 "1 Bar" = "1 小節";
 "2 Bars" = "2 小節";
 
