@@ -23,8 +23,17 @@ public struct BeatPreset: Codable, Equatable {
 /// メトロノームのオーディオ再生とタイミング制御を担当するエンジン。
 /// AVAudioEngine でクリック音をプログラム生成し、DispatchSourceTimer で正確なビート間隔を維持する。
 public final class PulstickEngine: ObservableObject {
+    /// UserDefaults のキー。値の型を変えるときはキー名も変えて旧データと衝突させないこと
+    private enum Keys {
+        static let presets = "pulstick.presets"
+        static let bpm = "pulstick.bpm"
+        static let beats = "pulstick.beats"
+        static let accents = "pulstick.accents"
+        static let accentVolume = "pulstick.accentVolume"
+        static let normalVolume = "pulstick.normalVolume"
+    }
+
     @Published public var presets: [BeatPreset] = []
-    private let presetsKey = "pulstick.presets"
 
     @Published public var bpm: Double = 120 {
         // didSet 内で clamp して再代入すると didSet が再発火するため、
@@ -36,21 +45,32 @@ public final class PulstickEngine: ObservableObject {
                 return
             }
             if bpm != oldValue {
+                defaults.set(bpm, forKey: Keys.bpm)
                 restartTimerIfPlaying()
             }
         }
     }
     @Published public var isPlaying: Bool = false
-    @Published public var beatsPerMeasure: Int = 4
+    @Published public var beatsPerMeasure: Int = 4 {
+        didSet { defaults.set(beatsPerMeasure, forKey: Keys.beats) }
+    }
     @Published public var currentBeat: Int = 0
     /// ユーザーが選択したアクセント拍の位置。タップで自由にon/off可能
-    @Published public var accentBeats: Set<Int> = [0]
+    @Published public var accentBeats: Set<Int> = [0] {
+        didSet { defaults.set(Array(accentBeats).sorted(), forKey: Keys.accents) }
+    }
 
     @Published public var accentVolume: Double = 1.0 {
-        didSet { accentPlayerNode.volume = Float(accentVolume) }
+        didSet {
+            accentPlayerNode.volume = Float(accentVolume)
+            defaults.set(accentVolume, forKey: Keys.accentVolume)
+        }
     }
     @Published public var normalVolume: Double = 0.7 {
-        didSet { normalPlayerNode.volume = Float(normalVolume) }
+        didSet {
+            normalPlayerNode.volume = Float(normalVolume)
+            defaults.set(normalVolume, forKey: Keys.normalVolume)
+        }
     }
 
     private var audioEngine: AVAudioEngine
@@ -75,7 +95,10 @@ public final class PulstickEngine: ObservableObject {
     private let maxTapCount = 4
     private let tapTimeout: TimeInterval = 2.0
 
-    public init() {
+    private let defaults: SettingsStore
+
+    public init(defaults: SettingsStore = UserDefaults.standard) {
+        self.defaults = defaults
         audioEngine = AVAudioEngine()
         accentPlayerNode = AVAudioPlayerNode()
         normalPlayerNode = AVAudioPlayerNode()
@@ -86,13 +109,13 @@ public final class PulstickEngine: ObservableObject {
         audioEngine.connect(accentPlayerNode, to: audioEngine.mainMixerNode, format: format)
         audioEngine.connect(normalPlayerNode, to: audioEngine.mainMixerNode, format: format)
 
-        accentPlayerNode.volume = 1.0
-        normalPlayerNode.volume = 0.7
-
         accentBuffer = generateClickBuffer(format: format, frequency: accentFrequency)
         normalBuffer = generateClickBuffer(format: format, frequency: normalFrequency)
 
         loadPresets()
+        restoreSettings()
+        accentPlayerNode.volume = Float(accentVolume)
+        normalPlayerNode.volume = Float(normalVolume)
 
         do {
             try audioEngine.start()
@@ -101,8 +124,27 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
+    /// init 内の代入では didSet が発火しないため、ここでの復元が再保存を誘発することはない
+    private func restoreSettings() {
+        if let saved = defaults.object(forKey: Keys.bpm) as? Double {
+            bpm = saved.clamped(to: 40...240)
+        }
+        if let saved = defaults.object(forKey: Keys.beats) as? Int {
+            beatsPerMeasure = max(1, min(saved, 16))
+        }
+        if let saved = defaults.object(forKey: Keys.accents) as? [Int] {
+            accentBeats = Set(saved.filter { $0 < beatsPerMeasure })
+        }
+        if let saved = defaults.object(forKey: Keys.accentVolume) as? Double {
+            accentVolume = saved.clamped(to: 0...1)
+        }
+        if let saved = defaults.object(forKey: Keys.normalVolume) as? Double {
+            normalVolume = saved.clamped(to: 0...1)
+        }
+    }
+
     private func loadPresets() {
-        if let data = UserDefaults.standard.data(forKey: presetsKey),
+        if let data = defaults.object(forKey: Keys.presets) as? Data,
            let saved = try? JSONDecoder().decode([BeatPreset].self, from: data),
            saved.count == BeatPreset.defaults.count
         {
@@ -114,7 +156,7 @@ public final class PulstickEngine: ObservableObject {
 
     private func persistPresets() {
         if let data = try? JSONEncoder().encode(presets) {
-            UserDefaults.standard.set(data, forKey: presetsKey)
+            defaults.set(data, forKey: Keys.presets)
         }
     }
 
