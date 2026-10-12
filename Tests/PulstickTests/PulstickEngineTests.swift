@@ -469,6 +469,24 @@ struct SongTests {
         #expect(engine.songs[1].practiceSeconds >= 300)
     }
 
+    @Test func switchingSongsWhilePlayingSavesSongsOnce() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.setBeats(3)
+        engine.bpm = 120
+        engine.saveCurrentAsSong(named: "B")
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.playStartedAt = Date().addingTimeInterval(-600)  // 記録に値する長さの再生
+        var writes = 0
+        let subscription = engine.$songs.dropFirst().sink { _ in writes += 1 }
+        engine.applySong(engine.songs[1])  // 拍子も変わる曲への切り替え
+        subscription.cancel()
+        engine.stop()
+        #expect(writes == 1)
+    }
+
     @Test func resavingASongKeepsItsPracticeTime() {
         let engine = makeEngine()
         engine.saveCurrentAsSong(named: "Etude")

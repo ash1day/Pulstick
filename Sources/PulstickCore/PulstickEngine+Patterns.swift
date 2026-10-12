@@ -20,9 +20,11 @@ extension PulstickEngine {
     public func applyPreset(at index: Int) {
         guard index < presets.count else { return }
         let preset = presets[index]
-        beatsPerMeasure = preset.beats
-        accentBeats = preset.accentSet
-        restBeats = preset.restSet
+        batchPatternChange {
+            beatsPerMeasure = preset.beats
+            accentBeats = preset.accentSet
+            restBeats = preset.restSet
+        }
     }
 
     public func saveCurrentAsPreset(at index: Int) {
@@ -53,9 +55,11 @@ extension PulstickEngine {
     }
 
     public func setBeats(_ beats: Int) {
-        beatsPerMeasure = beats.clamped(to: Self.beatsRange)
-        accentBeats = [0]
-        restBeats = []
+        batchPatternChange {
+            beatsPerMeasure = beats.clamped(to: Self.beatsRange)
+            accentBeats = [0]
+            restBeats = []
+        }
     }
 
     public func addBeat() {

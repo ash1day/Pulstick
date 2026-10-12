@@ -27,6 +27,9 @@ public final class PulstickEngine: ObservableObject {
         static let songs = "pulstick.songs"
     }
 
+    /// batchPatternChange の入れ子の深さ。0 より大きい間は、拍のパターン変更の反映を後回しにする
+    var patternBatchDepth = 0
+
     /// 起動時の復元中は didSet の副作用（保存・タイマーキューへの反映・音色生成）を止め、
     /// 復元後に一度だけまとめて反映する
     var isRestoring = false
@@ -68,7 +71,7 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             guard !isRestoring else { return }
             defaults.set(beatsPerMeasure, forKey: Keys.beats)
-            syncSequencer()
+            patternDidChange()
         }
     }
     /// 拍ごとに変わる表示用の状態。このオブジェクト自体の変更通知とは分けてある
@@ -79,7 +82,7 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             guard !isRestoring else { return }
             defaults.set(Array(accentBeats).sorted(), forKey: Keys.accents)
-            syncSequencer()
+            patternDidChange()
         }
     }
 
@@ -88,7 +91,7 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             guard !isRestoring else { return }
             defaults.set(Array(restBeats).sorted(), forKey: Keys.rests)
-            syncSequencer()
+            patternDidChange()
         }
     }
 
@@ -96,7 +99,7 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             guard !isRestoring, subdivision != oldValue else { return }
             defaults.set(subdivision.rawValue, forKey: Keys.subdivision)
-            syncSequencer()
+            patternDidChange()
             retimeIfPlaying()
         }
     }
@@ -121,14 +124,14 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             guard !isRestoring else { return }
             defaults.set(gapTrainerEnabled, forKey: Keys.gapTrainerEnabled)
-            syncSequencer()
+            patternDidChange()
         }
     }
     @Published public var gapTrainer = GapTrainer() {
         didSet {
             guard !isRestoring else { return }
             defaults.setCodable(gapTrainer, forKey: Keys.gapTrainer)
-            syncSequencer()
+            patternDidChange()
         }
     }
 
@@ -157,7 +160,7 @@ public final class PulstickEngine: ObservableObject {
 
     /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない
     @Published public var isMuted = false {
-        didSet { syncSequencer() }
+        didSet { patternDidChange() }
     }
 
     @Published public var clickSound: ClickSound = .beep {

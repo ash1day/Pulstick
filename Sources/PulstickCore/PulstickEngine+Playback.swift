@@ -147,6 +147,21 @@ extension PulstickEngine {
 
     /// sequencer はタイマーキュー専用。メインスレッドの設定変更はここで非同期に反映し、
     /// タイマーキューとメインスレッドから同じ Set を同時に触るデータ競合を避ける
+    /// 拍のパターンや練習設定が変わったときに didSet から呼ぶ。まとめて変更している最中は反映を後回しにする
+    func patternDidChange() {
+        guard patternBatchDepth == 0 else { return }
+        syncSequencer()
+    }
+
+    /// 拍数・アクセント・休符・細分などを続けて変えるときに使う。
+    /// 1 つ変えるたびにタイマーキューへの反映や曲の切り替え（と保存）が走らないよう、最後に 1 回だけ反映する
+    func batchPatternChange(_ changes: () -> Void) {
+        patternBatchDepth += 1
+        changes()
+        patternBatchDepth -= 1
+        patternDidChange()
+    }
+
     func syncSequencer() {
         followCurrentSongIfPlaying()
         let beats = beatsPerMeasure

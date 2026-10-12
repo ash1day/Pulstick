@@ -28,16 +28,21 @@ extension PulstickEngine {
     }
 
     public func applySong(_ song: Song) {
-        bpm = song.bpm
-        beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
-        accentBeats = validBeatIndices(song.pattern.accents)
-        restBeats = validBeatIndices(song.pattern.rests)
-        subdivision = song.subdivision
+        // 先に選択しておくと、パターンの反映時に曲の切り替えが 1 回で済む
         selectedSongID = song.id
+        batchPatternChange {
+            bpm = song.bpm
+            beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
+            accentBeats = validBeatIndices(song.pattern.accents)
+            restBeats = validBeatIndices(song.pattern.rests)
+            subdivision = song.subdivision
+        }
         // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
         if isPlaying {
             restartSession()
-            switchSongPractice(to: song.id)
+            if activeSongID != song.id {
+                switchSongPractice(to: song.id)
+            }
         }
     }
 
