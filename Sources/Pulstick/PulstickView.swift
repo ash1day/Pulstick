@@ -304,7 +304,7 @@ struct PulstickView: View {
             }
             .controlSize(.large)
             .buttonStyle(.bordered)
-            .help("Tap along to set the tempo (T)")
+            .help("Tap along to set the tempo (T, or ⌃⌥T from any app)")
             .pointingHandCursor()
 
             Button {
@@ -318,7 +318,7 @@ struct PulstickView: View {
             .buttonStyle(.borderedProminent)
             .tint(engine.isPlaying ? .red : .accentColor)
             .keyboardShortcut(.space, modifiers: [])
-            .help(engine.isPlaying ? "Stop (Space)" : "Play (Space)")
+            .help(engine.isPlaying ? "Stop (Space, or ⌃⌥M from any app)" : "Play (Space, or ⌃⌥M from any app)")
             .pointingHandCursor()
         }
     }
@@ -329,7 +329,7 @@ struct PulstickView: View {
         if engine.isPlaying, let startedAt = engine.playStartedAt {
             TimelineView(.periodic(from: startedAt, by: 1)) { context in
                 Label {
-                    Text(Self.formatElapsed(context.date.timeIntervalSince(startedAt)))
+                    Text(ElapsedTime.format(context.date.timeIntervalSince(startedAt)))
                         .monospacedDigit()
                 } icon: {
                     Image(systemName: "stop.fill")
@@ -338,16 +338,6 @@ struct PulstickView: View {
         } else {
             Label("Play", systemImage: "play.fill")
         }
-    }
-
-    static func formatElapsed(_ interval: TimeInterval) -> String {
-        let total = max(0, Int(interval))
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
-        let seconds = total % 60
-        return hours > 0
-            ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
-            : String(format: "%d:%02d", minutes, seconds)
     }
 
     // MARK: - Volume Controls

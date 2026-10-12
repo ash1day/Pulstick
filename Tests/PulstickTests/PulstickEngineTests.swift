@@ -386,3 +386,15 @@ struct TempoMarkingTests {
         #expect(TempoMarking.name(for: bpm) == expected)
     }
 }
+
+// MARK: - ElapsedTime
+
+@Suite("ElapsedTime")
+struct ElapsedTimeTests {
+    @Test(arguments: [
+        (0.0, "0:00"), (5.9, "0:05"), (65.0, "1:05"), (3600.0, "1:00:00"), (3725.0, "1:02:05"), (-3.0, "0:00"),
+    ])
+    func formatsAsClock(seconds: Double, expected: String) {
+        #expect(ElapsedTime.format(seconds) == expected)
+    }
+}
