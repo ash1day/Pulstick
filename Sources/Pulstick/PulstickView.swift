@@ -7,8 +7,15 @@ struct PulstickView: View {
     @ObservedObject var engine: PulstickEngine
     /// スナップショット時は nil
     let hotKeys: GlobalHotKeys?
-    @State private var isEditingBPM = false
+    @State private var isEditingBPM: Bool
     @State private var isShowingSongs = false
+
+    /// - Parameter isEditingBPM: テストで「BPM を入力中」の状態から始めるときだけ true を渡す
+    init(engine: PulstickEngine, hotKeys: GlobalHotKeys?, isEditingBPM: Bool = false) {
+        self.engine = engine
+        self.hotKeys = hotKeys
+        _isEditingBPM = State(initialValue: isEditingBPM)
+    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -62,12 +69,18 @@ struct PulstickView: View {
         return ZStack {
             ForEach(bindings.indices, id: \.self) { index in
                 let binding = bindings[index]
-                Button("") { binding.action(engine) }
-                    .keyboardShortcut(binding.key, modifiers: binding.modifiers)
+                Button("") { binding.action(engine, Self.currentModifiers()) }
+                    .keyboardShortcut(binding.key, modifiers: [])
             }
         }
         .opacity(0)
         .allowsHitTesting(false)
         .disabled(isEditingBPM || isShowingSongs)
+    }
+
+    /// いま押されている修飾キー。キー処理中なら処理中のイベント、なければハードウェアの状態から読む
+    private static func currentModifiers() -> EventModifiers {
+        let flags = NSApp?.currentEvent?.modifierFlags ?? NSEvent.modifierFlags
+        return flags.contains(.shift) ? .shift : []
     }
 }
