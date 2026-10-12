@@ -1587,3 +1587,70 @@ struct CodableRoundTripTests {
         #expect(decoded == song)
     }
 }
+
+// MARK: - StoredSettings
+
+@Suite("StoredSettings")
+struct StoredSettingsTests {
+    @Test func readsAndValidatesSavedValues() {
+        let store = InMemorySettingsStore()
+        store.set(999.0, forKey: "pulstick.bpm")          // 範囲外 → 丸める
+        store.set(5, forKey: "pulstick.beats")
+        store.set([-1, 0, 3, 9], forKey: "pulstick.accents")  // 範囲外の拍は捨てる
+        store.set([4], forKey: "pulstick.rests")
+        store.set(1.5, forKey: "pulstick.accentVolume")
+        store.set(3, forKey: "pulstick.subdivision")
+        store.set("wood", forKey: "pulstick.clickSound")
+        store.set(true, forKey: "pulstick.gapTrainerEnabled")
+        let stored = StoredSettings(reading: store)
+        #expect(stored.bpm == 300)
+        #expect(stored.beatsPerMeasure == 5)
+        #expect(stored.accentBeats == [0, 3])
+        #expect(stored.restBeats == [4])
+        #expect(stored.accentVolume == 1)
+        #expect(stored.subdivision == .triplet)
+        #expect(stored.clickSound == .wood)
+        #expect(stored.gapTrainerEnabled)
+    }
+
+    @Test func aSelectionWithoutItsSongIsDropped() {
+        let store = InMemorySettingsStore()
+        store.set(UUID().uuidString, forKey: "pulstick.selectedSong")
+        #expect(StoredSettings(reading: store).selectedSongID == nil)
+    }
+
+    @Test func nonFiniteTempoFallsBackToTheDefault() {
+        let store = InMemorySettingsStore()
+        store.set(Double.nan, forKey: "pulstick.bpm")
+        #expect(StoredSettings(reading: store).bpm == 120)
+    }
+}
+
+/// 書き込みを数える設定ストア
+final class CountingSettingsStore: SettingsStore {
+    private let backing = InMemorySettingsStore()
+    private(set) var writes = 0
+    func object(forKey key: String) -> Any? { backing.object(forKey: key) }
+    func set(_ value: Any?, forKey key: String) {
+        writes += 1
+        backing.set(value, forKey: key)
+    }
+}
+
+@Suite("Launch")
+struct LaunchTests {
+    @Test func launchingDoesNotWriteSettingsBack() {
+        // 前回の設定を一通り保存しておく
+        let store = CountingSettingsStore()
+        let first = PulstickEngine(defaults: store, output: SilentClickOutput())
+        first.bpm = 132
+        first.setBeats(3)
+        first.subdivision = .eighth
+        first.accentVolume = 0.5
+        first.saveCurrentAsSong(named: "Waltz")
+        first.speedTrainerEnabled = true
+        let before = store.writes
+        _ = PulstickEngine(defaults: store, output: SilentClickOutput())
+        #expect(store.writes == before)  // 復元で保存し直さない
+    }
+}

@@ -7,40 +7,14 @@ public final class PulstickEngine: ObservableObject {
     public static let bpmRange: ClosedRange<Double> = 30...300
     public static let beatsRange: ClosedRange<Int> = 1...16
 
-    /// UserDefaults のキー。フィールドの追加は codable(forKey:default:) が吸収するが、
-    /// 既存フィールドの型や意味を変えるときはキー名も変えて旧データと衝突させないこと
-    private enum Keys {
-        static let presets = "pulstick.presets"
-        static let bpm = "pulstick.bpm"
-        static let beats = "pulstick.beats"
-        static let accents = "pulstick.accents"
-        static let rests = "pulstick.rests"
-        static let accentVolume = "pulstick.accentVolume"
-        static let normalVolume = "pulstick.normalVolume"
-        static let subdivision = "pulstick.subdivision"
-        static let speedTrainerEnabled = "pulstick.speedTrainerEnabled"
-        static let speedTrainer = "pulstick.speedTrainer"
-        static let gapTrainerEnabled = "pulstick.gapTrainerEnabled"
-        static let gapTrainer = "pulstick.gapTrainer"
-        static let practiceLog = "pulstick.practiceLog"
-        static let clickSound = "pulstick.clickSound"
-        static let songs = "pulstick.songs"
-        static let selectedSong = "pulstick.selectedSong"
-    }
-
     /// batchPatternChange の入れ子の深さ。0 より大きい間は、拍のパターン変更の反映を後回しにする
     var patternBatchDepth = 0
-
-    /// 起動時の復元中は didSet の副作用（保存・タイマーキューへの反映・音色生成）を止め、
-    /// 復元後に一度だけまとめて反映する
-    var isRestoring = false
 
     @Published public var presets: [BeatPreset] = []
     /// セットリストの順（追加した順、moveSong で並べ替え可能）
     @Published public internal(set) var songs: [Song] = [] {
         didSet {
-            guard !isRestoring else { return }
-            defaults.setCodable(songs, forKey: Keys.songs)
+            defaults.setCodable(songs, forKey: SettingsKeys.songs)
         }
     }
 
@@ -58,8 +32,8 @@ public final class PulstickEngine: ObservableObject {
                 bpm = clamped
                 return
             }
-            guard !isRestoring, bpm != oldValue else { return }
-            defaults.set(bpm, forKey: Keys.bpm)
+            guard bpm != oldValue else { return }
+            defaults.set(bpm, forKey: SettingsKeys.bpm)
             retimeIfPlaying()
             // 曲の切り替えと一緒に変わったテンポを前の曲の記録にしないよう、一括変更中は後回しにする
             // （一括変更の終わりに patternDidChange が曲を切り替えてから記録する）
@@ -76,8 +50,7 @@ public final class PulstickEngine: ObservableObject {
     @Published public internal(set) var sessionStartBPM: Double?
     @Published public var beatsPerMeasure: Int = 4 {
         didSet {
-            guard !isRestoring else { return }
-            defaults.set(beatsPerMeasure, forKey: Keys.beats)
+            defaults.set(beatsPerMeasure, forKey: SettingsKeys.beats)
             patternDidChange()
         }
     }
@@ -87,8 +60,7 @@ public final class PulstickEngine: ObservableObject {
     /// ユーザーが選択したアクセント拍の位置。タップで自由にon/off可能
     @Published public var accentBeats: Set<Int> = [0] {
         didSet {
-            guard !isRestoring else { return }
-            defaults.set(Array(accentBeats).sorted(), forKey: Keys.accents)
+            defaults.set(Array(accentBeats).sorted(), forKey: SettingsKeys.accents)
             patternDidChange()
         }
     }
@@ -96,16 +68,15 @@ public final class PulstickEngine: ObservableObject {
     /// 休符にした拍。拍の表示は進むが音は鳴らさない
     @Published public var restBeats: Set<Int> = [] {
         didSet {
-            guard !isRestoring else { return }
-            defaults.set(Array(restBeats).sorted(), forKey: Keys.rests)
+            defaults.set(Array(restBeats).sorted(), forKey: SettingsKeys.rests)
             patternDidChange()
         }
     }
 
     @Published public var subdivision: Subdivision = .quarter {
         didSet {
-            guard !isRestoring, subdivision != oldValue else { return }
-            defaults.set(subdivision.rawValue, forKey: Keys.subdivision)
+            guard subdivision != oldValue else { return }
+            defaults.set(subdivision.rawValue, forKey: SettingsKeys.subdivision)
             patternDidChange()
             retimeIfPlaying()
         }
@@ -113,15 +84,13 @@ public final class PulstickEngine: ObservableObject {
 
     @Published public var speedTrainerEnabled = false {
         didSet {
-            guard !isRestoring else { return }
-            defaults.set(speedTrainerEnabled, forKey: Keys.speedTrainerEnabled)
+            defaults.set(speedTrainerEnabled, forKey: SettingsKeys.speedTrainerEnabled)
             speedTrainerProgress.restart()
         }
     }
     @Published public var speedTrainer = SpeedTrainer() {
         didSet {
-            guard !isRestoring else { return }
-            defaults.setCodable(speedTrainer, forKey: Keys.speedTrainer)
+            defaults.setCodable(speedTrainer, forKey: SettingsKeys.speedTrainer)
         }
     }
     /// 設定と違い毎小節変わるので @Published にも保存対象にもしない
@@ -129,31 +98,27 @@ public final class PulstickEngine: ObservableObject {
 
     @Published public var gapTrainerEnabled = false {
         didSet {
-            guard !isRestoring else { return }
-            defaults.set(gapTrainerEnabled, forKey: Keys.gapTrainerEnabled)
+            defaults.set(gapTrainerEnabled, forKey: SettingsKeys.gapTrainerEnabled)
             patternDidChange()
         }
     }
     @Published public var gapTrainer = GapTrainer() {
         didSet {
-            guard !isRestoring else { return }
-            defaults.setCodable(gapTrainer, forKey: Keys.gapTrainer)
+            defaults.setCodable(gapTrainer, forKey: SettingsKeys.gapTrainer)
             patternDidChange()
         }
     }
 
     @Published public internal(set) var practiceLog = PracticeLog() {
         didSet {
-            guard !isRestoring else { return }
-            defaults.setCodable(practiceLog, forKey: Keys.practiceLog)
+            defaults.setCodable(practiceLog, forKey: SettingsKeys.practiceLog)
         }
     }
     /// ユーザーが選んだ（呼び出した・保存した）曲。設定の一致から推測すると同じ設定の曲を区別できないため覚えておく
     @Published public internal(set) var selectedSongID: UUID? {
         didSet {
             // 起動し直してもリハーサルの続き（[ ] で次の曲）から再開できるよう保存する
-            guard !isRestoring else { return }
-            defaults.set(selectedSongID?.uuidString, forKey: Keys.selectedSong)
+            defaults.set(selectedSongID?.uuidString, forKey: SettingsKeys.selectedSong)
         }
     }
 
@@ -188,8 +153,8 @@ public final class PulstickEngine: ObservableObject {
 
     @Published public var clickSound: ClickSound = .beep {
         didSet {
-            guard !isRestoring, clickSound != oldValue else { return }
-            defaults.set(clickSound.rawValue, forKey: Keys.clickSound)
+            guard clickSound != oldValue else { return }
+            defaults.set(clickSound.rawValue, forKey: SettingsKeys.clickSound)
             output.setSound(clickSound)
         }
     }
@@ -197,16 +162,16 @@ public final class PulstickEngine: ObservableObject {
     /// スライダーのドラッグ中は値が細かく変わり続けるため、同じ値の書き込みは省く
     @Published public var accentVolume: Double = 1.0 {
         didSet {
-            guard !isRestoring, accentVolume != oldValue else { return }
+            guard accentVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
-            defaults.set(accentVolume, forKey: Keys.accentVolume)
+            defaults.set(accentVolume, forKey: SettingsKeys.accentVolume)
         }
     }
     @Published public var normalVolume: Double = 0.7 {
         didSet {
-            guard !isRestoring, normalVolume != oldValue else { return }
+            guard normalVolume != oldValue else { return }
             output.setVolumes(accent: accentVolume, normal: normalVolume)
-            defaults.set(normalVolume, forKey: Keys.normalVolume)
+            defaults.set(normalVolume, forKey: SettingsKeys.normalVolume)
         }
     }
 
@@ -238,52 +203,32 @@ public final class PulstickEngine: ObservableObject {
     public init(defaults: SettingsStore = UserDefaults.standard, output: ClickOutput) {
         self.defaults = defaults
         self.output = output
-        isRestoring = true
-        loadPresets()
-        restoreSettings()
-        isRestoring = false
+        // 保存済みの値はプロパティの裏側に初期値として入れる。didSet が走らないので、
+        // 復元のたびに保存し直したり、途中の状態をタイマーキューへ送ったりしない
+        let stored = StoredSettings(reading: defaults)
+        _bpm = Published(initialValue: stored.bpm)
+        _beatsPerMeasure = Published(initialValue: stored.beatsPerMeasure)
+        _accentBeats = Published(initialValue: stored.accentBeats)
+        _restBeats = Published(initialValue: stored.restBeats)
+        _subdivision = Published(initialValue: stored.subdivision)
+        _accentVolume = Published(initialValue: stored.accentVolume)
+        _normalVolume = Published(initialValue: stored.normalVolume)
+        _clickSound = Published(initialValue: stored.clickSound)
+        _speedTrainer = Published(initialValue: stored.speedTrainer)
+        _speedTrainerEnabled = Published(initialValue: stored.speedTrainerEnabled)
+        _gapTrainer = Published(initialValue: stored.gapTrainer)
+        _gapTrainerEnabled = Published(initialValue: stored.gapTrainerEnabled)
+        _practiceLog = Published(initialValue: stored.practiceLog)
+        _presets = Published(initialValue: stored.presets)
+        _songs = Published(initialValue: stored.songs)
+        _selectedSongID = Published(initialValue: stored.selectedSongID)
+        // 終了時の設定がその曲のままでなければ、仮の選択（[ ] の起点）として戻す
+        if let selected = songs.first(where: { $0.id == selectedSongID }) {
+            selectedSongIsTentative = !matchesCurrentSettings(selected)
+        }
         syncSequencer()
         output.setVolumes(accent: accentVolume, normal: normalVolume)
         output.setSound(clickSound)
-    }
-
-    private func restoreSettings() {
-        if let saved = defaults.object(forKey: Keys.bpm) as? Double {
-            bpm = saved
-        }
-        if let saved = defaults.object(forKey: Keys.beats) as? Int {
-            beatsPerMeasure = saved.clamped(to: Self.beatsRange)
-        }
-        if let saved = defaults.object(forKey: Keys.accents) as? [Int] {
-            accentBeats = validBeatIndices(saved)
-        }
-        if let saved = defaults.object(forKey: Keys.rests) as? [Int] {
-            restBeats = validBeatIndices(saved)
-        }
-        if let saved = defaults.object(forKey: Keys.accentVolume) as? Double {
-            accentVolume = saved.clamped(to: 0...1)
-        }
-        if let saved = defaults.object(forKey: Keys.normalVolume) as? Double {
-            normalVolume = saved.clamped(to: 0...1)
-        }
-        if let raw = defaults.object(forKey: Keys.subdivision) as? Int, let saved = Subdivision(rawValue: raw) {
-            subdivision = saved
-        }
-        if let raw = defaults.object(forKey: Keys.clickSound) as? String, let saved = ClickSound(rawValue: raw) {
-            clickSound = saved
-        }
-        speedTrainer = defaults.codable(forKey: Keys.speedTrainer, default: speedTrainer)
-        speedTrainerEnabled = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool ?? false
-        gapTrainer = defaults.codable(forKey: Keys.gapTrainer, default: gapTrainer)
-        gapTrainerEnabled = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool ?? false
-        practiceLog = defaults.codable(forKey: Keys.practiceLog, default: practiceLog)
-        songs = defaults.codable([Song].self, forKey: Keys.songs) ?? []
-        if let saved = (defaults.object(forKey: Keys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),
-           let song = songs.first(where: { $0.id == saved })
-        {
-            selectedSongID = saved
-            selectedSongIsTentative = !matchesCurrentSettings(song)
-        }
     }
 
     /// プレビューやスクリーンショット用に、曲の練習時間を見本の値にする
@@ -298,18 +243,8 @@ public final class PulstickEngine: ObservableObject {
         practiceLog = log
     }
 
-    private func loadPresets() {
-        if let saved = defaults.codable([BeatPreset].self, forKey: Keys.presets),
-           saved.count == BeatPreset.defaults.count
-        {
-            presets = saved
-        } else {
-            presets = BeatPreset.defaults
-        }
-    }
-
     func persistPresets() {
-        defaults.setCodable(presets, forKey: Keys.presets)
+        defaults.setCodable(presets, forKey: SettingsKeys.presets)
     }
 
     deinit {
