@@ -94,4 +94,36 @@ struct KeyboardShortcutTests {
         #expect(engine.beatsPerMeasure == 4)
         #expect(!engine.isPlaying)
     }
+
+    @Test func typingATempoAndPressingReturnSetsIt() async throws {
+        let engine = makeEngine()
+        engine.bpm = 100
+        let window = window(for: engine, editingBPM: true)
+        window.makeKey()
+        try await Task.sleep(for: .milliseconds(200))
+        let editor = try #require(window.firstResponder as? NSTextView, "入力欄にフォーカスが当たっていない")
+        editor.selectAll(nil)
+        editor.insertText("150", replacementRange: editor.selectedRange())
+        editor.insertNewline(nil)  // Return
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(engine.bpm == 150)
+    }
+
+    @Test func escapeCancelsTypingATempo() async throws {
+        let engine = makeEngine()
+        engine.bpm = 100
+        let window = window(for: engine, editingBPM: true)
+        window.makeKey()
+        try await Task.sleep(for: .milliseconds(200))
+        let editor = try #require(window.firstResponder as? NSTextView)
+        editor.selectAll(nil)
+        editor.insertText("250", replacementRange: editor.selectedRange())
+        // 実機の Esc と同じく、コマンドとしてレスポンダチェーンに流す
+        editor.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(engine.bpm == 100)
+        // 入力が終わってショートカットが戻っている（入力中のままなら 3 は入力欄に入る）
+        _ = press("3", keyCode: 20, in: window)
+        #expect(engine.beatsPerMeasure == BeatPreset.defaults[2].beats)
+    }
 }

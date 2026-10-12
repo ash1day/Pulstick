@@ -151,6 +151,13 @@ struct BPMDisplay: View {
         .onChange(of: clock.current) {
             triggerPulse()
         }
+        .onAppear {
+            // 入力中の状態で表示されたとき（テストなど）も、入力欄にフォーカスを当てる
+            if isEditing {
+                draft = "\(Int(engine.bpm))"
+                fieldFocused = true
+            }
+        }
     }
 
     private func beginEditing() {
