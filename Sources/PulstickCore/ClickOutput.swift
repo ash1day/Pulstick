@@ -91,11 +91,19 @@ public final class AudioClickOutput: ClickOutput {
     /// メインスレッドから呼ぶ（再生開始時と、出力先の変更でエンジンが止まった後）。
     /// node.play() はエンジンが動いていないと例外で落ちるため、ここ以外では呼ばない
     public func prepare() {
-        if !audioEngine.isRunning {
-            try? audioEngine.start()
+        let nodes = [accentPlayerNode, normalPlayerNode, subdivisionPlayerNode]
+        if audioEngine.isRunning {
+            for node in nodes where !node.isPlaying {
+                node.play()
+            }
+            return
         }
+        try? audioEngine.start()
         guard audioEngine.isRunning else { return }
-        for node in [accentPlayerNode, normalPlayerNode, subdivisionPlayerNode] where !node.isPlaying {
+        // エンジンを起動し直したときは、ノードの再生状態を当てにせず必ず play し直す。
+        // stop() で、止まっている間にタイマーが積んだ古い音も捨て、再開時にまとめて鳴らないようにする
+        for node in nodes {
+            node.stop()
             node.play()
         }
     }
