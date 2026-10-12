@@ -41,6 +41,7 @@ public final class PulstickEngine: ObservableObject {
         static let gapTrainer = "pulstick.gapTrainer"
         static let practiceLog = "pulstick.practiceLog"
         static let clickSound = "pulstick.clickSound"
+        static let songs = "pulstick.songs"
     }
 
     /// 起動時の復元中は didSet の副作用（保存・タイマーキューへの反映・音色生成）を止め、
@@ -48,6 +49,18 @@ public final class PulstickEngine: ObservableObject {
     private var isRestoring = false
 
     @Published public var presets: [BeatPreset] = []
+    /// 名前順に並べて保存する
+    @Published public private(set) var songs: [Song] = [] {
+        didSet {
+            guard !isRestoring else { return }
+            let sorted = songs.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            if sorted != songs {
+                songs = sorted
+                return
+            }
+            defaults.setCodable(songs, forKey: Keys.songs)
+        }
+    }
 
     @Published public var bpm: Double = 120 {
         // didSet 内で clamp して再代入すると didSet が再発火するため、
@@ -223,6 +236,7 @@ public final class PulstickEngine: ObservableObject {
         gapTrainer = defaults.codable(GapTrainer.self, forKey: Keys.gapTrainer) ?? gapTrainer
         gapTrainerEnabled = defaults.object(forKey: Keys.gapTrainerEnabled) as? Bool ?? false
         practiceLog = defaults.codable(PracticeLog.self, forKey: Keys.practiceLog) ?? practiceLog
+        songs = defaults.codable([Song].self, forKey: Keys.songs) ?? []
     }
 
     /// プレビューやスクリーンショット用に、見本の練習記録で置き換える
@@ -242,6 +256,36 @@ public final class PulstickEngine: ObservableObject {
 
     private func persistPresets() {
         defaults.setCodable(presets, forKey: Keys.presets)
+    }
+
+    /// 現在のテンポと拍子を曲として保存する。同じ名前（大文字小文字は区別しない）があれば上書き
+    public func saveCurrentAsSong(named name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let song = Song(
+            name: trimmed, bpm: bpm, beats: beatsPerMeasure,
+            accents: Array(accentBeats).sorted(), subdivision: subdivision
+        )
+        if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            songs[index] = Song(
+                id: songs[index].id, name: trimmed, bpm: song.bpm, beats: song.beats,
+                accents: song.accents, subdivision: song.subdivision
+            )
+        } else {
+            songs.append(song)
+        }
+    }
+
+    public func applySong(_ song: Song) {
+        bpm = song.bpm
+        beatsPerMeasure = song.beats.clamped(to: Self.beatsRange)
+        accentBeats = Set(song.accents.filter { $0 < beatsPerMeasure })
+        subdivision = song.subdivision
+        beatClock.current = 0
+    }
+
+    public func deleteSong(_ song: Song) {
+        songs.removeAll { $0.id == song.id }
     }
 
     public func applyPreset(at index: Int) {

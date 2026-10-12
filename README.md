@@ -8,6 +8,7 @@ A minimal metronome that lives in your macOS menu bar.
 
 - Tempo 30–300 BPM: drag, use the ± buttons or arrow keys, tap along, or click the number and type
 - Up to 16 beats per bar with any beats accented, plus four presets you can overwrite (right-click)
+- Songs: save the tempo, beat pattern and subdivision under a song name and recall it in one click
 - Subdivisions: eighths, triplets, sixteenths
 - Three click sounds (beep, wood, tick), all synthesized in code
 - Speed trainer: raise the tempo by N BPM every M bars up to a target
@@ -31,7 +32,7 @@ Requires Xcode (the SwiftUI macros are not in the Command Line Tools alone). `bu
 ```bash
 ./dev.sh                     # rebuild and relaunch the app
 swift test                   # unit tests (silent: they never play audio)
-.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log]
+.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs]
                              # render the popover to a PNG without launching the app
 ```
 

@@ -158,6 +158,72 @@ struct TapTempoTests {
     }
 }
 
+// MARK: - PulstickEngine: 曲ごとの設定
+
+@Suite("PulstickEngine: 曲")
+struct SongTests {
+    @Test func savingCurrentSettingsAsSongKeepsTempoAndPattern() throws {
+        let engine = makeEngine()
+        engine.bpm = 132
+        engine.setBeats(3)
+        engine.subdivision = .triplet
+        engine.saveCurrentAsSong(named: "  Waltz  ")
+        let song = try #require(engine.songs.first)
+        #expect(song.name == "Waltz")
+        #expect(song.bpm == 132)
+        #expect(song.beats == 3)
+        #expect(song.accents == [0])
+        #expect(song.subdivision == .triplet)
+    }
+
+    @Test func blankNameIsIgnored() {
+        let engine = makeEngine()
+        engine.saveCurrentAsSong(named: "   ")
+        #expect(engine.songs.isEmpty)
+    }
+
+    @Test func applyingSongRestoresItsSettings() throws {
+        let engine = makeEngine()
+        engine.bpm = 96
+        engine.setBeats(6)
+        engine.accentBeats = [0, 3]
+        engine.saveCurrentAsSong(named: "6/8 ballad")
+        engine.bpm = 150
+        engine.setBeats(4)
+        engine.applySong(try #require(engine.songs.first))
+        #expect(engine.bpm == 96)
+        #expect(engine.beatsPerMeasure == 6)
+        #expect(engine.accentBeats == [0, 3])
+    }
+
+    @Test func songsAreSortedByNameAndCanBeDeleted() throws {
+        let engine = makeEngine()
+        engine.saveCurrentAsSong(named: "Blues")
+        engine.saveCurrentAsSong(named: "autumn leaves")
+        #expect(engine.songs.map(\.name) == ["autumn leaves", "Blues"])
+        engine.deleteSong(try #require(engine.songs.first))
+        #expect(engine.songs.map(\.name) == ["Blues"])
+    }
+
+    @Test func savingWithExistingNameUpdatesThatSong() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.bpm = 110
+        engine.saveCurrentAsSong(named: "etude")
+        #expect(engine.songs.count == 1)
+        #expect(engine.songs.first?.bpm == 110)
+    }
+
+    @Test func songsAreRestoredOnNextLaunch() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.saveCurrentAsSong(named: "Setlist #1")
+        let second = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(second.songs == first.songs)
+    }
+}
+
 // MARK: - PulstickEngine: プリセット管理
 
 @Suite("PulstickEngine: プリセット管理")

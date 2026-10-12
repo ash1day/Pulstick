@@ -13,6 +13,10 @@ struct PulstickView: View {
         VStack(spacing: 14) {
             BeatIndicator(engine: engine, clock: engine.beatClock)
             BPMDisplay(engine: engine, clock: engine.beatClock, isEditing: $isEditingBPM)
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .topTrailing) {
+                    SongListButton(engine: engine)
+                }
             BPMSlider(engine: engine)
             PresetPicker(engine: engine)
             ChipPicker(Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in

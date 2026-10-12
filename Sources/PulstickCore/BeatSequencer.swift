@@ -1,5 +1,5 @@
 /// 1拍をいくつに刻むか
-public enum Subdivision: Int, CaseIterable, Codable {
+public enum Subdivision: Int, CaseIterable, Codable, Sendable {
     case quarter = 1
     case eighth = 2
     case triplet = 3

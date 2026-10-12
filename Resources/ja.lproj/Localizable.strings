@@ -74,3 +74,14 @@
 "Tick" = "チック";
 "Last 7 days" = "直近 7 日間";
 "%@ %lld min" = "%1$@ %2$lld 分";
+
+/* Songs */
+"Songs" = "曲";
+"Songs: save and recall tempos" = "曲ごとのテンポを保存・呼び出し";
+"Song name" = "曲名";
+"Save" = "保存";
+"Save the current tempo, beats and subdivision under this name" = "現在のテンポ・拍子・細分化をこの名前で保存";
+"Save the current tempo and beat pattern under a song name to recall it with one click." = "いまのテンポと拍のパターンに曲名を付けて保存すると、ワンクリックで呼び出せます。";
+"Delete" = "削除";
+"Delete %@" = "%@ を削除";
+"♩=%lld · %lld beats" = "♩=%1$lld · %2$lld 拍";
