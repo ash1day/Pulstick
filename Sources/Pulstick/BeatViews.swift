@@ -44,7 +44,7 @@ struct BeatIndicator: View {
             .help("Add a beat")
             .accessibilityLabel(Text("Add a beat"))
         }
-        .frame(height: 44)
+        .frame(height: 36)
     }
 
     private func stepButton(_ symbol: String, enabled: Bool, action: @escaping () -> Void) -> some View {
