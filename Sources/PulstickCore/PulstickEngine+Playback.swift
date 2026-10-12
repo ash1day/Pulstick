@@ -18,7 +18,7 @@ extension PulstickEngine {
         beatClock.current = 0
         playStartedAt = Date()
         restartSession()
-        beginSongPractice(songs.first(where: matchesCurrentSettings)?.id)
+        beginSongPractice(currentSong?.id)
 
         output.prepare()
         schedulePracticeTimer()
@@ -49,11 +49,11 @@ extension PulstickEngine {
 
     /// 停止し、再生していた時間を練習ログに記録する。アプリ終了時にも呼ぶ
     public func stop() {
-        if let startedAt = playStartedAt, Date().timeIntervalSince(startedAt) >= minimumLoggedSession {
+        let isLongEnough = playStartedAt.map { Date().timeIntervalSince($0) >= minimumLoggedSession } ?? false
+        if isLongEnough, let startedAt = playStartedAt {
             practiceLog.record(from: startedAt, to: Date())
-            creditSongPractice()
         }
-        beginSongPractice(nil)
+        finishSongPractice(record: isLongEnough)
         isPlaying = false
         playbackGeneration += 1
         practiceTimer?.cancel()

@@ -63,7 +63,8 @@ struct SongList: View {
     }
 
     private func row(_ song: Song) -> some View {
-        let isCurrent = engine.matchesCurrentSettings(song)
+        let isCurrent = engine.currentSong?.id == song.id
+        let practised = engine.practiceSeconds(for: song)
         return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(verbatim: song.name)
@@ -71,8 +72,8 @@ struct SongList: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 // 曲ごとの練習量。1 分未満は出さない
-                if song.practiceSeconds >= 60 {
-                    Text("Practised \(PracticeTime.format(song.practiceSeconds))")
+                if practised >= 60 {
+                    Text("Practised \(PracticeTime.format(practised))")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
@@ -111,8 +112,6 @@ struct SongList: View {
                 .disabled(song.id == engine.songs.first?.id)
             Button("Move Down") { engine.moveSong(song, by: 1) }
                 .disabled(song.id == engine.songs.last?.id)
-            Divider()
-            Button("Delete") { engine.deleteSong(song) }
         }
     }
 

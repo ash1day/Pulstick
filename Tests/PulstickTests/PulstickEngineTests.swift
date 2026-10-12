@@ -274,17 +274,107 @@ struct SongTests {
         let engine = makeEngine()
         for (name, bpm) in [("A", 100.0), ("B", 120), ("C", 140)] {
             engine.bpm = bpm
-            engine.saveCurrentAsSong(named: name)
+            engine.saveCurrentAsSong(named: name)  // 最後に保存した C が選択中になる
         }
-        engine.bpm = 90  // どの曲とも一致しない状態からは先頭へ
-        engine.applyAdjacentSong(1)
-        #expect(engine.bpm == 100)
-        engine.applyAdjacentSong(1)
+        engine.applyAdjacentSong(-1)
         #expect(engine.bpm == 120)
         engine.applyAdjacentSong(-1)
         #expect(engine.bpm == 100)
         engine.applyAdjacentSong(-1)  // 先頭からさらに前へは行かない
         #expect(engine.bpm == 100)
+        engine.applyAdjacentSong(1)
+        #expect(engine.bpm == 120)
+    }
+
+    @Test func nextSongStartsFromTheTopWhenPlayingSomethingElse() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.bpm = 120
+        engine.saveCurrentAsSong(named: "B")
+        engine.setBeats(3)  // どの曲とも違う拍子を弾いている
+        engine.applyAdjacentSong(1)
+        #expect(engine.bpm == 100)
+    }
+
+    @Test func nextSongMovesOnEvenWhenSongsShareSettings() {
+        let engine = makeEngine()
+        for name in ["A", "B"] { engine.saveCurrentAsSong(named: name) }  // 同じ設定の 2 曲
+        engine.bpm = 140
+        engine.saveCurrentAsSong(named: "C")
+        engine.applySong(engine.songs[0])
+        engine.applyAdjacentSong(1)
+        #expect(engine.selectedSongID == engine.songs[1].id)
+        engine.applyAdjacentSong(1)
+        #expect(engine.selectedSongID == engine.songs[2].id)
+    }
+
+    @Test func nextSongFollowsTheSelectionAfterTheTempoDrifts() {
+        let engine = makeEngine()
+        for (name, bpm) in [("A", 100.0), ("B", 120)] {
+            engine.bpm = bpm
+            engine.saveCurrentAsSong(named: name)
+        }
+        engine.applySong(engine.songs[0])
+        engine.bpm = 104  // トレーナーや ↑ キーでテンポが変わった
+        engine.applyAdjacentSong(1)
+        #expect(engine.bpm == 120)
+    }
+
+    @Test func steppingPastTheLastSongChangesNothing() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "Only")
+        engine.applySong(engine.songs[0])
+        engine.bpm = 110  // 練習中に上がったテンポを、端で押した ] が戻してしまわないこと
+        engine.applyAdjacentSong(1)
+        #expect(engine.bpm == 110)
+    }
+
+    @Test func savingWhilePlayingStartsCountingThatSong() {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        engine.start()
+        engine.saveCurrentAsSong(named: "New")
+        engine.activeSongSince = Date().addingTimeInterval(-120)
+        engine.stop()
+        #expect((engine.songs.first?.practiceSeconds ?? 0) >= 120)
+    }
+
+    @Test func shortSessionsCreditNoSongEvenAfterSwitching() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.bpm = 120
+        engine.saveCurrentAsSong(named: "B")
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.activeSongSince = Date().addingTimeInterval(-3)
+        engine.applySong(engine.songs[1])
+        engine.stop()  // セッション全体が 5 秒未満
+        #expect(engine.songs.allSatisfy { $0.practiceSeconds == 0 })
+    }
+
+    @Test func practiceTimeIncludesTheSongPlayingNow() {
+        let engine = makeEngine()
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.activeSongSince = Date().addingTimeInterval(-90)
+        #expect(engine.practiceSeconds(for: engine.songs[0]) >= 90)
+        engine.stop()
+    }
+
+    @Test func choosingASongCreditsItEvenIfAnotherHasTheSameSettings() {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        for name in ["Warmup", "Ballad"] { engine.saveCurrentAsSong(named: name) }
+        engine.applySong(engine.songs[1])
+        engine.start()
+        engine.activeSongSince = Date().addingTimeInterval(-60)
+        engine.stop()
+        #expect(engine.songs[0].practiceSeconds == 0)
+        #expect(engine.songs[1].practiceSeconds >= 60)
     }
 
     @Test func savingWithExistingNameUpdatesThatSong() {
@@ -321,9 +411,7 @@ struct SongTests {
     @Test func resavingASongKeepsItsPracticeTime() {
         let engine = makeEngine()
         engine.saveCurrentAsSong(named: "Etude")
-        engine.beginSongPractice(engine.songs.first?.id)
-        engine.activeSongSince = Date().addingTimeInterval(-600)
-        engine.creditSongPractice()
+        engine.seedSongPractice(600, forSongAt: 0)
         engine.bpm = 132
         engine.saveCurrentAsSong(named: "Etude")  // テンポを変えて上書き
         #expect((engine.songs.first?.practiceSeconds ?? 0) >= 600)
@@ -900,7 +988,7 @@ struct PlaybackIntegrationTests {
         engine.minimumLoggedSession = 0
         engine.bpm = 100
         engine.saveCurrentAsSong(named: "Slow")
-        engine.bpm = 140
+        engine.setBeats(3)  // テンポ違いは同じ曲の練習とみなすので、拍子を変えて別の曲にする
         engine.start()
         try await spin(0.1)
         engine.stop()

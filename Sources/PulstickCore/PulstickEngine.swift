@@ -138,9 +138,14 @@ public final class PulstickEngine: ObservableObject {
             defaults.setCodable(practiceLog, forKey: Keys.practiceLog)
         }
     }
+    /// ユーザーが選んだ（呼び出した・保存した）曲。設定の一致から推測すると同じ設定の曲を区別できないため覚えておく
+    @Published public internal(set) var selectedSongID: UUID?
+
     /// いま練習時間を数えている曲と、その曲を数え始めた時刻
     var activeSongID: UUID?
     var activeSongSince: Date?
+    /// この再生中に曲ごとに積んだ、まだ確定していない練習時間
+    var pendingSongSeconds: [UUID: Double] = [:]
     /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
     var minimumLoggedSession: TimeInterval = 5
 

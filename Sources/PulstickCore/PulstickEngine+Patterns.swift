@@ -2,37 +2,6 @@ import Foundation
 
 // テンポ・拍・アクセント・プリセット・曲の操作
 extension PulstickEngine {
-    /// 現在のテンポと拍子を曲として保存する。同じ名前（大文字小文字は区別しない）があれば上書き
-    public func saveCurrentAsSong(named name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        var song = Song(name: trimmed, bpm: bpm, pattern: currentPattern, subdivision: subdivision)
-        if let index = songs.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            // 同じ曲の設定を更新するだけなので、識別子と練習時間は引き継ぐ
-            song.id = songs[index].id
-            song.practiceSeconds = songs[index].practiceSeconds
-            songs[index] = song
-        } else {
-            // セットリストとして使えるよう、名前順ではなく追加した順に並べる
-            songs.append(song)
-        }
-    }
-
-    public func applySong(_ song: Song) {
-        bpm = song.bpm
-        beatsPerMeasure = song.pattern.beats.clamped(to: Self.beatsRange)
-        accentBeats = validBeatIndices(song.pattern.accents)
-        restBeats = validBeatIndices(song.pattern.rests)
-        subdivision = song.subdivision
-        // 再生中に曲を切り替えたら、そこを新しい起点にする（↶ ボタンが前の曲のテンポに戻さないように）
-        if isPlaying {
-            restartSession()
-            // それまでの時間は前の曲に加算し、ここからは選んだ曲として数える
-            creditSongPractice()
-            beginSongPractice(song.id)
-        }
-    }
-
     var currentPattern: BeatPreset {
         BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted(), rests: Array(restBeats).sorted())
     }
@@ -46,53 +15,6 @@ extension PulstickEngine {
     /// 保存データや曲から読んだ拍の位置（アクセント・休符）のうち、いまの拍数の範囲にあるものだけを残す
     func validBeatIndices(_ accents: [Int]) -> Set<Int> {
         Set(accents.filter { (0..<beatsPerMeasure).contains($0) })
-    }
-
-    /// 曲リストで「いま使っている曲」を強調するための判定
-    public func matchesCurrentSettings(_ song: Song) -> Bool {
-        song.bpm == bpm && song.pattern.beats == beatsPerMeasure
-            && song.pattern.accentSet == accentBeats && song.pattern.restSet == restBeats
-            && song.subdivision == subdivision
-    }
-
-    /// 曲の練習時間を数え始める（nil なら数えない）
-    func beginSongPractice(_ id: UUID?) {
-        activeSongID = id
-        activeSongSince = id == nil ? nil : Date()
-    }
-
-    /// 数えていた曲に、ここまでの時間を加算する
-    func creditSongPractice() {
-        guard let id = activeSongID, let since = activeSongSince,
-              let index = songs.firstIndex(where: { $0.id == id })
-        else { return }
-        songs[index].practiceSeconds += Date().timeIntervalSince(since)
-        activeSongSince = Date()
-    }
-
-    /// セットリストの中で曲を前後に動かす。端より先には動かさない
-    public func moveSong(_ song: Song, by offset: Int) {
-        guard let index = songs.firstIndex(where: { $0.id == song.id }) else { return }
-        let destination = (index + offset).clamped(to: 0...(songs.count - 1))
-        guard destination != index else { return }
-        songs.insert(songs.remove(at: index), at: destination)
-    }
-
-    /// セットリストの前後の曲を呼び出す（リハーサル中に曲を順に切り替える用途）。
-    /// いまの設定がどの曲とも一致しなければ、先頭の曲から始める
-    public func applyAdjacentSong(_ offset: Int) {
-        guard !songs.isEmpty else { return }
-        let target: Int
-        if let current = songs.firstIndex(where: matchesCurrentSettings) {
-            target = (current + offset).clamped(to: 0...(songs.count - 1))
-        } else {
-            target = 0
-        }
-        applySong(songs[target])
-    }
-
-    public func deleteSong(_ song: Song) {
-        songs.removeAll { $0.id == song.id }
     }
 
     public func applyPreset(at index: Int) {
