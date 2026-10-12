@@ -5,7 +5,7 @@ import SwiftUI
 /// バンドのセットリストや、教室で曲ごとに指定されたテンポを素早く切り替える用途
 struct SongListButton: View {
     @ObservedObject var engine: PulstickEngine
-    @State private var isShowingList = false
+    @Binding var isShowingList: Bool
 
     var body: some View {
         Button {

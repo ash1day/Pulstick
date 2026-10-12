@@ -4,7 +4,7 @@ import SwiftUI
 /// グローバルショートカット（⌃⌥M など）の存在に気付きにくいため
 struct ShortcutHelpButton: View {
     let hotKeys: GlobalHotKeys?
-    @State private var isShowing = false
+    @Binding var isShowing: Bool
 
     var body: some View {
         Button {

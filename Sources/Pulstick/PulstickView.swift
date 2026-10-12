@@ -8,6 +8,8 @@ struct PulstickView: View {
     /// スナップショット時は nil
     let hotKeys: GlobalHotKeys?
     @State private var isEditingBPM = false
+    @State private var isShowingSongs = false
+    @State private var isShowingShortcuts = false
 
     var body: some View {
         VStack(spacing: 14) {
@@ -15,7 +17,7 @@ struct PulstickView: View {
             BPMDisplay(engine: engine, clock: engine.beatClock, isEditing: $isEditingBPM)
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .topTrailing) {
-                    SongListButton(engine: engine)
+                    SongListButton(engine: engine, isShowingList: $isShowingSongs)
                 }
             BPMSlider(engine: engine)
             PresetPicker(engine: engine)
@@ -43,7 +45,7 @@ struct PulstickView: View {
                 }
             }
             PracticeSummary(engine: engine)
-            FooterRow(hotKeys: hotKeys)
+            FooterRow(hotKeys: hotKeys, isShowingShortcuts: $isShowingShortcuts)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -53,7 +55,8 @@ struct PulstickView: View {
 
     // MARK: - Keyboard Shortcuts
     // 楽器を持ったまま操作できるよう、ポップオーバーを開いていればキーだけで主要操作ができる。
-    // BPM 入力中は数字キーや矢印キーをテキスト入力に譲るため無効化する
+    // BPM 入力中や、曲名を入力できる子ポップオーバーを開いている間は、
+    // 文字キーや矢印キーをテキスト入力に譲るため無効化する
 
     private var keyboardShortcuts: some View {
         ZStack {
@@ -69,7 +72,7 @@ struct PulstickView: View {
         }
         .opacity(0)
         .allowsHitTesting(false)
-        .disabled(isEditingBPM)
+        .disabled(isEditingBPM || isShowingSongs || isShowingShortcuts)
     }
 
     private func shortcut(_ key: KeyEquivalent, modifiers: EventModifiers = [], action: @escaping () -> Void) -> some View {

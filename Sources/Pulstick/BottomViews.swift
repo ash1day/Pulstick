@@ -140,6 +140,7 @@ struct PracticeSummary: View {
 
 struct FooterRow: View {
     let hotKeys: GlobalHotKeys?
+    @Binding var isShowingShortcuts: Bool
     /// SMAppService への問い合わせはプロセス間通信なので、表示時に一度だけ行う
     @State private var launchAtLogin = false
 
@@ -161,7 +162,7 @@ struct FooterRow: View {
                     }
                 }
             Spacer()
-            ShortcutHelpButton(hotKeys: hotKeys)
+            ShortcutHelpButton(hotKeys: hotKeys, isShowing: $isShowingShortcuts)
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
