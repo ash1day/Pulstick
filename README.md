@@ -38,6 +38,10 @@ swift test                   # unit tests (silent: they never play audio)
                              # render the popover to a PNG without launching the app
 ```
 
+## Release
+
+Push a tag such as `v1.1.0`; GitHub Actions runs the tests, builds the app and attaches `Pulstick.zip` to the release. The app is not notarized, so on first launch macOS asks for confirmation: right-click `Pulstick.app` and choose **Open**.
+
 ## App icon
 
 ```bash

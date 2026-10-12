@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test
+      - name: Build app bundle
+        run: ./build.sh
+      # Finder でのコピーと同じく、拡張属性やリソースを保ったまま zip にする
+      - name: Package
+        run: ditto -c -k --keepParent build/Pulstick.app Pulstick.zip
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Pulstick.zip
+          generate_release_notes: true
