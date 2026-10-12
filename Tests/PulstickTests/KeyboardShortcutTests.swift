@@ -155,4 +155,15 @@ struct KeyboardShortcutTests {
         #expect(engine.songs.map(\.name) == ["Autumn t1m"])
         #expect(engine.songs.first?.bpm == 132)
     }
+
+    @Test func returnClosesTheWelcome() async throws {
+        var dismissed = false
+        let host = NSHostingView(rootView: WelcomeView { dismissed = true })
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        window.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
+        _ = press("\r", keyCode: 36, in: window)
+        #expect(dismissed)
+    }
 }
