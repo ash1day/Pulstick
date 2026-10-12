@@ -6,6 +6,7 @@ import Combine
 public final class PulstickEngine: ObservableObject {
     public static let bpmRange: ClosedRange<Double> = 30...300
     public static let beatsRange: ClosedRange<Int> = 1...16
+    public static let countInRange: ClosedRange<Int> = 0...2
 
     /// batchPatternChange の入れ子の深さ。0 より大きい間は、拍のパターン変更の反映を後回しにする
     var patternBatchDepth = 0
@@ -148,7 +149,14 @@ public final class PulstickEngine: ObservableObject {
 
     /// 再生開始時に鳴らす予備の小節数（0 ならすぐ始める）。楽器を構える間や録音の入りのため
     @Published public var countInBars = 0 {
-        didSet { defaults.set(countInBars, forKey: SettingsKeys.countInBars) }
+        didSet {
+            let clamped = countInBars.clamped(to: Self.countInRange)
+            guard countInBars == clamped else {
+                countInBars = clamped
+                return
+            }
+            defaults.set(countInBars, forKey: SettingsKeys.countInBars)
+        }
     }
 
     /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない

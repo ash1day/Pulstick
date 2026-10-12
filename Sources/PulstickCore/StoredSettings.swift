@@ -84,7 +84,7 @@ struct StoredSettings {
             presets = saved
         }
         if let saved = store.object(forKey: SettingsKeys.countInBars) as? Int {
-            countInBars = saved.clamped(to: 0...4)
+            countInBars = saved.clamped(to: PulstickEngine.countInRange)
         }
         songs = store.codable([Song].self, forKey: SettingsKeys.songs) ?? []
         if let saved = (store.object(forKey: SettingsKeys.selectedSong) as? String).flatMap(UUID.init(uuidString:)),

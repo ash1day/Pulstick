@@ -1354,7 +1354,7 @@ struct PlaybackIntegrationTests {
         engine.start()
         try await spin(0.9)
         engine.stop()
-        #expect(output.played == [.accent, .accent])  // カウントインの 2 拍だけ鳴り、その後は休み
+        #expect(output.played == [.accent, .normal])  // カウントインの 2 拍だけ鳴り、その後は休み
     }
 
     @Test func theSpeedTrainerWaitsForTheCountIn() async throws {
@@ -1365,8 +1365,25 @@ struct PlaybackIntegrationTests {
         engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 1, targetBPM: 300)
         engine.speedTrainerEnabled = true
         engine.start()
-        try await spin(0.4)  // まだカウントイン中
+        try await spin(0.3)  // まだカウントイン中（終わるのは 0.5 秒）
         #expect(engine.bpm == 240)
+        try await spin(0.6)  // カウントインが終わって練習の小節が進む
+        #expect(engine.bpm > 240)
+        engine.stop()
+    }
+
+    @Test func practiceTimeStartsAfterTheCountIn() async throws {
+        let engine = makeEngine()
+        engine.setBeats(1)
+        engine.bpm = 240  // 1 小節 0.25 秒
+        engine.countInBars = 2
+        engine.start()
+        let pressedPlayAt = try #require(engine.playStartedAt)
+        try await spin(0.7)
+        // 練習の開始はカウントインの後（練習タイマー・練習ログ・曲の練習時間もここから）
+        let practiceStartedAt = try #require(engine.playStartedAt)
+        #expect(practiceStartedAt.timeIntervalSince(pressedPlayAt) >= 0.4)
+        #expect(engine.practiceTimerStartedAt == practiceStartedAt)
         engine.stop()
     }
 
@@ -1639,10 +1656,18 @@ struct StoredSettingsTests {
         #expect(stored.gapTrainerEnabled)
     }
 
+    @Test func countInSetterStaysInRange() {
+        let engine = makeEngine()
+        engine.countInBars = -1
+        #expect(engine.countInBars == 0)
+        engine.countInBars = 9
+        #expect(engine.countInBars == PulstickEngine.countInRange.upperBound)
+    }
+
     @Test func countInIsRememberedAndKeptInRange() {
         let store = InMemorySettingsStore()
         store.set(9, forKey: "pulstick.countInBars")
-        #expect(StoredSettings(reading: store).countInBars == 4)
+        #expect(StoredSettings(reading: store).countInBars == PulstickEngine.countInRange.upperBound)
     }
 
     @Test func aSelectionWithoutItsSongIsDropped() {
@@ -1695,9 +1720,12 @@ struct TickPlanTests {
         Tick(beat: index, click: click, startsMeasure: starts, isRest: rest)
     }
 
-    @Test func countInSoundsEveryBeatAsAccentEvenRests() {
-        let plan = TickPlan.plan(for: beat(1, rest: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false)
-        #expect(plan == TickPlan(sound: .accent, isCountingIn: true))
+    @Test func countInSoundsEveryBeatEvenRestsWithTheDownbeatAccented() {
+        // 小節の区切りが分かるよう頭だけ強拍。弱拍の音なので強拍の音量を 0 にしていても聞こえる
+        let other = TickPlan.plan(for: beat(1, rest: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false)
+        #expect(other == TickPlan(sound: .normal, isCountingIn: true))
+        let downbeat = TickPlan.plan(for: beat(0, starts: true, rest: true), measureIndex: -1, countsMeasure: true, gap: nil, muted: false)
+        #expect(downbeat == TickPlan(sound: .accent, isCountingIn: true))
     }
 
     @Test func countInSkipsSubdivisionsAndRespectsMute() {

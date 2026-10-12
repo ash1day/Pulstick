@@ -75,6 +75,16 @@ extension PulstickEngine {
         beatClock.isCountingIn = false
     }
 
+    /// カウントインが終わって練習の 1 小節目に入ったとき。カウントインの時間を練習に含めないよう、
+    /// 経過時間・練習タイマー・曲の練習時間をここから数え直す
+    func practiceDidBegin() {
+        playStartedAt = now()
+        practiceTimerStartedAt = playStartedAt
+        schedulePracticeTimer()
+        songPractice = SongPracticeTracker()
+        songPractice.start(currentSong?.id, at: now(), bpm: bpm)
+    }
+
     /// 再生開始時と、再生中に時間を変えたときに、止める時刻へ一度だけ発火するタイマーを仕掛け直す。
     /// 拍ごとに確かめる方式だと、遅いテンポでは最大 1 拍（30 BPM で 2 秒）遅れて止まるため
     func schedulePracticeTimer() {
@@ -207,6 +217,9 @@ extension PulstickEngine {
                 self.beatClock.isInSilentBar = plan.isSilentBar
             }
             if self.beatClock.isCountingIn != plan.isCountingIn {
+                if !plan.isCountingIn {
+                    self.practiceDidBegin()
+                }
                 self.beatClock.isCountingIn = plan.isCountingIn
             }
             if plan.completesPracticeMeasure {

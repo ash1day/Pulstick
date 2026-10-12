@@ -64,8 +64,9 @@ struct BeatIndicator: View {
     }
 
     private func beatDot(beat: Int, diameter: CGFloat) -> some View {
-        let isAccent = engine.accentBeats.contains(beat)
-        let isRest = engine.restBeats.contains(beat)
+        // カウントイン中は音と同じく、休符もアクセントも無視して頭の拍だけを強拍として見せる
+        let isAccent = clock.isCountingIn ? beat == 0 : engine.accentBeats.contains(beat)
+        let isRest = clock.isCountingIn ? false : engine.restBeats.contains(beat)
         let isCurrent = engine.isPlaying && clock.current == beat
         let outline = Color.secondary.opacity(contrast == .increased ? 0.8 : 0.35)
         return ZStack {
