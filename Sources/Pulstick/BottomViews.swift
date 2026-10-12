@@ -5,6 +5,8 @@ import SwiftUI
 struct TransportRow: View {
     @ObservedObject var engine: PulstickEngine
     let hotKeys: GlobalHotKeys?
+    /// 文字入力中はスペースを入力に譲る
+    var spaceShortcutEnabled = true
 
     var body: some View {
         HStack(spacing: 8) {
@@ -32,7 +34,7 @@ struct TransportRow: View {
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
             .tint(engine.isPlaying ? .red : .accentColor)
-            .keyboardShortcut(.space, modifiers: [])
+            .keyboardShortcut(spaceShortcutEnabled ? KeyboardShortcut(.space, modifiers: []) : nil)
             .help(playButtonHelp)
             .pointingHandCursor()
         }

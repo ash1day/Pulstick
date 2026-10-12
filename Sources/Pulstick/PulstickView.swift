@@ -31,7 +31,7 @@ struct PulstickView: View {
                 SpeedTrainerSection(engine: engine)
                 GapTrainerSection(engine: engine)
             }
-            TransportRow(engine: engine, hotKeys: hotKeys)
+            TransportRow(engine: engine, hotKeys: hotKeys, spaceShortcutEnabled: !isTypingElsewhere)
             Divider()
             VStack(spacing: 8) {
                 VolumeRow(engine: engine)
@@ -72,7 +72,11 @@ struct PulstickView: View {
         }
         .opacity(0)
         .allowsHitTesting(false)
-        .disabled(isEditingBPM || isShowingSongs || isShowingShortcuts)
+        .disabled(isTypingElsewhere)
+    }
+
+    private var isTypingElsewhere: Bool {
+        isEditingBPM || isShowingSongs || isShowingShortcuts
     }
 
     private func shortcut(_ key: KeyEquivalent, modifiers: EventModifiers = [], action: @escaping () -> Void) -> some View {
