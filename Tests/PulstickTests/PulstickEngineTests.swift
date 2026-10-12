@@ -502,6 +502,26 @@ struct PlaybackIntegrationTests {
         #expect((2...3).contains(output.played.count))
     }
 
+    @Test func stoppingRecordsPracticeTime() async throws {
+        let defaults = InMemorySettingsStore()
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        engine.minimumLoggedSession = 0
+        engine.start()
+        try await spin(0.2)
+        engine.stop()
+        #expect(engine.practiceLog.seconds(on: Date()) >= 0.2)
+        let relaunched = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        #expect(relaunched.practiceLog == engine.practiceLog)
+    }
+
+    @Test func veryShortSessionsAreNotLogged() async throws {
+        let engine = makeEngine()
+        engine.start()
+        try await spin(0.1)
+        engine.stop()
+        #expect(engine.practiceLog.seconds(on: Date()) == 0)
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
@@ -530,5 +550,49 @@ struct GapTrainerTests {
     @Test func zeroMuteBarsNeverMutes() {
         let gap = GapTrainer(playBars: 1, muteBars: 0)
         #expect((0..<4).allSatisfy { !gap.isMuted(measure: $0) })
+    }
+}
+
+// MARK: - PracticeLog
+
+@Suite("PracticeLog")
+struct PracticeLogTests {
+    private var calendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        return c
+    }
+
+    private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+    }
+
+    @Test func recordsSessionLengthOnItsDay() {
+        var log = PracticeLog()
+        log.record(from: date(12, 20), to: date(12, 20, 25), calendar: calendar)
+        #expect(log.seconds(on: date(12, 9), calendar: calendar) == 25 * 60)
+    }
+
+    @Test func sessionCrossingMidnightIsSplitBetweenDays() {
+        var log = PracticeLog()
+        log.record(from: date(12, 23, 50), to: date(13, 0, 20), calendar: calendar)
+        #expect(log.seconds(on: date(12, 12), calendar: calendar) == 10 * 60)
+        #expect(log.seconds(on: date(13, 12), calendar: calendar) == 20 * 60)
+    }
+
+    @Test func streakCountsConsecutiveDaysEndingToday() {
+        var log = PracticeLog()
+        for day in [9, 10, 11, 12] {
+            log.record(from: date(day, 20), to: date(day, 20, 10), calendar: calendar)
+        }
+        log.record(from: date(7, 20), to: date(7, 20, 10), calendar: calendar)  // 8日が空くので数えない
+        #expect(log.streak(endingAt: date(12, 22), calendar: calendar) == 4)
+    }
+
+    @Test func streakStillCountsWhenTodayHasNoPracticeYet() {
+        var log = PracticeLog()
+        log.record(from: date(11, 20), to: date(11, 20, 10), calendar: calendar)
+        #expect(log.streak(endingAt: date(12, 8), calendar: calendar) == 1)
+        #expect(log.streak(endingAt: date(13, 8), calendar: calendar) == 0)
     }
 }

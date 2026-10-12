@@ -11,6 +11,12 @@ struct PulstickApp: App {
         let engine = PulstickEngine(output: AudioClickOutput())
         _engine = StateObject(wrappedValue: engine)
         hotKeys = GlobalHotKeys(engine: engine)
+        // 再生したまま終了しても、その練習時間を失わないようにする
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { engine.recordSession() }
+        }
     }
 
     var body: some Scene {

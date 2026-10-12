@@ -54,3 +54,8 @@
 "Quit" = "終了";
 "On" = "オン";
 "Off" = "オフ";
+
+/* Practice summary */
+"Today %lld min" = "今日 %lld 分";
+"%lld-day streak" = "%lld 日連続";
+"Practice time is counted while the metronome plays" = "メトロノームを鳴らしている時間を練習時間として記録します";

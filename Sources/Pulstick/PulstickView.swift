@@ -26,6 +26,7 @@ struct PulstickView: View {
             controlsRow
             Divider()
             volumeControls
+            practiceSummary
             footerRow
         }
         .padding(.horizontal, 20)
@@ -388,6 +389,31 @@ struct PulstickView: View {
                 .frame(height: 16)
         }
         .help(accent ? LocalizedStringKey("Accent volume") : LocalizedStringKey("Beat volume"))
+    }
+
+    // MARK: - Practice Summary
+    // 今日の練習時間と連続日数。再生中のセッションも含めて毎分更新する
+
+    @ViewBuilder
+    private var practiceSummary: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let now = context.date
+            let running = engine.playStartedAt.map { now.timeIntervalSince($0) } ?? 0
+            let today = engine.practiceLog.seconds(on: now) + running
+            let streak = engine.practiceLog.streak(endingAt: now) + (running > 0 && engine.practiceLog.seconds(on: now) == 0 ? 1 : 0)
+            if today > 0 || streak > 0 {
+                HStack(spacing: 10) {
+                    Label("Today \(Int(today / 60)) min", systemImage: "clock")
+                    if streak > 1 {
+                        Label("\(streak)-day streak", systemImage: "flame")
+                    }
+                }
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .help("Practice time is counted while the metronome plays")
+            }
+        }
     }
 
     // MARK: - Footer

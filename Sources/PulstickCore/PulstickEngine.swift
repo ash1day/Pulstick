@@ -36,6 +36,7 @@ public final class PulstickEngine: ObservableObject {
         static let speedTrainer = "pulstick.speedTrainer"
         static let gapTrainerEnabled = "pulstick.gapTrainerEnabled"
         static let gapTrainer = "pulstick.gapTrainer"
+        static let practiceLog = "pulstick.practiceLog"
     }
 
     @Published public var presets: [BeatPreset] = []
@@ -116,6 +117,16 @@ public final class PulstickEngine: ObservableObject {
     /// いま無音の小節を再生中か。UI で「心の中で数えて」と示すために使う
     @Published public private(set) var isInSilentBar = false
 
+    @Published public private(set) var practiceLog = PracticeLog() {
+        didSet {
+            if let data = try? JSONEncoder().encode(practiceLog) {
+                defaults.set(data, forKey: Keys.practiceLog)
+            }
+        }
+    }
+    /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
+    var minimumLoggedSession: TimeInterval = 5
+
     @Published public var accentVolume: Double = 1.0 {
         didSet {
             output.setVolumes(accent: accentVolume, normal: normalVolume)
@@ -187,6 +198,11 @@ public final class PulstickEngine: ObservableObject {
         }
         if let saved = defaults.object(forKey: Keys.speedTrainerEnabled) as? Bool {
             speedTrainerEnabled = saved
+        }
+        if let data = defaults.object(forKey: Keys.practiceLog) as? Data,
+           let saved = try? JSONDecoder().decode(PracticeLog.self, from: data)
+        {
+            practiceLog = saved
         }
         if let data = defaults.object(forKey: Keys.gapTrainer) as? Data,
            let saved = try? JSONDecoder().decode(GapTrainer.self, from: data)
@@ -275,6 +291,7 @@ public final class PulstickEngine: ObservableObject {
     }
 
     public func stop() {
+        recordSession()
         isPlaying = false
         playStartedAt = nil
         timerSource?.cancel()
@@ -282,6 +299,14 @@ public final class PulstickEngine: ObservableObject {
         output.stopAll()
         currentBeat = 0
         isInSilentBar = false
+    }
+
+    /// 再生中のセッションを練習ログに書き込む。アプリ終了時にも呼ぶ
+    public func recordSession(until end: Date = Date()) {
+        guard let startedAt = playStartedAt, end.timeIntervalSince(startedAt) >= minimumLoggedSession else { return }
+        practiceLog.record(from: startedAt, to: end)
+        // 終了時に呼ばれた後で stop() が来ても二重計上しない
+        playStartedAt = end
     }
 
     public func incrementBPM() {
