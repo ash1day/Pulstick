@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pulstick — Minimal Menu Bar Metronome for macOS</title>
-  <meta name="description" content="Pulstick is a minimal metronome that lives in your macOS menu bar. One-click access, tap tempo, accent beats, and a clean Dock-free experience.">
+  <meta name="description" content="Pulstick is a minimal metronome that lives in your macOS menu bar. Tap tempo, custom accents, subdivisions, a speed trainer and global shortcuts.">
   <meta name="theme-color" content="#e85d3a" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#f06b45" media="(prefers-color-scheme: dark)">
   <link rel="stylesheet" href="style.css">
@@ -51,7 +51,10 @@
 
         <!-- App Screenshot -->
         <div class="screenshot-wrapper">
-          <img src="screenshot.png" alt="Pulstick app screenshot showing BPM control, time signature buttons, and play controls" class="screenshot" width="390" />
+          <picture>
+            <source srcset="screenshot-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshot.png" alt="Pulstick popover: beat dots, 120 BPM marked Allegro, time signature and subdivision buttons, speed trainer settings, Tap and Play buttons" class="screenshot" width="320" height="480" />
+          </picture>
         </div>
       </div>
     </section>
@@ -67,15 +70,31 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="4" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><line x1="6.5" y1="7" x2="6.5" y2="10"/><line x1="17.5" y1="7" x2="17.5" y2="10"/></svg>
             </div>
             <h3>Menu Bar Resident</h3>
-            <p>One-click access from your menu bar. No need to switch windows or hunt through your Dock.</p>
+            <p>One click from the menu bar, no Dock icon. While it plays, the menu bar shows the current BPM so you can check it at a glance.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
             </div>
-            <h3>BPM 40 -- 240</h3>
-            <p>Wide tempo range covering everything from slow practice to fast exercises. Precise slider and step buttons.</p>
+            <h3>Speed Trainer</h3>
+            <p>Start slow and let Pulstick raise the tempo for you: +2 BPM every 4 bars up to 160, or whatever steps you choose. One click takes you back to where you started.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="5" x2="5" y2="19"/><line x1="10" y1="9" x2="10" y2="19"/><line x1="14" y1="9" x2="14" y2="19"/><line x1="19" y1="9" x2="19" y2="19"/></svg>
+            </div>
+            <h3>Subdivisions</h3>
+            <p>Hear eighths, triplets or sixteenths between the beats with a softer click. Good for locking in fast passages and swing feel.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="3"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </div>
+            <h3>Your Own Accents</h3>
+            <p>Up to 16 beats per bar. Click any beat to accent it, so 7/8 groupings and clave patterns work too. Right-click a preset to save your pattern there.</p>
           </div>
 
           <div class="feature-card">
@@ -83,33 +102,58 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </div>
             <h3>Tap Tempo</h3>
-            <p>Tap to set the tempo naturally. Match any song or rhythm by feel, not by numbers.</p>
+            <p>Tap along to a recording to find its tempo, even from another app with ⌃⌥T. Or click the BPM and type the number. Tempo markings like Andante are shown next to it.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="19" cy="12" r="3"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg>
             </div>
-            <h3>Accent Beats</h3>
-            <p>Set time signatures with accented downbeats. Choose from 4/4, 3/4, and 6/8.</p>
+            <h3>Hands Stay on the Instrument</h3>
+            <p>Start and stop from any app with ⌃⌥M. In the popover, Space, the arrow keys and 1–4 handle the rest.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="6" x2="6" y2="18"/><line x1="18" y1="6" x2="18" y2="18"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 9 9 9"/></svg>
             </div>
-            <h3>Dock-Free</h3>
-            <p>Runs silently without a Dock icon. Your workspace stays clean and uncluttered.</p>
+            <h3>Picks Up Where You Left Off</h3>
+            <p>Your tempo, beat pattern, subdivision and volumes are saved. The Play button counts how long you have practised this session.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             </div>
-            <h3>Lightweight</h3>
-            <p>Built natively for macOS with minimal resource usage. No Electron, no bloat.</p>
+            <h3>Native and Lightweight</h3>
+            <p>Built with SwiftUI. Clicks are generated in code and timed on a high-priority thread. No Electron, no sound files.</p>
           </div>
 
+        </div>
+      </div>
+    </section>
+
+    <!-- Shortcuts -->
+    <section class="shortcuts" id="shortcuts" aria-labelledby="shortcuts-heading">
+      <div class="container">
+        <h2 class="section-title" id="shortcuts-heading">Keyboard shortcuts</h2>
+        <div class="shortcut-groups">
+          <div class="shortcut-group">
+            <h3>Anywhere</h3>
+            <dl>
+              <div><dt><kbd>⌃</kbd><kbd>⌥</kbd><kbd>M</kbd></dt><dd>Play / Stop</dd></div>
+              <div><dt><kbd>⌃</kbd><kbd>⌥</kbd><kbd>T</kbd></dt><dd>Tap tempo</dd></div>
+            </dl>
+          </div>
+          <div class="shortcut-group">
+            <h3>In the popover</h3>
+            <dl>
+              <div><dt><kbd>Space</kbd></dt><dd>Play / Stop</dd></div>
+              <div><dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>Tempo ±1 (with <kbd>⇧</kbd>: ±5)</dd></div>
+              <div><dt><kbd>T</kbd></dt><dd>Tap tempo</dd></div>
+              <div><dt><kbd>1</kbd>–<kbd>4</kbd></dt><dd>Choose a preset</dd></div>
+            </dl>
+          </div>
         </div>
       </div>
     </section>

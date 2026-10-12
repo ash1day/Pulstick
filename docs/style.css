@@ -476,3 +476,71 @@ a:hover {
   top: 0;
   color: #fff;
 }
+
+/* --- Shortcuts --- */
+.shortcuts {
+  padding: 100px 0;
+}
+
+.shortcut-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.shortcut-group {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.shortcut-group h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.shortcut-group dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--card-border);
+}
+
+.shortcut-group dl > div:first-child {
+  border-top: none;
+}
+
+.shortcut-group dd {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 2px 6px;
+  margin-right: 3px;
+  font: 600 0.8rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg-secondary);
+  border: 1px solid var(--card-border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+@media (max-width: 640px) {
+  .shortcuts {
+    padding: 64px 0;
+  }
+}
