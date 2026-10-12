@@ -2,7 +2,7 @@ import AppKit
 import PulstickCore
 import SwiftUI
 
-/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer]` でポップオーバーの中身を PNG に書き出して終了する。
+/// `Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast]` でポップオーバーの中身を PNG に書き出して終了する。
 /// 開発中の見た目確認と LP 用スクリーンショットのための仕組み。
 enum Snapshot {
     static func runIfRequested() {
@@ -48,6 +48,7 @@ enum Snapshot {
             }
                 .background(Color(nsColor: .windowBackgroundColor))
                 .environment(\.colorScheme, dark ? .dark : .light)
+                .environment(\._colorSchemeContrast, args.contains("--contrast") ? .increased : .standard)
             let renderer = ImageRenderer(content: view)
             renderer.scale = 2
             guard let image = renderer.nsImage,

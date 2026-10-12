@@ -34,7 +34,7 @@ Requires Xcode (the SwiftUI macros are not in the Command Line Tools alone). `bu
 ```bash
 ./dev.sh                     # rebuild and relaunch the app
 swift test                   # unit tests (silent: they never play audio)
-.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer]
+.build/debug/Pulstick --snapshot out.png [--dark] [--beats N] [--trainer] [--gap] [--log] [--songs] [--muted] [--shortcuts] [--timer] [--contrast]
                              # render the popover to a PNG without launching the app
 ```
 

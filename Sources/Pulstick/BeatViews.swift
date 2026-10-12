@@ -8,6 +8,8 @@ import SwiftUI
 struct BeatIndicator: View {
     @ObservedObject var engine: PulstickEngine
     @ObservedObject var clock: BeatClock
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         HStack(spacing: 4) {
@@ -69,15 +71,16 @@ struct BeatIndicator: View {
                 .stroke(
                     isAccent
                         ? Color.clear
-                        : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.35)),
+                        : (isCurrent ? Color.accentColor : Color.secondary.opacity(contrast == .increased ? 0.8 : 0.35)),
                     lineWidth: 1.5
                 )
         }
         .frame(width: diameter, height: diameter)
         // 無音小節中は拍の表示だけ進め、音が鳴っていないことを薄さで示す
         .opacity(clock.isInSilentBar ? 0.35 : 1)
-        .scaleEffect(isCurrent ? 1.25 : 1.0)
-        .animation(.easeOut(duration: 0.1), value: clock.current)
+        // 「視差効果を減らす」設定では拡大アニメーションをやめ、色の変化だけで拍を示す
+        .scaleEffect(isCurrent && !reduceMotion ? 1.25 : 1.0)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.1), value: clock.current)
     }
 }
 
@@ -91,6 +94,7 @@ struct BPMDisplay: View {
     @FocusState private var fieldFocused: Bool
     @State private var pulseScale: CGFloat = 1.0
     @State private var pulseOpacity: Double = 0.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -155,7 +159,7 @@ struct BPMDisplay: View {
     }
 
     private func triggerPulse() {
-        guard engine.isPlaying else { return }
+        guard engine.isPlaying, !reduceMotion else { return }
         pulseScale = 1.0
         pulseOpacity = 0.6
         withAnimation(.easeOut(duration: 0.3)) {

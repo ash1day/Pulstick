@@ -37,19 +37,7 @@ extension View {
     /// プリセットや細分化など「選択中の1つがハイライトされるチップ」の共通装飾
     /// - Parameter outlined: リストの行のように枠線が要らない場合は false
     func chip(selected: Bool, outlined: Bool = true) -> some View {
-        background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(selected ? Color.accentColor.opacity(0.15) : Color.clear)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(
-                    outlined ? (selected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2)) : .clear,
-                    lineWidth: 1
-                )
-        )
-        .contentShape(Rectangle())
-        .pointingHandCursor()
+        modifier(ChipStyle(selected: selected, outlined: outlined))
     }
 }
 
@@ -181,5 +169,32 @@ struct PopoverIconButton<Content: View>: View {
         .accessibilityLabel(label ?? Text(help))
         .pointingHandCursor()
         .popover(isPresented: $isPresented, arrowEdge: .bottom, content: content)
+    }
+}
+
+/// 「コントラストを上げる」設定のときは枠線と選択色を濃くして、選択状態を見分けやすくする
+private struct ChipStyle: ViewModifier {
+    let selected: Bool
+    let outlined: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let strong = contrast == .increased
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(selected ? Color.accentColor.opacity(strong ? 0.3 : 0.15) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(
+                        outlined
+                            ? (selected ? Color.accentColor.opacity(strong ? 1 : 0.4) : Color.secondary.opacity(strong ? 0.6 : 0.2))
+                            : .clear,
+                        lineWidth: strong ? 1.5 : 1
+                    )
+            )
+            .contentShape(Rectangle())
+            .pointingHandCursor()
     }
 }
