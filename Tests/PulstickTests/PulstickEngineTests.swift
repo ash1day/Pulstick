@@ -467,6 +467,22 @@ struct SpeedTrainerTests {
         #expect(progress.measureCompleted(settings, currentBPM: 101) == 102)
     }
 
+    @Test func loopingReturnsToStartTempoAfterHoldingTheTarget() {
+        let settings = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 10, targetBPM: 110, loops: true)
+        var progress = SpeedTrainerProgress()
+        #expect(progress.measureCompleted(settings, currentBPM: 100, startBPM: 100) == nil)
+        #expect(progress.measureCompleted(settings, currentBPM: 100, startBPM: 100) == 110)
+        // 目標テンポでも同じ小節数を弾いたら、開始テンポに戻る
+        #expect(progress.measureCompleted(settings, currentBPM: 110, startBPM: 100) == nil)
+        #expect(progress.measureCompleted(settings, currentBPM: 110, startBPM: 100) == 100)
+    }
+
+    @Test func settingsSavedBeforeLoopingExistedStillDecode() throws {
+        let old = #"{"measuresPerStep":8,"bpmIncrement":3,"targetBPM":180}"#.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(SpeedTrainer.self, from: old)
+        #expect(decoded == SpeedTrainer(measuresPerStep: 8, bpmIncrement: 3, targetBPM: 180, loops: false))
+    }
+
     @Test func restartResetsMeasureCount() {
         let settings = SpeedTrainer(measuresPerStep: 2, bpmIncrement: 1, targetBPM: 200)
         var progress = SpeedTrainerProgress()

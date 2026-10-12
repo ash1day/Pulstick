@@ -452,7 +452,7 @@ public final class PulstickEngine: ObservableObject {
     /// 小節の終わりごとにメインスレッドで呼ばれる
     func handleMeasureCompleted() {
         guard speedTrainerEnabled,
-              let next = speedTrainerProgress.measureCompleted(speedTrainer, currentBPM: bpm)
+              let next = speedTrainerProgress.measureCompleted(speedTrainer, currentBPM: bpm, startBPM: sessionStartBPM)
         else { return }
         bpm = next
     }

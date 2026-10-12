@@ -105,3 +105,5 @@
 "Stop After" = "自動停止";
 "Don't Stop" = "止めない";
 "%lld min" = "%lld 分";
+"Repeat" = "繰り返し";
+"Repeat: after the target tempo, start again from the first tempo" = "繰り返し：目標テンポまで上がったら、開始テンポからやり直す";

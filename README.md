@@ -12,7 +12,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Subdivisions: eighths, triplets, sixteenths
 - Three click sounds (beep, wood, tick), all synthesized in code
 - Mute: click the speaker to silence the click while the beat display (and the menu bar beat number) keeps going
-- Speed trainer: raise the tempo by N BPM every M bars up to a target
+- Speed trainer: raise the tempo by N BPM every M bars up to a target, optionally repeating from the start tempo
 - Silent bars: play N bars, then mute M bars to check you hold the tempo yourself
 - Menu bar shows the BPM while playing; the Play button shows practice time
 - Practice timer: right-click Play to stop automatically after 5–60 minutes

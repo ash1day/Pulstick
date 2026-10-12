@@ -67,6 +67,15 @@ struct SpeedTrainerSection: View {
                 .help("Go back to the tempo you started at")
                 .pointingHandCursor()
             }
+            if engine.speedTrainerEnabled {
+                // 目標に達したら開始テンポに戻って繰り返す「テンポの梯子」
+                Image(systemName: "repeat")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(engine.speedTrainer.loops ? .accentColor : .secondary.opacity(0.6))
+                    .frame(width: 20, height: 16)
+                    .help("Repeat: after the target tempo, start again from the first tempo")
+                    .accessibleToggle($engine.speedTrainer.loops, label: Text("Repeat"))
+            }
         } settings: {
             let bpmRange = PulstickEngine.bpmRange
             StepperSentence(
