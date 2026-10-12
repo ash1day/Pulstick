@@ -1,0 +1,56 @@
+/* Beat indicator */
+"Remove a beat" = "拍を減らす";
+"Add a beat" = "拍を増やす";
+"Click a beat to toggle its accent" = "拍をクリックするとアクセント（強拍）を切り替えます";
+
+/* BPM */
+"Click to type a tempo" = "クリックしてテンポを入力";
+"Slower (↓, ⇧↓ for −5)" = "遅く（↓、⇧↓ で −5）";
+"Faster (↑, ⇧↑ for +5)" = "速く（↑、⇧↑ で +5）";
+"Silent bar · keep counting" = "無音小節・心の中で数えて";
+
+/* Presets */
+"Preset %lld (key %lld) · right-click to save or reset" = "プリセット %lld（キー %lld）・右クリックで保存／リセット";
+"Save Current Pattern Here" = "現在のパターンをここに保存";
+"Reset to Default" = "デフォルトに戻す";
+
+/* Subdivisions */
+"Quarter notes (no subdivision)" = "4分音符（刻みなし）";
+"Eighth notes" = "8分音符";
+"Triplets" = "3連符";
+"Sixteenth notes" = "16分音符";
+
+/* Speed trainer: "+2 BPM ／ 4 小節ごと、上限 160" */
+"Speed Trainer" = "スピードトレーナー";
+"Gradually raise the tempo while playing" = "演奏しながら少しずつテンポを上げます";
+"Go back to the tempo you started at" = "開始時のテンポに戻す";
+"trainer.every" = "BPM ／";
+"trainer.upTo.one" = "小節ごと、上限";
+"trainer.upTo.other" = "小節ごと、上限";
+
+/* Silent bars: "2 小節鳴らして 2 小節休む" */
+"Silent Bars" = "サイレント小節";
+"Mute some bars to check that you hold the tempo on your own" = "ときどき小節を無音にして、自分でテンポを保てているか確かめます";
+"gap.prefix" = "";
+"gap.then.one" = "小節鳴らして";
+"gap.then.other" = "小節鳴らして";
+"gap.suffix" = "小節休む";
+
+/* Controls */
+"Tap" = "タップ";
+"Play" = "再生";
+"Tap along to set the tempo (T, or ⌃⌥T from any app)" = "リズムに合わせて叩くとテンポを設定（T、どのアプリからでも ⌃⌥T）";
+"Tap along to set the tempo (T)" = "リズムに合わせて叩くとテンポを設定（T）";
+"Stop (Space, or ⌃⌥M from any app)" = "停止（Space、どのアプリからでも ⌃⌥M）";
+"Stop (Space)" = "停止（Space）";
+"Play (Space, or ⌃⌥M from any app)" = "再生（Space、どのアプリからでも ⌃⌥M）";
+"Play (Space)" = "再生（Space）";
+
+/* Volume & footer */
+"Click volume" = "クリック音量";
+"Accent volume" = "強拍の音量";
+"Beat volume" = "弱拍の音量";
+"Launch at Login" = "ログイン時に起動";
+"Quit" = "終了";
+"On" = "オン";
+"Off" = "オフ";

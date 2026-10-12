@@ -105,7 +105,7 @@ struct MiniSwitch: View {
 }
 
 struct CheckBox: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var isOn: Bool
 
     var body: some View {

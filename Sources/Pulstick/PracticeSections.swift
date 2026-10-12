@@ -3,9 +3,9 @@ import SwiftUI
 
 /// 練習モードのカード。見出し行にスイッチを持ち、オンのときだけ設定行を表示する
 struct PracticeCard<Accessory: View, Settings: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     let systemImage: String
-    let help: String
+    let help: LocalizedStringKey
     @Binding var isOn: Bool
     @ViewBuilder var accessory: () -> Accessory
     @ViewBuilder var settings: () -> Settings
@@ -69,9 +69,12 @@ struct SpeedTrainerSection: View {
             }
         } settings: {
             MiniStepper(value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+")
-            Text("BPM every")
+            // 語順が言語で異なるため、ステッパーの間に入る語は意味ベースのキーで訳す
+            Text(String(localized: "trainer.every", defaultValue: "BPM every"))
             MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32)
-            Text(engine.speedTrainer.measuresPerStep == 1 ? "bar, up to" : "bars, up to")
+            Text(engine.speedTrainer.measuresPerStep == 1
+                 ? String(localized: "trainer.upTo.one", defaultValue: "bar, up to")
+                 : String(localized: "trainer.upTo.other", defaultValue: "bars, up to"))
             MiniStepper(value: $engine.speedTrainer.targetBPM, range: 41...240, step: 5)
         }
     }
@@ -91,11 +94,16 @@ struct GapTrainerSection: View {
         ) {
             EmptyView()
         } settings: {
-            Text("Play")
+            let prefix = String(localized: "gap.prefix", defaultValue: "Play")
+            if !prefix.isEmpty {
+                Text(prefix)
+            }
             MiniStepper(value: $engine.gapTrainer.playBars, range: 1...16)
-            Text(engine.gapTrainer.playBars == 1 ? "bar, then" : "bars, then")
+            Text(engine.gapTrainer.playBars == 1
+                 ? String(localized: "gap.then.one", defaultValue: "bar, then")
+                 : String(localized: "gap.then.other", defaultValue: "bars, then"))
             MiniStepper(value: $engine.gapTrainer.muteBars, range: 1...16)
-            Text("silent")
+            Text(String(localized: "gap.suffix", defaultValue: "silent"))
         }
     }
 }

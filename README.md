@@ -14,6 +14,7 @@ A minimal metronome that lives in your macOS menu bar.
 - Menu bar shows the BPM while playing; the Play button shows practice time
 - Global shortcuts: <kbd>⌃⌥M</kbd> play/stop, <kbd>⌃⌥T</kbd> tap tempo
 - Settings are remembered between launches
+- English and Japanese UI (follows the system language)
 
 ## Build
 

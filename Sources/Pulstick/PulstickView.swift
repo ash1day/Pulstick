@@ -317,8 +317,9 @@ struct PulstickView: View {
             }
             .controlSize(.large)
             .buttonStyle(.bordered)
-            .help("Tap along to set the tempo (T"
-                + (hotKeys?.isTapAvailable == true ? ", or ⌃⌥T from any app)" : ")"))
+            .help(hotKeys?.isTapAvailable == true
+                  ? "Tap along to set the tempo (T, or ⌃⌥T from any app)"
+                  : "Tap along to set the tempo (T)")
             .pointingHandCursor()
 
             Button {
@@ -332,9 +333,17 @@ struct PulstickView: View {
             .buttonStyle(.borderedProminent)
             .tint(engine.isPlaying ? .red : .accentColor)
             .keyboardShortcut(.space, modifiers: [])
-            .help((engine.isPlaying ? "Stop (Space" : "Play (Space")
-                + (hotKeys?.isToggleAvailable == true ? ", or ⌃⌥M from any app)" : ")"))
+            .help(playButtonHelp)
             .pointingHandCursor()
+        }
+    }
+
+    private var playButtonHelp: LocalizedStringKey {
+        switch (engine.isPlaying, hotKeys?.isToggleAvailable == true) {
+        case (true, true): "Stop (Space, or ⌃⌥M from any app)"
+        case (true, false): "Stop (Space)"
+        case (false, true): "Play (Space, or ⌃⌥M from any app)"
+        case (false, false): "Play (Space)"
         }
     }
 
@@ -378,7 +387,7 @@ struct PulstickView: View {
             CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .orange : .gray)
                 .frame(height: 16)
         }
-        .help(accent ? "Accent volume" : "Beat volume")
+        .help(accent ? LocalizedStringKey("Accent volume") : LocalizedStringKey("Beat volume"))
     }
 
     // MARK: - Footer
@@ -436,7 +445,7 @@ extension Subdivision {
         }
     }
 
-    var label: String {
+    var label: LocalizedStringKey {
         switch self {
         case .quarter: "Quarter notes (no subdivision)"
         case .eighth: "Eighth notes"
