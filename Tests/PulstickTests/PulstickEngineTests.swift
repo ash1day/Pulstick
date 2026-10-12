@@ -95,6 +95,24 @@ struct AccentManagementTests {
 
 @Suite("PulstickEngine: 休符")
 struct RestBeatTests {
+    /// 右クリックから選ぶときは、強拍を経由せず 1 回で休みにできる
+    @Test func settingAnAccentedBeatToRestClearsTheAccent() {
+        let engine = makeEngine()
+        engine.setBeats(4)
+        engine.setBeat(0, to: .rest)
+        #expect(!engine.accentBeats.contains(0))
+        #expect(engine.restBeats.contains(0))
+    }
+
+    @Test func settingARestBeatToNormalClearsTheRest() {
+        let engine = makeEngine()
+        engine.setBeats(4)
+        engine.setBeat(2, to: .rest)
+        engine.setBeat(2, to: .normal)
+        #expect(!engine.restBeats.contains(2))
+        #expect(!engine.accentBeats.contains(2))
+    }
+
     @Test func tappingABeatCyclesNormalAccentRest() {
         let engine = makeEngine()
         engine.setBeats(4)  // 1 拍目だけアクセント

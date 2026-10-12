@@ -97,6 +97,19 @@ extension PulstickEngine {
         }
     }
 
+    /// 右クリックから状態を直接選ぶ。cycleBeat と違い、休みにするとき強拍を経由しない
+    public func setBeat(_ beat: Int, to state: BeatState) {
+        batchPatternChange {
+            accentBeats.remove(beat)
+            restBeats.remove(beat)
+            switch state {
+            case .normal: break
+            case .accent: accentBeats.insert(beat)
+            case .rest: restBeats.insert(beat)
+            }
+        }
+    }
+
     public func toggleAccent(_ beat: Int) {
         batchPatternChange {
             if accentBeats.contains(beat) {

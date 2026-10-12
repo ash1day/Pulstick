@@ -22,6 +22,7 @@ struct ShortcutHelp: View {
             }
             // 練習タイマーや記録のリセットなどは右クリックの中にあり見つけにくいので、クリックより先に案内する
             section("Right-click") {
+                mouseTip("A beat", "Choose normal, accent or rest")
                 mouseTip("Play", "Practice timer, count-in")
                 mouseTip("Today’s minutes", "Reset the practice history")
                 mouseTip("A preset", "Save the current pattern")

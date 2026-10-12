@@ -32,11 +32,23 @@ struct BeatIndicator: View {
                             .accessibleTap(Text("Beat \(beat + 1)"), value: beatStateName(beat)) {
                                 engine.cycleBeat(beat)
                             }
+                            // クリックで巡回すると休みの手前で一度強拍になるので、右クリックから直接選べるようにする
+                            .contextMenu {
+                                Picker("Beat \(beat + 1)", selection: Binding(
+                                    get: { beatState(beat) },
+                                    set: { engine.setBeat(beat, to: $0) }
+                                )) {
+                                    Text("Normal").tag(BeatState.normal)
+                                    Text("Accent").tag(BeatState.accent)
+                                    Text("Rest").tag(BeatState.rest)
+                                }
+                                .pickerStyle(.inline)
+                            }
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
             }
-            .help("Click a beat to switch it: normal → accent → rest")
+            .help("Click a beat to switch it: normal → accent → rest · right-click to choose")
 
             stepButton("plus.circle", enabled: engine.beatsPerMeasure < PulstickEngine.beatsRange.upperBound) {
                 engine.addBeat()
@@ -58,6 +70,11 @@ struct BeatIndicator: View {
         .buttonRepeatBehavior(.enabled)
         .disabled(!enabled)
         .pointingHandCursor()
+    }
+
+    private func beatState(_ beat: Int) -> BeatState {
+        if engine.restBeats.contains(beat) { return .rest }
+        return engine.accentBeats.contains(beat) ? .accent : .normal
     }
 
     private func beatStateName(_ beat: Int) -> Text {

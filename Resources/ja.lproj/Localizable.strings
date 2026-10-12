@@ -1,7 +1,7 @@
 /* Beat indicator */
 "Remove a beat" = "拍を減らす";
 "Add a beat" = "拍を増やす";
-"Click a beat to switch it: normal → accent → rest" = "拍をクリックするたびに 弱 → 強 → 休み と切り替わります";
+"Click a beat to switch it: normal → accent → rest · right-click to choose" = "拍をクリックするたびに 弱 → 強 → 休み と切り替わります・右クリックで直接選べます";
 
 /* BPM */
 "Click to type a tempo" = "クリックしてテンポを入力";
@@ -189,3 +189,6 @@
 "Type a tempo" = "テンポを入力";
 "Hold − or +" = "− か + を長押し";
 "Keep changing the tempo" = "テンポを続けて変える";
+"Normal" = "弱";
+"Accent" = "強";
+"Choose normal, accent or rest" = "弱・強・休みを選ぶ";
