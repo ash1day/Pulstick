@@ -201,19 +201,17 @@ private struct ChipStyle: ViewModifier {
 
 // MARK: - Practice Time
 
-/// 練習時間を "2時間15分" / "2 hr, 15 min" のように言語に合わせて表す
+/// 練習時間を "2時間15分" / "2h 15m" のように言語に合わせて短く表す（目標の行で「実績 / 目標」を 1 行に収めるため）
 enum PracticeTime {
-    private static let hoursFormatter = makeFormatter([.hour, .minute])
-    private static let minutesFormatter = makeFormatter([.minute])
-
-    private static func makeFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
+    static func format(_ seconds: Double, locale: Locale? = nil) -> String {
         let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = units
-        formatter.unitsStyle = .short
-        return formatter
-    }
-
-    static func format(_ seconds: Double) -> String {
-        (seconds >= 3600 ? hoursFormatter : minutesFormatter).string(from: seconds) ?? ""
+        formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
+        formatter.unitsStyle = .abbreviated
+        if let locale {
+            var calendar = Calendar.current
+            calendar.locale = locale
+            formatter.calendar = calendar
+        }
+        return formatter.string(from: seconds) ?? ""
     }
 }

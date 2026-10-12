@@ -74,4 +74,10 @@ struct ViewSmokeTests {
         #expect(long.contains("2") && long.contains("15"))
         #expect(!PracticeTime.format(45 * 60).contains("0"))  // "0 hr 45 min" のようにしない
     }
+
+    @Test func practiceTimeIsShortEnoughForTheGoalRow() {
+        // 目標の行は「実績 / 目標」を 1 行に並べるので、短い書き方にする
+        #expect(PracticeTime.format(2 * 3600 + 45 * 60, locale: Locale(identifier: "en_US")) == "2h 45m")
+        #expect(PracticeTime.format(2 * 3600 + 45 * 60, locale: Locale(identifier: "ja_JP")) == "2時間45分")
+    }
 }
