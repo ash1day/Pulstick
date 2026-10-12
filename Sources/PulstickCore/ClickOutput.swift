@@ -71,7 +71,7 @@ public final class AudioClickOutput: ClickOutput {
 
         // 練習中にヘッドホンを抜き差しするなど出力先が変わると、AVAudioEngine は止まってしまう。
         // 放っておくと拍の表示は進むのに音だけ鳴らなくなるため、構成変更のたびに再始動する。
-        // ノードの接続は保たれ、クリックごとに node.play() し直すので次の拍から音が戻る
+        // ノードの接続は保たれ、prepare() でエンジンとノードを動かし直すので次の拍から音が戻る
         configurationObserver = NotificationCenter.default.addObserver(
             // 通知はどのスレッドからでも届くので、再始動はメインキューに寄せて start() 同士が重ならないようにする
             forName: .AVAudioEngineConfigurationChange, object: audioEngine, queue: .main
