@@ -20,12 +20,15 @@ struct PulstickView: View {
     var body: some View {
         VStack(spacing: 14) {
             BeatIndicator(engine: engine, clock: engine.beatClock)
-            BPMDisplay(engine: engine, clock: engine.beatClock, isEditing: $isEditingBPM)
-                .frame(maxWidth: .infinity)
-                .overlay(alignment: .topTrailing) {
-                    SongListButton(engine: engine, isShowingList: $isShowingSongs)
-                }
-            BPMSlider(engine: engine)
+            // 数字・スライダー・曲の呼び出しを 1 つのテンポのまとまりとして見せる
+            VStack(spacing: 4) {
+                BPMDisplay(engine: engine, clock: engine.beatClock, isEditing: $isEditingBPM)
+                    .frame(maxWidth: .infinity)
+                    .overlay(alignment: .trailing) {
+                        SongListButton(engine: engine, isShowingList: $isShowingSongs)
+                    }
+                BPMSlider(engine: engine)
+            }
             PresetPicker(engine: engine)
             ChipPicker(Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
                 Text(sub.symbol)

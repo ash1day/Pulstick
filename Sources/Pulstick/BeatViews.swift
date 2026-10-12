@@ -3,7 +3,7 @@ import SwiftUI
 
 // 拍ごとに再描画されるのはこのファイルのビューだけにする
 
-/// 強（アクセント）: 塗りつぶし円・オレンジ、弱: 輪郭のみ・グレー。
+/// 強（アクセント）: 塗りつぶし円・アクセントカラー、弱: 輪郭のみ・グレー。
 /// タップで強弱を切り替え。−/＋ボタンで拍を削除・追加。
 struct BeatIndicator: View {
     @ObservedObject var engine: PulstickEngine
@@ -113,11 +113,11 @@ struct BPMDisplay: View {
             VStack(spacing: 0) {
                 if isEditing {
                     TextField("", text: $draft)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .multilineTextAlignment(.center)
                         .textFieldStyle(.plain)
-                        .frame(width: 90, height: 38)
+                        .frame(width: 110, height: 46)
                         .focused($fieldFocused)
                         .onSubmit(commit)
                         .onExitCommand { isEditing = false }
@@ -126,9 +126,9 @@ struct BPMDisplay: View {
                         }
                 } else {
                     Text("\(Int(engine.bpm))")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
                         .monospacedDigit()
-                        .frame(height: 38)
+                        .frame(height: 46)
                         .contentShape(Rectangle())
                         .accessibleTap(Text("Tempo"), value: engine.bpmAccessibilityValue, action: beginEditing)
                         .help("Click to type a tempo")
@@ -140,7 +140,7 @@ struct BPMDisplay: View {
                     .foregroundColor(.secondary)
             }
         }
-        .frame(height: 84)
+        .frame(height: 68)
         .onAppear {
             // 入力中の状態で表示されたとき（テストなど）も、入力欄にフォーカスを当てる
             if isEditing {
@@ -252,12 +252,15 @@ struct BPMSlider: View {
     }
 
     private func stepButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+        // 灰色の箱にすると BPM の数字より重く見えるので、記号だけの軽いボタンにする
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.secondary)
                 .frame(width: 26, height: 26)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.plain)
         .pointingHandCursor()
     }
 }
