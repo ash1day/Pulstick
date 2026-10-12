@@ -23,7 +23,7 @@ public struct BeatPreset: Codable, Equatable {
 /// メトロノームのオーディオ再生とタイミング制御を担当するエンジン。
 /// DispatchSourceTimer で正確なビート間隔を維持し、ClickOutput に音を鳴らさせる。
 public final class PulstickEngine: ObservableObject {
-    public static let bpmRange: ClosedRange<Double> = 40...240
+    public static let bpmRange: ClosedRange<Double> = 30...300
     public static let beatsRange: ClosedRange<Int> = 1...16
 
     /// UserDefaults のキー。値の型を変えるときはキー名も変えて旧データと衝突させないこと

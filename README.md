@@ -6,7 +6,7 @@ A minimal metronome that lives in your macOS menu bar.
 
 ## Features
 
-- Tempo 40–240 BPM: drag, use the ± buttons or arrow keys, tap along, or click the number and type
+- Tempo 30–300 BPM: drag, use the ± buttons or arrow keys, tap along, or click the number and type
 - Up to 16 beats per bar with any beats accented, plus four presets you can overwrite (right-click)
 - Subdivisions: eighths, triplets, sixteenths
 - Three click sounds (beep, wood, tick), all synthesized in code

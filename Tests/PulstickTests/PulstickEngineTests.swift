@@ -98,13 +98,13 @@ struct BPMTests {
     @Test func bpmClampedAtMaximum() {
         let engine = makeEngine()
         engine.bpm = 999
-        #expect(engine.bpm == 240)
+        #expect(engine.bpm == 300)
     }
 
     @Test func bpmClampedAtMinimum() {
         let engine = makeEngine()
         engine.bpm = 1
-        #expect(engine.bpm == 40)
+        #expect(engine.bpm == 30)
     }
 
     @Test func incrementBPMAddsOne() {
@@ -123,16 +123,16 @@ struct BPMTests {
 
     @Test func incrementDoesNotExceedMax() {
         let engine = makeEngine()
-        engine.bpm = 240
+        engine.bpm = 300
         engine.incrementBPM()
-        #expect(engine.bpm == 240)
+        #expect(engine.bpm == 300)
     }
 
     @Test func decrementDoesNotGoBelowMin() {
         let engine = makeEngine()
-        engine.bpm = 40
+        engine.bpm = 30
         engine.decrementBPM()
-        #expect(engine.bpm == 40)
+        #expect(engine.bpm == 30)
     }
 }
 
@@ -418,6 +418,7 @@ struct EngineSpeedTrainerTests {
 @Suite("TempoMarking")
 struct TempoMarkingTests {
     @Test(arguments: [
+        (30.0, "Grave"), (39.0, "Grave"),
         (40.0, "Largo"), (59.0, "Largo"),
         (60.0, "Larghetto"),
         (66.0, "Adagio"),
@@ -426,7 +427,7 @@ struct TempoMarkingTests {
         (120.0, "Allegro"), (155.0, "Allegro"),
         (156.0, "Vivace"),
         (176.0, "Presto"),
-        (200.0, "Prestissimo"), (240.0, "Prestissimo"),
+        (200.0, "Prestissimo"), (300.0, "Prestissimo"),
     ])
     func nameMatchesTempoRange(bpm: Double, expected: String) {
         #expect(TempoMarking.name(for: bpm) == expected)

@@ -2,7 +2,8 @@
 public enum TempoMarking {
     /// 各記号の下限 BPM。昇順に並べる
     private static let thresholds: [(lowerBound: Double, name: String)] = [
-        (0, "Largo"),
+        (0, "Grave"),
+        (40, "Largo"),
         (60, "Larghetto"),
         (66, "Adagio"),
         (76, "Andante"),
