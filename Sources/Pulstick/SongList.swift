@@ -73,8 +73,7 @@ struct SongList: View {
     }
 
     private func row(_ song: Song) -> some View {
-        let isCurrent = song.bpm == engine.bpm && song.beats == engine.beatsPerMeasure
-            && Set(song.accents) == engine.accentBeats && song.subdivision == engine.subdivision
+        let isCurrent = engine.matchesCurrentSettings(song)
         return HStack(spacing: 8) {
             Text(verbatim: song.name)
                 .font(.system(size: 12, weight: isCurrent ? .semibold : .regular))

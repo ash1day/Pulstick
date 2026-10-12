@@ -234,6 +234,16 @@ struct SongTests {
         engine.stop()
     }
 
+    @Test func songMatchesOnlyWhileSettingsAreUnchanged() throws {
+        let engine = makeEngine()
+        engine.bpm = 90
+        engine.saveCurrentAsSong(named: "Groove")
+        let song = try #require(engine.songs.first)
+        #expect(engine.matchesCurrentSettings(song))
+        engine.subdivision = .eighth
+        #expect(!engine.matchesCurrentSettings(song))
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

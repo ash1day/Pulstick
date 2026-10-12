@@ -304,6 +304,12 @@ public final class PulstickEngine: ObservableObject {
         Set(accents.filter { (0..<beatsPerMeasure).contains($0) })
     }
 
+    /// 曲リストで「いま使っている曲」を強調するための判定
+    public func matchesCurrentSettings(_ song: Song) -> Bool {
+        song.bpm == bpm && song.beats == beatsPerMeasure
+            && Set(song.accents) == accentBeats && song.subdivision == subdivision
+    }
+
     public func deleteSong(_ song: Song) {
         songs.removeAll { $0.id == song.id }
     }
