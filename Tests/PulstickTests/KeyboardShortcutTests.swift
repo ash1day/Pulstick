@@ -169,5 +169,4 @@ struct KeyboardShortcutTests {
         _ = press("\r", keyCode: 36, in: window)
         #expect(dismissed)
     }
-
 }
