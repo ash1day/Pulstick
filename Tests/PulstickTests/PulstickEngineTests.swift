@@ -727,6 +727,20 @@ struct SongTests {
         #expect(engine.speedTrainer.targetBPM == 160)
     }
 
+    @Test func rampingUpWhilePlayingClimbsFromSeventyPercentToTheSongTempo() {
+        let engine = makeEngine()
+        engine.bpm = 160
+        engine.saveCurrentAsSong(named: "Etude")
+        engine.setBeats(3)
+        engine.bpm = 90
+        engine.start()  // 別の練習をしている途中で
+        engine.rampUp(engine.songs[0], fromPercent: 70)
+        #expect(engine.sessionStartBPM == 112)  // ↶ で戻る先も 70% のテンポ
+        for _ in 0..<200 { engine.handleMeasureCompleted() }
+        #expect(engine.bpm == 160)  // 曲のテンポまで上がって止まる
+        engine.stop()
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

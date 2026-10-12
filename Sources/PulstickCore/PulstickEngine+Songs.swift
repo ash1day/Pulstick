@@ -56,7 +56,8 @@ extension PulstickEngine {
     }
 
     /// 本来のテンポの percent % から始め、スピードトレーナーで曲のテンポまで上げていく。
-    /// 難しい曲を「遅く始めて、慣れたら本来のテンポへ」と練習する流れを 1 回の操作で用意する
+    /// 難しい曲を「遅く始めて、慣れたら本来のテンポへ」と練習する流れを 1 回の操作で用意する。
+    /// スピードトレーナーの目標はこの曲のテンポに書き換わる。繰り返しモードなら 70% のテンポに戻ってまた上げる
     public func rampUp(_ song: Song, fromPercent percent: Int) {
         speedTrainer.targetBPM = Int(song.bpm.rounded())
         speedTrainerEnabled = true
@@ -127,7 +128,8 @@ extension PulstickEngine {
     /// 練習ログと曲ごとの練習時間・最高テンポを消す（新学期に付け直すときや、Mac を共有しているとき用）。
     /// 曲そのもの（テンポや拍子）は残す
     public func resetPracticeHistory() {
-        // 再生中なら、それまでの分を捨ててここから数え直す（停止時に消した記録が書き戻されないように）
+        // 再生中なら、それまでの分を捨ててここから数え直す（停止時に消した記録が書き戻されないように）。
+        // 練習タイマーはそのまま続ける（「15 分で止める」という意図は記録の消去とは関係ないため）
         if isPlaying {
             playStartedAt = now()
             songPractice = SongPracticeTracker()

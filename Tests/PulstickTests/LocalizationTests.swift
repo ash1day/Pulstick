@@ -96,7 +96,8 @@ struct LocalizationTests {
         #expect(missing.isEmpty, "missing ja: \(Set(missing).sorted())")
     }
 
-    /// 記号・数字・補間だけの文言は訳さない
+    /// 記号・数字・補間だけの文言は訳さないので検査しない（"\(x)%" や "♩=\(x)" など）。
+    /// 英字を 1 文字でも含めば検査の対象になる
     private func isTranslatable(_ literal: String) -> Bool {
         let withoutInterpolation = literal.replacingOccurrences(of: #"\\\([^)]*\)+"#, with: "", options: .regularExpression)
         return withoutInterpolation.rangeOfCharacter(from: .letters) != nil
