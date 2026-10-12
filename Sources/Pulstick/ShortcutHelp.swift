@@ -20,12 +20,18 @@ struct ShortcutHelp: View {
                     row(shortcut.display, shortcut.label)
                 }
             }
-            // 練習タイマーや記録のリセットなどは右クリックの中にあり、見た目からは分からないので、ここで案内する
+            // クリックや長押しでできることは見た目から分からないので、ここで案内する
+            section("Click") {
+                mouseTip("A beat", "Normal → accent → rest")
+                mouseTip("The tempo", "Type a tempo")
+                mouseTip("Hold − or +", "Keep changing the tempo")
+            }
+            // 練習タイマーや記録のリセットなどは右クリックの中にある
             section("Right-click") {
-                rightClickTip("Play", "Practice timer, count-in")
-                rightClickTip("Today’s minutes", "Reset the practice history")
-                rightClickTip("A preset", "Save the current pattern")
-                rightClickTip("A song", "Practise slower, ramp up")
+                mouseTip("Play", "Practice timer, count-in")
+                mouseTip("Today’s minutes", "Reset the practice history")
+                mouseTip("A preset", "Save the current pattern")
+                mouseTip("A song", "Practise slower, ramp up, delete")
             }
         }
         .padding(12)
@@ -42,7 +48,7 @@ struct ShortcutHelp: View {
         }
     }
 
-    private func rightClickTip(_ target: LocalizedStringKey, _ action: LocalizedStringKey) -> some View {
+    private func mouseTip(_ target: LocalizedStringKey, _ action: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(target)
                 .font(.system(size: 11, weight: .semibold))

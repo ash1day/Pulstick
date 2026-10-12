@@ -26,8 +26,8 @@
 "Go back to the tempo you started at" = "開始時のテンポに戻す";
 "Speed trainer on / off" = "スピードトレーナーのオン / オフ";
 "Back to the start tempo" = "開始時のテンポに戻す";
-"trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
-"trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
+"trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM、上限 %3$@";
+"trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM、上限 %3$@";
 "tempo.announcement" = "テンポ %lld";
 
 /* Silent bars. %1$@ = bars played, %2$@ = bars muted */
@@ -175,9 +175,16 @@
 "A preset" = "プリセット";
 "Save the current pattern" = "いまのパターンを保存";
 "A song" = "曲";
-"Practise slower, ramp up" = "遅めのテンポで練習、徐々に上げる";
+"Practise slower, ramp up, delete" = "遅めのテンポで練習、徐々に上げる、削除";
 
 /* Group names for VoiceOver */
 "Presets" = "プリセット";
 "Subdivision" = "細分";
 "Click sound" = "クリック音";
+"Click" = "クリック";
+"A beat" = "拍";
+"Normal → accent → rest" = "弱 → 強 → 休み";
+"The tempo" = "テンポの数字";
+"Type a tempo" = "テンポを入力";
+"Hold − or +" = "− か + を長押し";
+"Keep changing the tempo" = "テンポを続けて変える";

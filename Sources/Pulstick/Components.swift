@@ -261,7 +261,8 @@ struct GlyphButtonStyle: ButtonStyle {
                 .background(
                     Circle().fill(Color.secondary.opacity(configuration.isPressed ? 0.25 : isHovering ? 0.12 : 0))
                 )
-                .overlay(Circle().stroke(contrast == .increased ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1))
+                // 「コントラストを上げる」設定でも常に枠を出すと拍の行の ⊖ ⊕ と似た別の記号に見えるので、ホバー中だけにする
+                .overlay(Circle().stroke(contrast == .increased && (isHovering || configuration.isPressed) ? Color.secondary.opacity(0.6) : .clear, lineWidth: 1))
                 .onHover { isHovering = $0 }
         }
     }

@@ -31,9 +31,8 @@ struct PulstickView: View {
             }
             PresetPicker(engine: engine)
             ChipPicker(Text("Subdivision"), items: Subdivision.allCases, selection: engine.subdivision, label: \.label) { sub in
-                Text(sub.symbol)
+                SubdivisionGlyph(subdivision: sub)
                     .font(.system(size: 12, weight: .medium))
-                    .tracking(-2)
             } onSelect: { engine.subdivision = $0 }
             VStack(spacing: 6) {
                 SpeedTrainerSection(engine: engine)

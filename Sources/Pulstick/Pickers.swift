@@ -99,6 +99,23 @@ struct ChipPicker<Item: Hashable, Content: View>: View {
     }
 }
 
+/// 細分の記号。3 連符は 8 分音符 3 つと見分けられるよう、譜面と同じく小さな「3」を添える
+struct SubdivisionGlyph: View {
+    let subdivision: Subdivision
+
+    var body: some View {
+        Text(subdivision.symbol)
+            .tracking(-2)
+            .overlay(alignment: .top) {
+                if subdivision == .triplet {
+                    Text(verbatim: "3")
+                        .font(.system(size: 8, weight: .semibold, design: .rounded))
+                        .offset(y: -8)
+                }
+            }
+    }
+}
+
 extension Subdivision {
     var symbol: String {
         switch self {

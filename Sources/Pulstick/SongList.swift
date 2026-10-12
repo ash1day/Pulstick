@@ -23,6 +23,8 @@ struct SongList: View {
     @State private var newName = ""
     /// コピー・貼り付けの結果を短く知らせる
     @State private var shareStatus: Text?
+    /// ポインタが乗っている曲。削除ボタンはその行にだけ出し、練習記録ごと消える誤クリックを防ぐ
+    @State private var hoveredSongID: Song.ID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -105,11 +107,13 @@ struct SongList: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // 見えないだけで VoiceOver からは押せるよう、消さずに透明にする
+                .opacity(hoveredSongID == song.id ? 1 : 0)
                 .help("Delete")
                 .accessibilityLabel(Text("Delete \(song.name)"))
                 .pointingHandCursor()
             }
-            // 拍数、曲ごとの練習量（1 分未満は出さない）、これまでに鳴らした最高テンポ。
+            // 拍数、これまでに鳴らした最高テンポ、曲ごとの練習量（1 分未満は出さない）。行末が切れても目標に近い最高テンポは残る順にする。
             // 曲名の列は右のテンポ表記に挟まれて狭いので、曲名を削らないよう行の幅いっぱいを使う 2 行目に出す
             details(beats: song.pattern.beats, practised: practised, best: song.bestBPM)
                 .font(.system(size: 10))
@@ -119,7 +123,13 @@ struct SongList: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .chip(selected: isCurrent)
-        .accessibleTap(Text(verbatim: song.name), value: Text("\(Int(song.bpm)) BPM"), selected: isCurrent) {
+        .onHover { hoveredSongID = $0 ? song.id : (hoveredSongID == song.id ? nil : hoveredSongID) }
+        // 2 行目の拍数や最高テンポも VoiceOver に届くよう、値に含める
+        .accessibleTap(
+            Text(verbatim: song.name),
+            value: Text("\(Int(song.bpm)) BPM") + Text(verbatim: ", ") + details(beats: song.pattern.beats, practised: practised, best: song.bestBPM),
+            selected: isCurrent
+        ) {
             engine.applySong(song)
             dismiss()
         }
@@ -148,13 +158,15 @@ struct SongList: View {
                 .disabled(song.id == engine.songs.first?.id)
             Button("Move Down") { engine.moveSong(song, by: 1) }
                 .disabled(song.id == engine.songs.last?.id)
+            Divider()
+            Button("Delete", role: .destructive) { engine.deleteSong(song) }
         }
     }
 
     private func details(beats: Int, practised: Double, best: Double?) -> Text {
         let time = practised >= 60 ? Text("Practised \(PracticeTime.format(practised))") : nil
         let peak = best.map { Text("Best ♩=\(Int($0))") }
-        return [time, peak].compactMap { $0 }.reduce(Text("\(beats) beats")) { $0 + Text(verbatim: " · ") + $1 }
+        return [peak, time].compactMap { $0 }.reduce(Text("\(beats) beats")) { $0 + Text(verbatim: " · ") + $1 }
     }
 
     private func shareButton(_ symbol: String, help: LocalizedStringKey, action: @escaping () -> Void) -> some View {
