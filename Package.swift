@@ -18,7 +18,7 @@ let package = Package(
         ),
         .testTarget(
             name: "PulstickTests",
-            dependencies: ["PulstickCore"],
+            dependencies: ["PulstickCore", "Pulstick"],
             path: "Tests/PulstickTests"
         ),
     ]
