@@ -52,6 +52,7 @@ public final class AudioClickOutput: ClickOutput {
 
     /// 細分音は拍を邪魔しないよう弱拍の音量に対してさらに控えめにする
     private let subdivisionVolumeRatio: Float = 0.45
+    private var configurationObserver: NSObjectProtocol?
 
     public init() {
         audioEngine.attach(accentPlayerNode)
@@ -67,9 +68,21 @@ public final class AudioClickOutput: ClickOutput {
         } catch {
             print("Failed to start audio engine: \(error)")
         }
+
+        // 練習中にヘッドホンを抜き差しするなど出力先が変わると、AVAudioEngine は止まってしまう。
+        // 放っておくと拍の表示は進むのに音だけ鳴らなくなるため、構成変更のたびに再始動する。
+        // ノードの接続は保たれ、クリックごとに node.play() し直すので次の拍から音が戻る
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: audioEngine, queue: nil
+        ) { [weak self] _ in
+            self?.prepare()
+        }
     }
 
     deinit {
+        if let configurationObserver {
+            NotificationCenter.default.removeObserver(configurationObserver)
+        }
         stopAll()
         audioEngine.stop()
     }
