@@ -18,8 +18,11 @@ extension PulstickEngine {
             songs.append(song)
         }
         selectedSongID = song.id
-        // 鳴らしている設定に名前を付けたのなら、ここからはその曲の練習として数える
-        if isPlaying, activeSongID != song.id {
+        guard isPlaying, activeSongID != song.id else { return }
+        if activeSongID == nil {
+            // どの曲でもない設定を弾いていた時間は、いま名前を付けたこの曲の練習として引き取る
+            activeSongID = song.id
+        } else {
             switchSongPractice(to: song.id)
         }
     }
@@ -48,13 +51,15 @@ extension PulstickEngine {
         song.bpm == bpm && matchesCurrentPattern(song)
     }
 
-    /// いま使っている曲。選んだ曲の拍子と細分が変わっていなければ、テンポが練習で上下していてもその曲とみなす。
-    /// 選んでいなければ、設定が一致する最初の曲
+    /// いま使っている曲。
+    /// 1. 設定が完全に一致する曲（同じ設定の曲が複数あれば選んだ曲を優先）
+    /// 2. 選んだ曲の拍子と細分が変わっていなければ、テンポが練習で上下していてもその曲
     public var currentSong: Song? {
-        if let selected = songs.first(where: { $0.id == selectedSongID }), matchesCurrentPattern(selected) {
-            return selected
-        }
-        return songs.first(where: matchesCurrentSettings)
+        let selected = songs.first { $0.id == selectedSongID }
+        if let selected, matchesCurrentSettings(selected) { return selected }
+        if let exact = songs.first(where: matchesCurrentSettings) { return exact }
+        if let selected, matchesCurrentPattern(selected) { return selected }
+        return nil
     }
 
     private func matchesCurrentPattern(_ song: Song) -> Bool {
@@ -67,15 +72,19 @@ extension PulstickEngine {
         guard let index = songs.firstIndex(where: { $0.id == song.id }) else { return }
         let destination = (index + offset).clamped(to: 0...(songs.count - 1))
         guard destination != index else { return }
-        // 1 つずつ動かすので入れ替えで足りる（保存と画面更新が 1 回で済む）
-        songs.swapAt(index, destination)
+        // 手元のコピーで動かしてから 1 回で代入し、保存と画面更新を 1 回で済ませる
+        var reordered = songs
+        reordered.insert(reordered.remove(at: index), at: destination)
+        songs = reordered
     }
 
     /// セットリストの前後の曲を呼び出す（リハーサル中に曲を順に切り替える用途）。
     /// いまの曲が分からなければ先頭の曲から始める。端で押しても何もしない
     public func applyAdjacentSong(_ offset: Int) {
         guard !songs.isEmpty else { return }
-        guard let current = currentSong.flatMap({ song in songs.firstIndex { $0.id == song.id } }) else {
+        // 一致する曲がなくても、選んだ曲があればそこから動く（保存データが壊れていて一致しえない曲でも先へ進める）
+        let anchor = currentSong?.id ?? selectedSongID
+        guard let current = songs.firstIndex(where: { $0.id == anchor }) else {
             applySong(songs[0])
             return
         }
@@ -97,30 +106,53 @@ extension PulstickEngine {
         return total
     }
 
-    /// 曲の練習時間を数え始める（nil なら数えない）
+    /// 曲の練習時間を数え始める。再生中は nil（どの曲でもない設定）の時間も数えておき、
+    /// 後からその設定に名前を付けたときに引き取れるようにする
     func beginSongPractice(_ id: UUID?) {
         activeSongID = id
-        activeSongSince = id == nil ? nil : Date()
+        activeSongSince = isPlaying ? Date() : nil
     }
 
-    /// ここまでの時間を、数えていた曲の未確定分に積み、別の曲を数え始める
+    /// 再生中に拍子などを変えて「いまの曲」が変わったら、数える曲を切り替える
+    func followCurrentSongIfPlaying() {
+        guard isPlaying, currentSong?.id != activeSongID else { return }
+        switchSongPractice(to: currentSong?.id)
+    }
+
+    /// ここまでの時間を数えていた曲に積み、別の曲を数え始める。
+    /// 再生がすでに記録に値する長さなら即座に保存し、まだ短ければ停止時まで保留する
     func switchSongPractice(to id: UUID?) {
         if let current = activeSongID, let since = activeSongSince {
             pendingSongSeconds[current, default: 0] += Date().timeIntervalSince(since)
         }
         beginSongPractice(id)
+        if isLongEnoughToLog {
+            commitPendingSongPractice()
+        }
+    }
+
+    var isLongEnoughToLog: Bool {
+        playStartedAt.map { Date().timeIntervalSince($0) >= minimumLoggedSession } ?? false
     }
 
     /// 停止時に呼ぶ。記録に値する長さの再生なら未確定分を曲に加え、そうでなければ捨てる
     func finishSongPractice(record: Bool) {
         switchSongPractice(to: nil)
         if record {
-            for index in songs.indices {
-                if let seconds = pendingSongSeconds[songs[index].id] {
-                    songs[index].practiceSeconds += seconds
-                }
-            }
+            commitPendingSongPractice()
         }
         pendingSongSeconds = [:]
+        activeSongSince = nil
+    }
+
+    /// 保留中の時間を曲に加える。手元のコピーで足してから 1 回で代入し、保存を 1 回で済ませる
+    private func commitPendingSongPractice() {
+        guard !pendingSongSeconds.isEmpty else { return }
+        var updated = songs
+        for index in updated.indices {
+            updated[index].practiceSeconds += pendingSongSeconds[updated[index].id] ?? 0
+        }
+        pendingSongSeconds = [:]
+        songs = updated
     }
 }

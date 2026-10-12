@@ -1,6 +1,6 @@
 import Foundation
 
-// テンポ・拍・アクセント・プリセット・曲の操作
+// テンポ・拍・アクセント・休符・プリセットの操作（曲は PulstickEngine+Songs.swift）
 extension PulstickEngine {
     var currentPattern: BeatPreset {
         BeatPreset(beats: beatsPerMeasure, accents: Array(accentBeats).sorted(), rests: Array(restBeats).sorted())

@@ -54,16 +54,19 @@ struct SongList: View {
         .frame(width: 250)
     }
 
+    /// 再生中は練習時間が伸びていくので 30 秒ごとに描き直す。いまの曲は行ごとに探さず 1 回だけ求める
     private var rows: some View {
-        VStack(spacing: 2) {
-            ForEach(engine.songs) { song in
-                row(song)
+        TimelineView(.periodic(from: .now, by: engine.isPlaying ? 30 : 3600)) { _ in
+            let currentID = engine.currentSong?.id
+            VStack(spacing: 2) {
+                ForEach(engine.songs) { song in
+                    row(song, isCurrent: song.id == currentID)
+                }
             }
         }
     }
 
-    private func row(_ song: Song) -> some View {
-        let isCurrent = engine.currentSong?.id == song.id
+    private func row(_ song: Song, isCurrent: Bool) -> some View {
         let practised = engine.practiceSeconds(for: song)
         return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {

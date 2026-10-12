@@ -286,13 +286,16 @@ struct SongTests {
         #expect(engine.bpm == 120)
     }
 
-    @Test func nextSongStartsFromTheTopWhenPlayingSomethingElse() {
-        let engine = makeEngine()
-        engine.bpm = 100
-        engine.saveCurrentAsSong(named: "A")
-        engine.bpm = 120
-        engine.saveCurrentAsSong(named: "B")
-        engine.setBeats(3)  // どの曲とも違う拍子を弾いている
+    @Test func nextSongStartsFromTheTopWhenNothingIsSelected() {
+        let defaults = InMemorySettingsStore()
+        let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        first.bpm = 100
+        first.saveCurrentAsSong(named: "A")
+        first.bpm = 120
+        first.saveCurrentAsSong(named: "B")
+        // 起動し直すと曲の選択はなくなる。どの曲とも違う拍子を弾いている状態から ] を押す
+        let engine = PulstickEngine(defaults: defaults, output: SilentClickOutput())
+        engine.setBeats(3)
         engine.applyAdjacentSong(1)
         #expect(engine.bpm == 100)
     }
@@ -406,6 +409,64 @@ struct SongTests {
         #expect(engine.matchesCurrentSettings(song))
         engine.subdivision = .eighth
         #expect(!engine.matchesCurrentSettings(song))
+    }
+
+    @Test func anExactMatchWinsOverTheDriftedSelection() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.bpm = 120
+        engine.saveCurrentAsSong(named: "B")
+        engine.applySong(engine.songs[0])
+        engine.bpm = 120  // B と完全に同じ設定になった
+        #expect(engine.currentSong?.name == "B")
+    }
+
+    @Test func songsCanMoveMoreThanOneStep() {
+        let engine = makeEngine()
+        for name in ["A", "B", "C"] { engine.saveCurrentAsSong(named: name) }
+        engine.moveSong(engine.songs[0], by: 2)
+        #expect(engine.songs.map(\.name) == ["B", "C", "A"])
+    }
+
+    @Test func steppingWorksFromASongThatCannotMatch() {
+        let engine = makeEngine()
+        engine.saveCurrentAsSong(named: "A")
+        engine.saveCurrentAsSong(named: "B")
+        engine.applySong(engine.songs[0])
+        engine.toggleAccent(2)  // 選んだ曲から拍のパターンが外れた
+        engine.applyAdjacentSong(1)
+        #expect(engine.selectedSongID == engine.songs[1].id)
+    }
+
+    @Test func switchingSongsAfterALongEnoughSessionSavesRightAway() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.saveCurrentAsSong(named: "A")
+        engine.bpm = 120
+        engine.saveCurrentAsSong(named: "B")
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.playStartedAt = Date().addingTimeInterval(-600)
+        engine.activeSongSince = Date().addingTimeInterval(-600)
+        engine.applySong(engine.songs[1])
+        // 停止前（アプリが落ちても）A の 10 分はもう保存されている
+        #expect(engine.songs[0].practiceSeconds >= 600)
+        engine.stop()
+    }
+
+    @Test func savingAfterChangingThePatternCreditsTheNewSongFromTheChange() {
+        let engine = makeEngine()
+        engine.minimumLoggedSession = 0
+        engine.saveCurrentAsSong(named: "A")
+        engine.applySong(engine.songs[0])
+        engine.start()
+        engine.setBeats(3)  // 別の拍子を弾き始めた
+        engine.activeSongSince = Date().addingTimeInterval(-300)
+        engine.saveCurrentAsSong(named: "Waltz")
+        engine.stop()
+        #expect(engine.songs[0].practiceSeconds < 300)
+        #expect(engine.songs[1].practiceSeconds >= 300)
     }
 
     @Test func resavingASongKeepsItsPracticeTime() {

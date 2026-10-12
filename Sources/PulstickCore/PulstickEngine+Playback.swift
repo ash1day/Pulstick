@@ -49,7 +49,7 @@ extension PulstickEngine {
 
     /// 停止し、再生していた時間を練習ログに記録する。アプリ終了時にも呼ぶ
     public func stop() {
-        let isLongEnough = playStartedAt.map { Date().timeIntervalSince($0) >= minimumLoggedSession } ?? false
+        let isLongEnough = isLongEnoughToLog
         if isLongEnough, let startedAt = playStartedAt {
             practiceLog.record(from: startedAt, to: Date())
         }
@@ -148,6 +148,7 @@ extension PulstickEngine {
     /// sequencer はタイマーキュー専用。メインスレッドの設定変更はここで非同期に反映し、
     /// タイマーキューとメインスレッドから同じ Set を同時に触るデータ競合を避ける
     func syncSequencer() {
+        followCurrentSongIfPlaying()
         let beats = beatsPerMeasure
         let accents = accentBeats
         let rests = restBeats
