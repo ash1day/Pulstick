@@ -21,11 +21,25 @@ struct SongList: View {
     @ObservedObject var engine: PulstickEngine
     let dismiss: () -> Void
     @State private var newName = ""
+    /// コピー・貼り付けの結果を短く知らせる
+    @State private var shareStatus: Text?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Songs")
-                .font(.system(size: 13, weight: .semibold))
+            HStack {
+                Text("Songs")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                // バンドのメンバーとセットリストを共有する（チャットなどにテキストとして貼れる）
+                shareButton("doc.on.doc", help: "Copy the setlist to share it with your band", action: copySetlist)
+                    .disabled(engine.songs.isEmpty)
+                shareButton("doc.on.clipboard", help: "Add songs from a setlist on the clipboard", action: pasteSetlist)
+            }
+            if let shareStatus {
+                shareStatus
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
 
             HStack(spacing: 6) {
                 TextField("Song name", text: $newName)
@@ -147,6 +161,35 @@ struct SongList: View {
         case let (time?, nil): return time
         case let (nil, peak?): return peak
         case (nil, nil): return nil
+        }
+    }
+
+    private func shareButton(_ symbol: String, help: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .frame(width: 20, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(Text(help))
+        .pointingHandCursor()
+    }
+
+    private func copySetlist() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(engine.exportSetlist(), forType: .string)
+        shareStatus = Text("Copied \(engine.songs.count) songs")
+    }
+
+    private func pasteSetlist() {
+        let text = NSPasteboard.general.string(forType: .string) ?? ""
+        if let count = engine.importSetlist(text) {
+            shareStatus = Text("Added or updated \(count) songs")
+        } else {
+            shareStatus = Text("No Pulstick setlist on the clipboard")
         }
     }
 

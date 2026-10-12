@@ -803,6 +803,35 @@ struct SongTests {
         engine.stop()
     }
 
+    @Test func aSetlistCanBeSharedWithoutPracticeData() throws {
+        let mine = makeEngine()
+        mine.bpm = 132
+        mine.saveCurrentAsSong(named: "Autumn Leaves")
+        mine.setBeats(3)
+        mine.bpm = 96
+        mine.saveCurrentAsSong(named: "Waltz")
+        mine.seedSongPractice(3600, bestBPM: 140, forSongAt: 0)
+        let text = mine.exportSetlist()
+
+        let bandmate = makeEngine()
+        bandmate.bpm = 120
+        bandmate.saveCurrentAsSong(named: "waltz")  // 同じ名前の曲は上書きされる
+        let imported = try #require(bandmate.importSetlist(text))
+        #expect(imported == 2)
+        #expect(bandmate.songs.map(\.name) == ["Waltz", "Autumn Leaves"])
+        #expect(bandmate.songs[0].bpm == 96)
+        #expect(bandmate.songs[0].pattern.beats == 3)
+        #expect(bandmate.songs[1].practiceSeconds == 0)  // 個人の練習記録は共有しない
+        #expect(bandmate.songs[1].bestBPM == nil)
+    }
+
+    @Test func pastingSomethingElseChangesNothing() {
+        let engine = makeEngine()
+        engine.saveCurrentAsSong(named: "Etude")
+        #expect(engine.importSetlist("hello") == nil)
+        #expect(engine.songs.map(\.name) == ["Etude"])
+    }
+
     @Test func songsAreRestoredOnNextLaunch() {
         let defaults = InMemorySettingsStore()
         let first = PulstickEngine(defaults: defaults, output: SilentClickOutput())

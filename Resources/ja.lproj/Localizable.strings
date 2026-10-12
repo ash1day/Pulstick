@@ -158,3 +158,10 @@
 "No Goal" = "目標なし";
 "%lld h a Week" = "週 %lld 時間";
 "Last 7 days %@ / %@" = "直近 7 日 %1$@ / %2$@";
+
+/* Setlist sharing */
+"Copy the setlist to share it with your band" = "セットリストをコピーしてバンドのメンバーと共有";
+"Add songs from a setlist on the clipboard" = "クリップボードのセットリストから曲を追加";
+"Copied %lld songs" = "%lld 曲をコピーしました";
+"Added or updated %lld songs" = "%lld 曲を追加・更新しました";
+"No Pulstick setlist on the clipboard" = "クリップボードに Pulstick のセットリストがありません";

@@ -64,6 +64,45 @@ extension PulstickEngine {
         applySong(song, tempoPercent: percent)
     }
 
+    /// セットリストを共有用のテキスト（JSON）にする。バンドのメンバーに送る用途なので、
+    /// 個人の練習時間や最高テンポは含めない
+    public func exportSetlist() -> String {
+        let shared = SharedSetlist(songs: songs.map {
+            SharedSetlist.Entry(name: $0.name, bpm: $0.bpm, pattern: $0.pattern, subdivision: $0.subdivision)
+        })
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return (try? encoder.encode(shared)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    }
+
+    /// 共有されたセットリストを取り込む。同じ名前の曲は設定を上書きし（練習の記録は残す）、新しい曲は末尾に足す。
+    /// Pulstick のセットリストとして読めなければ何も変えずに nil を返す
+    @discardableResult
+    public func importSetlist(_ text: String) -> Int? {
+        guard let data = text.data(using: .utf8),
+              let shared = try? JSONDecoder().decode(SharedSetlist.self, from: data),
+              shared.pulstick == SharedSetlist.version
+        else { return nil }
+        var updated = songs
+        for entry in shared.songs {
+            let name = entry.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, entry.bpm.isFinite else { continue }
+            var pattern = entry.pattern
+            pattern.beats = pattern.beats.clamped(to: Self.beatsRange)
+            let bpm = entry.bpm.clamped(to: Self.bpmRange)
+            if let index = updated.firstIndex(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+                updated[index].name = name
+                updated[index].bpm = bpm
+                updated[index].pattern = pattern
+                updated[index].subdivision = entry.subdivision
+            } else {
+                updated.append(Song(name: name, bpm: bpm, pattern: pattern, subdivision: entry.subdivision))
+            }
+        }
+        songs = updated
+        return shared.songs.count
+    }
+
     public func deleteSong(_ song: Song) {
         songs.removeAll { $0.id == song.id }
         if selectedSongID == song.id { selectedSongID = nil }

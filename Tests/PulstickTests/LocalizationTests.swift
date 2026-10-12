@@ -128,9 +128,9 @@ struct LocalizationTests {
 
     /// 補間している式から型を判断する。このアプリで補間しているのは整数か文字列だけ
     private func specifier(for expression: String) -> String {
-        let integerNames: Set = ["streak", "minutes", "hours", "value", "index"]
+        let integerNames: Set = ["streak", "minutes", "hours", "value", "index", "count"]
         let isInteger = expression.hasPrefix("Int(") || expression.hasSuffix("+ 1")
-            || expression.hasSuffix(".beats") || integerNames.contains(expression)
+            || expression.hasSuffix(".beats") || expression.hasSuffix(".count") || integerNames.contains(expression)
         return isInteger ? "%lld" : "%@"
     }
 }

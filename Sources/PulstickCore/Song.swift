@@ -33,3 +33,19 @@ public struct Song: Codable, Equatable, Identifiable {
         bestBPM = try container.decodeIfPresent(Double.self, forKey: .bestBPM)
     }
 }
+
+/// 共有用のセットリスト。曲の設定だけを持ち、練習の記録は含めない
+struct SharedSetlist: Codable {
+    static let version = 1
+
+    struct Entry: Codable {
+        var name: String
+        var bpm: Double
+        var pattern: BeatPreset
+        var subdivision: Subdivision
+    }
+
+    /// Pulstick のセットリストであることを示す印と形式の版
+    var pulstick = SharedSetlist.version
+    var songs: [Entry]
+}
