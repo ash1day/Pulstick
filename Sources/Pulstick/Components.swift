@@ -77,3 +77,47 @@ struct CustomSlider: View {
         }
     }
 }
+
+// MARK: - Mini Switch / Check Box
+// AppKit 由来の Toggle は ImageRenderer（--snapshot）で描画されないため、
+// スライダーと同様に SwiftUI だけで描く
+
+struct MiniSwitch: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Capsule()
+            .fill(isOn ? Color.accentColor : Color.secondary.opacity(0.3))
+            .frame(width: 26, height: 15)
+            .overlay(alignment: isOn ? .trailing : .leading) {
+                Circle()
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                    .padding(2)
+            }
+            .animation(.easeOut(duration: 0.12), value: isOn)
+            .contentShape(Rectangle())
+            .onTapGesture { isOn.toggle() }
+            .pointingHandCursor()
+            .accessibilityAddTraits(.isButton)
+            .accessibilityValue(isOn ? "On" : "Off")
+    }
+}
+
+struct CheckBox: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: isOn ? "checkmark.square.fill" : "square")
+                .foregroundColor(isOn ? .accentColor : .secondary)
+            Text(title)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { isOn.toggle() }
+        .pointingHandCursor()
+        .accessibilityAddTraits(.isButton)
+        .accessibilityValue(isOn ? "On" : "Off")
+    }
+}

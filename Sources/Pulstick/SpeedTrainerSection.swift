@@ -25,10 +25,8 @@ struct SpeedTrainerSection: View {
                     .help("Go back to the tempo you started at")
                     .pointingHandCursor()
                 }
-                Toggle("", isOn: $engine.speedTrainerEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .labelsHidden()
+                MiniSwitch(isOn: $engine.speedTrainerEnabled)
+                    .accessibilityLabel("Speed Trainer")
                     .help("Gradually raise the tempo while playing")
             }
 

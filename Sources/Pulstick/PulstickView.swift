@@ -376,8 +376,7 @@ struct PulstickView: View {
 
     private var footerRow: some View {
         HStack {
-            Toggle("Launch at Login", isOn: $launchAtLogin)
-                .toggleStyle(.checkbox)
+            CheckBox(title: "Launch at Login", isOn: $launchAtLogin)
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .onChange(of: launchAtLogin) {
