@@ -29,7 +29,7 @@ struct PresetPicker: View {
                     .fill(
                         isRest ? Color.clear
                             : isAccent
-                            ? (selected ? Color.orange : Color.orange.opacity(0.5))
+                            ? (selected ? Color.accentColor : Color.accentColor.opacity(0.5))
                             : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
                     )
                     // 休符は輪郭だけの小さな○

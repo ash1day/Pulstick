@@ -106,7 +106,7 @@ struct VolumeRow: View {
             // 録音に合わせるときや音を出せない場所では、音だけ止めて拍の表示で練習できる
             Image(systemName: engine.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                 .font(.system(size: 11))
-                .foregroundColor(engine.isMuted ? .orange : .secondary)
+                .foregroundColor(engine.isMuted ? .primary : .secondary)
                 .frame(width: 16)
                 .help(engine.isMuted ? "Unmute (M)" : "Mute the click (M) · the beat display keeps going")
                 .accessibleToggle($engine.isMuted, label: Text("Mute"))
@@ -124,10 +124,10 @@ struct VolumeRow: View {
         let name = accent ? Text("Accent volume") : Text("Beat volume")
         return HStack(spacing: 4) {
             Circle()
-                .fill(accent ? Color.orange.opacity(0.8) : Color.clear)
+                .fill(accent ? Color.accentColor.opacity(0.8) : Color.clear)
                 .overlay(Circle().stroke(accent ? Color.clear : Color.secondary.opacity(0.5), lineWidth: 1.2))
                 .frame(width: 7, height: 7)
-            CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .orange : .gray, accessibilityStep: 0.05)
+            CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .accentColor : .gray, accessibilityStep: 0.05)
                 .frame(height: 16)
                 .accessibilityLabel(name)
                 .accessibilityValue(Text("\(Int(value.wrappedValue * 100))%"))

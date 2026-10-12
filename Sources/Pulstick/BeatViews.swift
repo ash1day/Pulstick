@@ -78,7 +78,7 @@ struct BeatIndicator: View {
             } else {
                 Circle()
                     .fill(isAccent
-                          ? (isCurrent ? Color.orange : Color.orange.opacity(0.55))
+                          ? (isCurrent ? Color.accentColor : Color.accentColor.opacity(0.55))
                           : (isCurrent ? Color.accentColor.opacity(0.25) : Color.clear))
                 Circle()
                     .stroke(
