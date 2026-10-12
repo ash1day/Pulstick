@@ -8,6 +8,8 @@ public final class BeatClock: ObservableObject {
     @Published public internal(set) var isInSilentBar = false
     /// 再生開始時の予備の小節を鳴らしている最中か
     @Published public internal(set) var isCountingIn = false
+    /// スピードトレーナーが次にテンポを上げる（または開始テンポに戻す）までの小節数。上げる予定がなければ nil
+    @Published public internal(set) var barsUntilTempoStep: Int?
 
     public init() {}
 }

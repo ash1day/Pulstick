@@ -74,6 +74,7 @@ extension PulstickEngine {
         beatClock.current = 0
         beatClock.isInSilentBar = false
         beatClock.isCountingIn = false
+        beatClock.barsUntilTempoStep = nil
     }
 
     /// カウントインが終わって練習の 1 小節目に入ったとき。カウントインの時間を練習に含めないよう、
@@ -108,10 +109,22 @@ extension PulstickEngine {
 
     /// 小節の終わりごとにメインスレッドで呼ばれる
     func handleMeasureCompleted() {
+        defer { updateTempoStepCountdown() }
         guard speedTrainerEnabled,
               let next = speedTrainerProgress.measureCompleted(speedTrainer, currentBPM: bpm, startBPM: sessionStartBPM)
         else { return }
         bpm = next
+    }
+
+    /// スピードトレーナーが次にテンポを変えるまでの小節数を、表示用に BeatClock へ反映する。
+    /// 小節ごとに変わる値なので、エンジン本体ではなく BeatClock に置いてポップオーバー全体の再評価を避ける
+    func updateTempoStepCountdown() {
+        let bars = isPlaying && speedTrainerEnabled
+            ? speedTrainerProgress.barsUntilStep(speedTrainer, currentBPM: bpm, startBPM: sessionStartBPM)
+            : nil
+        if beatClock.barsUntilTempoStep != bars {
+            beatClock.barsUntilTempoStep = bars
+        }
     }
 
     var tickInterval: Double {

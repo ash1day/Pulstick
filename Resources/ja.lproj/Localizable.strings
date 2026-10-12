@@ -135,6 +135,10 @@
 "Slower" = "遅く";
 "Faster" = "速く";
 "Reached the target tempo" = "目標テンポに到達";
+"+%lld next bar" = "次の小節で +%lld";
+"+%lld in %lld bars" = "あと %2$lld 小節で +%1$lld";
+"Back to the start next bar" = "次の小節で開始テンポへ";
+"Back to the start in %lld bars" = "あと %lld 小節で開始テンポへ";
 
 /* Reset practice history */
 "Reset Practice History…" = "練習記録をリセット…";

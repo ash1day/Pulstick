@@ -24,6 +24,13 @@ public struct SpeedTrainerProgress {
         measuresSinceStep = 0
     }
 
+    /// 次にテンポを変えるまでの小節数。目標に達して繰り返しもしないなら、もう変えないので nil
+    public func barsUntilStep(_ settings: SpeedTrainer, currentBPM: Double, startBPM: Double? = nil) -> Int? {
+        let reachedTarget = currentBPM >= Double(settings.targetBPM)
+        guard !reachedTarget || (settings.loops && startBPM != nil) else { return nil }
+        return max(1, settings.measuresPerStep - measuresSinceStep)
+    }
+
     /// 小節が1つ終わるたびに呼ぶ。テンポを上げるべきときは新しい BPM を返す
     public mutating func measureCompleted(_ settings: SpeedTrainer, currentBPM: Double, startBPM: Double? = nil) -> Double? {
         let target = Double(settings.targetBPM)

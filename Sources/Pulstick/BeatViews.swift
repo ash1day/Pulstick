@@ -151,17 +151,27 @@ struct BPMDisplay: View {
         }
     }
 
-    /// 通常時の小見出し。いまの曲があれば曲名（リハーサル中に [ ] で切り替えても分かるように）
-    @ViewBuilder
+    /// 通常時の小見出し。いまの曲があれば曲名（リハーサル中に [ ] で切り替えても分かるように）。
+    /// スピードトレーナーで練習中は、次にテンポが変わるまでの小節数を続けて出す
     private var subtitle: some View {
-        if let song = engine.currentSong {
-            Text("\(song.name) · \(TempoMarking.name(for: engine.bpm))")
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: 220)
-        } else {
-            Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
+        HStack(spacing: 0) {
+            if let song = engine.currentSong {
+                Text("\(song.name) · \(TempoMarking.name(for: engine.bpm))")
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else {
+                Text("\(TempoMarking.name(for: engine.bpm)) · BPM")
+            }
+            if engine.speedTrainerEnabled {
+                TempoStepCountdown(
+                    clock: engine.beatClock,
+                    increment: engine.speedTrainer.bpmIncrement,
+                    returnsToStart: engine.bpm >= Double(engine.speedTrainer.targetBPM)
+                )
+            }
         }
+        // 長い曲名は予告を残して省略する
+        .frame(maxWidth: 260)
     }
 
     private func beginEditing() {
@@ -255,5 +265,34 @@ struct BPMSlider: View {
 extension PulstickEngine {
     var bpmAccessibilityValue: Text {
         Text("\(Int(bpm)) BPM")
+    }
+}
+
+/// 再生中、次にテンポが変わるまでの小節数を「あと 3 小節で +5」のように予告する。
+/// 上がる瞬間に不意を突かれず、その小節を弾き切る心構えができるように。
+/// 小節ごとに変わる値なので BeatClock だけを監視し、ポップオーバー全体を描き直さない
+private struct TempoStepCountdown: View {
+    @ObservedObject var clock: BeatClock
+    let increment: Int
+    /// 目標に達していて、次は開始テンポに戻る（繰り返しモード）
+    let returnsToStart: Bool
+
+    var body: some View {
+        if let bars = clock.barsUntilTempoStep, !clock.isCountingIn {
+            // 次の小節で変わるときは色を付けて目に留まるようにする
+            (Text(verbatim: " · ") + label(bars).foregroundColor(bars == 1 ? .accentColor : .secondary))
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
+
+    private func label(_ bars: Int) -> Text {
+        switch (returnsToStart, bars == 1) {
+        case (false, true): Text("+\(increment) next bar")
+        case (false, false): Text("+\(increment) in \(bars) bars")
+        case (true, true): Text("Back to the start next bar")
+        case (true, false): Text("Back to the start in \(bars) bars")
+        }
     }
 }

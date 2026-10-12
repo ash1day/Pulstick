@@ -42,6 +42,7 @@ public final class PulstickEngine: ObservableObject {
             guard bpm != oldValue else { return }
             defaults.set(bpm, forKey: SettingsKeys.bpm)
             retimeIfPlaying()
+            updateTempoStepCountdown()  // 手で目標より上げたら、上がる予定はもうない
             // 曲の切り替えと一緒に変わったテンポを前の曲の記録にしないよう、一括変更中は後回しにする
             // （一括変更の終わりに patternDidChange が曲を切り替えてから記録する）
             if patternBatchDepth == 0 {
@@ -93,11 +94,13 @@ public final class PulstickEngine: ObservableObject {
         didSet {
             defaults.set(speedTrainerEnabled, forKey: SettingsKeys.speedTrainerEnabled)
             speedTrainerProgress.restart()
+            updateTempoStepCountdown()
         }
     }
     @Published public var speedTrainer = SpeedTrainer() {
         didSet {
             defaults.setCodable(speedTrainer, forKey: SettingsKeys.speedTrainer)
+            updateTempoStepCountdown()
         }
     }
     /// 設定と違い毎小節変わるので @Published にも保存対象にもしない
@@ -281,6 +284,11 @@ public final class PulstickEngine: ObservableObject {
     /// プレビューやスクリーンショット用に、見本の練習記録で置き換える
     public func seedPracticeLog(_ log: PracticeLog) {
         practiceLog = log
+    }
+
+    /// スクリーンショット用に、再生せずにスピードトレーナーの予告を出す
+    public func seedTempoStepCountdown(_ bars: Int) {
+        beatClock.barsUntilTempoStep = bars
     }
 
     func persistPresets() {

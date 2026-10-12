@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Practice
-- **Speed trainer**: raise the tempo by N BPM every M bars up to a target, with a one-click return to the starting tempo and an optional repeat mode.
+- **Speed trainer**: raise the tempo by N BPM every M bars up to a target, with a one-click return to the starting tempo and an optional repeat mode. While it runs, the line under the BPM counts down the bars to the next step ("+2 in 3 bars").
 - **Silent bars**: play N bars, then mute M bars while the beat display keeps going, to check you hold the tempo on your own.
 - **Subdivisions**: eighths, triplets and sixteenths with a softer click.
 - **Rest beats**: click a beat to cycle normal → accent → rest, e.g. a click only on 2 and 4.

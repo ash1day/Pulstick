@@ -23,6 +23,7 @@ extension PulstickEngine {
     func restartSession() {
         sessionStartBPM = bpm
         speedTrainerProgress.restart()
+        updateTempoStepCountdown()
     }
 
     public func applyPreset(at index: Int) {

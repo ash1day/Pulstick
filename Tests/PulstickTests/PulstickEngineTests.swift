@@ -1220,6 +1220,34 @@ struct EngineSpeedTrainerTests {
         #expect(engine.bpm == 105)
     }
 
+    @Test func countsDownTheBarsToTheNextTempoStep() {
+        // 次にいつ速くなるか分かっていれば、上がる直前に身構えられる
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 4, bpmIncrement: 5, targetBPM: 200)
+        engine.speedTrainerEnabled = true
+        engine.start()
+        #expect(engine.beatClock.barsUntilTempoStep == 4)
+        engine.handleMeasureCompleted()
+        #expect(engine.beatClock.barsUntilTempoStep == 3)
+        engine.stop()
+    }
+
+    @Test func theCountdownDisappearsAtTheTargetAndWhenStopped() {
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.speedTrainer = SpeedTrainer(measuresPerStep: 1, bpmIncrement: 5, targetBPM: 105)
+        engine.speedTrainerEnabled = true
+        engine.start()
+        engine.handleMeasureCompleted()  // 105 で目標に届き、繰り返さないのでもう上がらない
+        #expect(engine.bpm == 105)
+        #expect(engine.beatClock.barsUntilTempoStep == nil)
+        engine.speedTrainer.loops = true  // 繰り返すなら、開始テンポに戻るまでを数える
+        #expect(engine.beatClock.barsUntilTempoStep == 1)
+        engine.stop()
+        #expect(engine.beatClock.barsUntilTempoStep == nil)
+    }
+
     @Test func keepsBPMWhenDisabled() {
         let engine = makeEngine()
         engine.bpm = 100
