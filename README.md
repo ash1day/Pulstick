@@ -21,6 +21,8 @@ A minimal metronome that lives in your macOS menu bar.
 - Settings are remembered between launches
 - English and Japanese UI (follows the system language)
 
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
+
 ## Build
 
 ```bash
