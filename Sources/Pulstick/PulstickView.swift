@@ -65,17 +65,8 @@ struct PulstickView: View {
     // スペースや文字キーをテキスト入力に譲るため無効化する
 
     private var keyboardShortcuts: some View {
-        let bindings = PopoverShortcut.all(presetCount: engine.presets.count).flatMap(\.bindings)
-        return ZStack {
-            ForEach(bindings.indices, id: \.self) { index in
-                let binding = bindings[index]
-                Button("") { binding.action(engine, Self.currentModifiers()) }
-                    .keyboardShortcut(binding.key, modifiers: [])
-            }
-        }
-        .opacity(0)
-        .allowsHitTesting(false)
-        .disabled(isEditingBPM || isShowingSongs)
+        ShortcutButtons(engine: engine, presetCount: engine.presets.count)
+            .disabled(isEditingBPM || isShowingSongs)
     }
 
     /// ショートカットを起こしたキー入力の修飾キー。キー入力の処理中でなければ（古いイベントやキーボードの
@@ -89,5 +80,25 @@ struct PulstickView: View {
         if flags.contains(.control) { modifiers.insert(.control) }
         if flags.contains(.command) { modifiers.insert(.command) }
         return modifiers
+    }
+}
+
+/// ショートカットを受ける見えないボタン。エンジンを購読しないので、テンポのドラッグなどで
+/// ポップオーバーが再描画されても、プリセットの数が変わらない限り作り直されない
+private struct ShortcutButtons: View {
+    let engine: PulstickEngine
+    let presetCount: Int
+
+    var body: some View {
+        let bindings = PopoverShortcut.all(presetCount: presetCount).flatMap(\.bindings)
+        ZStack {
+            ForEach(bindings.indices, id: \.self) { index in
+                let binding = bindings[index]
+                Button("") { binding.action(engine, PulstickView.currentModifiers()) }
+                    .keyboardShortcut(binding.key, modifiers: [])
+            }
+        }
+        .opacity(0)
+        .allowsHitTesting(false)
     }
 }

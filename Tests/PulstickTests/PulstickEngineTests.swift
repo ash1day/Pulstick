@@ -1410,3 +1410,25 @@ struct SongPracticeTrackerTests {
         #expect(tracker.takePending() == [a: 30])
     }
 }
+
+// MARK: - 保存形式の往復
+// BeatPreset と Song は古いデータを読むために init(from:) を手書きしている。
+// 項目を足したときにデコードへ書き忘れると、保存はされるのに読み戻されず、起動のたびに消える
+
+@Suite("Codable round trip")
+struct CodableRoundTripTests {
+    @Test func beatPresetKeepsEveryField() throws {
+        let preset = BeatPreset(beats: 7, accents: [0, 2, 4], rests: [6])
+        let decoded = try JSONDecoder().decode(BeatPreset.self, from: JSONEncoder().encode(preset))
+        #expect(decoded == preset)
+    }
+
+    @Test func songKeepsEveryField() throws {
+        var song = Song(
+            name: "Etude", bpm: 132, pattern: BeatPreset(beats: 3, accents: [0], rests: [2]), subdivision: .triplet
+        )
+        song.practiceSeconds = 4_321
+        let decoded = try JSONDecoder().decode(Song.self, from: JSONEncoder().encode(song))
+        #expect(decoded == song)
+    }
+}

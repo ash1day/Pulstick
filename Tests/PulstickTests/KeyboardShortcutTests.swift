@@ -9,11 +9,18 @@ import Testing
 @MainActor
 @Suite("Keyboard shortcuts", .serialized)
 struct KeyboardShortcutTests {
-    private func window(for engine: PulstickEngine, editingBPM: Bool = false) -> NSWindow {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 320, height: 640), styleMask: [.titled], backing: .buffered, defer: false)
-        window.contentView = NSHostingView(rootView: PulstickView(engine: engine, hotKeys: nil, isEditingBPM: editingBPM))
+    /// 任意のビューを実際のウインドウに載せる
+    private func window(hosting view: some View, makeKey: Bool = false) -> NSWindow {
+        let host = NSHostingView(rootView: view)
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        if makeKey { window.makeKey() }
         window.layoutIfNeeded()
         return window
+    }
+
+    private func window(for engine: PulstickEngine, editingBPM: Bool = false) -> NSWindow {
+        window(hosting: PulstickView(engine: engine, hotKeys: nil, isEditingBPM: editingBPM), makeKey: editingBPM)
     }
 
     private func press(_ characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags = [], in window: NSWindow) -> Bool {
@@ -142,13 +149,10 @@ struct KeyboardShortcutTests {
     @Test func typingASongNameAndPressingReturnSavesIt() async throws {
         let engine = makeEngine()
         engine.bpm = 132
-        let host = NSHostingView(rootView: SongList(engine: engine) {})
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.titled], backing: .buffered, defer: false)
-        window.contentView = host
-        window.makeKey()
-        window.layoutIfNeeded()
+        let window = window(hosting: SongList(engine: engine) {}, makeKey: true)
         try await Task.sleep(for: .milliseconds(100))
-        let field = try #require(firstTextField(in: host))
+        let content = try #require(window.contentView)
+        let field = try #require(firstTextField(in: content))
         window.makeFirstResponder(field)
         let editor = try #require(window.firstResponder as? NSTextView)
         // ショートカットと同じ文字（T・1・M）やスペースを含む曲名でも、そのまま保存される
@@ -161,10 +165,7 @@ struct KeyboardShortcutTests {
 
     @Test func returnClosesTheWelcome() async throws {
         var dismissed = false
-        let host = NSHostingView(rootView: WelcomeView { dismissed = true })
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.titled], backing: .buffered, defer: false)
-        window.contentView = host
-        window.layoutIfNeeded()
+        let window = window(hosting: WelcomeView { dismissed = true })
         try await Task.sleep(for: .milliseconds(100))
         _ = press("\r", keyCode: 36, in: window)
         #expect(dismissed)

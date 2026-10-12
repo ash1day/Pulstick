@@ -16,18 +16,24 @@ struct LocalizationTests {
         return try #require(plist as? [String: String])
     }
 
-    private func semanticKeysInSources() throws -> Set<String> {
+    /// アプリ本体のソースを正規表現で走査し、マッチごとのキャプチャグループ（1 番目以降）を返す
+    private func matches(of pattern: String, excluding excludedFiles: Set<String> = []) throws -> [(file: String, groups: [String])] {
         let dir = root.appendingPathComponent("Sources/Pulstick")
         let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
-        let regex = try NSRegularExpression(pattern: #"String\(localized: "([^"]+)""#)
-        var keys = Set<String>()
-        for file in files where file.pathExtension == "swift" {
+        let regex = try NSRegularExpression(pattern: pattern)
+        var results: [(file: String, groups: [String])] = []
+        for file in files where file.pathExtension == "swift" && !excludedFiles.contains(file.lastPathComponent) {
             let text = try String(contentsOf: file, encoding: .utf8)
             for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
-                keys.insert(String(text[Range(match.range(at: 1), in: text)!]))
+                let groups = (1..<match.numberOfRanges).map { String(text[Range(match.range(at: $0), in: text)!]) }
+                results.append((file.lastPathComponent, groups))
             }
         }
-        return keys
+        return results
+    }
+
+    private func semanticKeysInSources() throws -> Set<String> {
+        Set(try matches(of: #"String\(localized: "([^"]+)""#).map { $0.groups[0] })
     }
 
     @Test func japaneseStringsFileParses() throws {
@@ -44,21 +50,15 @@ struct LocalizationTests {
     /// ステッパーを差し込む文の訳で、差し込み番号が英語と食い違っていないこと。
     /// 食い違うと実行時はステッパーが黙って欠けるので、ここで検出する
     @Test func sentenceTemplatesUseTheSameSlotsAsEnglish() throws {
-        let dir = root.appendingPathComponent("Sources/Pulstick")
-        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
-        let regex = try NSRegularExpression(pattern: #"String\(localized: "([^"]+)", defaultValue: "([^"]*%\d+\$@[^"]*)"\)"#)
         let japanese = try japaneseStrings()
         var checked = 0
-        for file in files where file.pathExtension == "swift" {
-            let text = try String(contentsOf: file, encoding: .utf8)
-            for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
-                let key = String(text[Range(match.range(at: 1), in: text)!])
-                let english = String(text[Range(match.range(at: 2), in: text)!])
-                let translated = try #require(japanese[key], "missing: \(key)")
-                #expect(slots(in: translated) == slots(in: english), "\(key)")
-                #expect(slots(in: english) == Set(0..<slots(in: english).count), "\(key) は 1 から連番にする")
-                checked += 1
-            }
+        for match in try matches(of: #"String\(localized: "([^"]+)", defaultValue: "([^"]*%\d+\$@[^"]*)"\)"#) {
+            let key = match.groups[0]
+            let english = match.groups[1]
+            let translated = try #require(japanese[key], "missing: \(key)")
+            #expect(slots(in: translated) == slots(in: english), "\(key)")
+            #expect(slots(in: english) == Set(0..<slots(in: english).count), "\(key) は 1 から連番にする")
+            checked += 1
         }
         #expect(checked >= 4)
     }
@@ -72,8 +72,6 @@ struct LocalizationTests {
     /// Text("…") や .help("…") などに直接書いた文言に日本語訳があること。
     /// 訳が無いと日本語の画面に英語がそのまま出るので、ここで検出する
     @Test func everyLiteralUIStringHasJapaneseTranslation() throws {
-        let dir = root.appendingPathComponent("Sources/Pulstick")
-        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
         let callSites = [
             #"(?<![A-Za-z])Text\("((?:[^"\\]|\\.)*)"\)"#,
             #"\.help\("((?:[^"\\]|\\.)*)""#,
@@ -86,16 +84,12 @@ struct LocalizationTests {
         ]
         let japanese = try japaneseStrings()
         var missing: [String] = []
-        for file in files where file.pathExtension == "swift" && file.lastPathComponent != "Snapshot.swift" {
-            let text = try String(contentsOf: file, encoding: .utf8)
-            for pattern in callSites {
-                let regex = try NSRegularExpression(pattern: pattern)
-                for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
-                    let literal = String(text[Range(match.range(at: 1), in: text)!])
-                    guard isTranslatable(literal) else { continue }
-                    if !candidateKeys(for: literal).contains(where: { japanese[$0] != nil }) {
-                        missing.append("\(file.lastPathComponent): \(literal)")
-                    }
+        for pattern in callSites {
+            for match in try matches(of: pattern, excluding: ["Snapshot.swift"]) {
+                let literal = match.groups[0]
+                guard isTranslatable(literal) else { continue }
+                if !candidateKeys(for: literal).contains(where: { japanese[$0] != nil }) {
+                    missing.append("\(match.file): \(literal)")
                 }
             }
         }
