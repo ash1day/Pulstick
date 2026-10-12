@@ -37,29 +37,46 @@ struct TransportRow: View {
             .keyboardShortcut(spaceShortcutEnabled ? KeyboardShortcut(.space, modifiers: []) : nil)
             .help(playButtonHelp)
             .pointingHandCursor()
+            // 「15 分だけ集中して練習」のための自動停止。画面を増やさないよう右クリックメニューに置く
+            .contextMenu {
+                Picker("Stop After", selection: $engine.stopAfter) {
+                    Text("Don't Stop").tag(TimeInterval?.none)
+                    ForEach([5, 10, 15, 20, 30, 60], id: \.self) { minutes in
+                        Text("\(minutes) min").tag(TimeInterval?.some(TimeInterval(minutes * 60)))
+                    }
+                }
+                .pickerStyle(.inline)
+            }
         }
     }
 
     private var playButtonHelp: LocalizedStringKey {
         switch (engine.isPlaying, hotKeys?.isToggleAvailable == true) {
-        case (true, true): "Stop (Space, or ⌃⌥M from any app)"
-        case (true, false): "Stop (Space)"
-        case (false, true): "Play (Space, or ⌃⌥M from any app)"
-        case (false, false): "Play (Space)"
+        case (true, true): "Stop (Space, or ⌃⌥M from any app) · right-click for a practice timer"
+        case (true, false): "Stop (Space) · right-click for a practice timer"
+        case (false, true): "Play (Space, or ⌃⌥M from any app) · right-click for a practice timer"
+        case (false, false): "Play (Space) · right-click for a practice timer"
         }
     }
 
-    /// 再生中は経過時間を表示し、どれだけ練習したか分かるようにする
+    /// 再生中は経過時間（練習タイマー設定時は残り時間）を表示し、どれだけ練習したか分かるようにする
     @ViewBuilder
     private var playButtonLabel: some View {
         if engine.isPlaying, let startedAt = engine.playStartedAt {
             TimelineView(.periodic(from: startedAt, by: 1)) { context in
+                let elapsed = context.date.timeIntervalSince(startedAt)
                 Label {
-                    Text(ElapsedTime.format(context.date.timeIntervalSince(startedAt)))
+                    Text(ElapsedTime.format(engine.stopAfter.map { $0 - elapsed } ?? elapsed))
                         .monospacedDigit()
                 } icon: {
-                    Image(systemName: "stop.fill")
+                    Image(systemName: engine.stopAfter == nil ? "stop.fill" : "timer")
                 }
+            }
+        } else if let limit = engine.stopAfter {
+            Label {
+                Text("Play") + Text(verbatim: " \(ElapsedTime.format(limit))").monospacedDigit()
+            } icon: {
+                Image(systemName: "timer")
             }
         } else {
             Label("Play", systemImage: "play.fill")

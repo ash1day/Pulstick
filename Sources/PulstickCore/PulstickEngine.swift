@@ -154,6 +154,9 @@ public final class PulstickEngine: ObservableObject {
     /// これより短い再生は練習として記録しない（うっかり押しただけで連続日数が伸びないように）
     var minimumLoggedSession: TimeInterval = 5
 
+    /// 練習タイマー。設定すると、再生開始からこの秒数で自動的に止まる。nil なら止まらない
+    @Published public var stopAfter: TimeInterval?
+
     /// 音だけを止める。拍の表示や練習時間の記録は続く。誤操作で無音のまま起動しないよう保存しない
     @Published public var isMuted = false {
         didSet { syncSequencer() }
@@ -438,6 +441,14 @@ public final class PulstickEngine: ObservableObject {
         }
     }
 
+    /// 拍ごとにメインスレッドで確かめる。遅いテンポでも遅れは 1 拍分（30 BPM で 2 秒）に収まる
+    private func stopIfPracticeTimeIsUp() {
+        guard let limit = stopAfter, let startedAt = playStartedAt,
+              Date().timeIntervalSince(startedAt) >= limit
+        else { return }
+        stop()
+    }
+
     /// 小節の終わりごとにメインスレッドで呼ばれる
     func handleMeasureCompleted() {
         guard speedTrainerEnabled,
@@ -532,6 +543,7 @@ public final class PulstickEngine: ObservableObject {
             if countsMeasure, tick.startsMeasure {
                 self.handleMeasureCompleted()
             }
+            self.stopIfPracticeTimeIsUp()
         }
     }
 

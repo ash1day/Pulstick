@@ -701,6 +701,24 @@ struct PlaybackIntegrationTests {
         #expect(output.played.count == playedAtStop)
     }
 
+    @Test func practiceTimerStopsPlaybackWhenTimeIsUp() async throws {
+        let engine = makeEngine()
+        engine.bpm = 300
+        engine.stopAfter = 0.3
+        engine.start()
+        try await spin(0.7)
+        #expect(!engine.isPlaying)
+    }
+
+    @Test func playbackContinuesWithoutPracticeTimer() async throws {
+        let engine = makeEngine()
+        engine.bpm = 300
+        engine.start()
+        try await spin(0.5)
+        #expect(engine.isPlaying)
+        engine.stop()
+    }
+
     @Test func subdivisionClicksReachTheOutput() async throws {
         let output = SilentClickOutput()
         let engine = PulstickEngine(defaults: InMemorySettingsStore(), output: output)
