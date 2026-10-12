@@ -70,6 +70,21 @@ struct KeyboardShortcutTests {
         #expect(engine.beatsPerMeasure == BeatPreset.defaults[2].beats)
     }
 
+    @Test func speedTrainerKeysToggleItAndGoBackToTheStartTempo() async throws {
+        // 楽器を持ったまま、片手でトレーナーを入れたり、上がったテンポを戻したりできるように
+        let engine = makeEngine()
+        engine.bpm = 100
+        engine.start()
+        engine.bpm = 110  // トレーナーで上がった状態
+        let window = window(for: engine)
+        try await Task.sleep(for: .milliseconds(100))
+        _ = press("s", keyCode: 1, in: window)
+        #expect(engine.speedTrainerEnabled)
+        _ = press("r", keyCode: 15, in: window)
+        #expect(engine.bpm == 100)
+        engine.stop()
+    }
+
     @Test func bracketsStepThroughSongs() async throws {
         let engine = makeEngine()
         for (name, bpm) in [("A", 100.0), ("B", 120)] {

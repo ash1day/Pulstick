@@ -24,6 +24,7 @@
 "Speed Trainer" = "スピードトレーナー";
 "Gradually raise the tempo while playing" = "演奏しながら少しずつテンポを上げます";
 "Go back to the tempo you started at" = "開始時のテンポに戻す";
+"Speed trainer on / off" = "スピードトレーナーのオン / オフ";
 "trainer.sentence.one" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 "trainer.sentence.other" = "%2$@ 小節ごとに %1$@ BPM（上限 %3$@）";
 

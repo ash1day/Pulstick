@@ -52,6 +52,12 @@ struct PopoverShortcut {
             PopoverShortcut(display: "M", label: "Mute / unmute", bindings: [
                 Binding(key: "m") { $0.isMuted.toggle() },
             ]),
+            PopoverShortcut(display: "S", label: "Speed trainer on / off", bindings: [
+                Binding(key: "s") { $0.speedTrainerEnabled.toggle() },
+            ]),
+            PopoverShortcut(display: "R", label: "Go back to the tempo you started at", bindings: [
+                Binding(key: "r") { $0.returnToSessionStartBPM() },
+            ]),
             PopoverShortcut(display: "1–\(presetCount)", label: "Choose a preset", bindings: (0..<presetCount).map { index in
                 Binding(key: KeyEquivalent(Character("\(index + 1)"))) { $0.applyPreset(at: index) }
             }),
