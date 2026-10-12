@@ -83,11 +83,13 @@ struct SpeedTrainerSection: View {
                     ? String(localized: "trainer.sentence.one", defaultValue: "%1$@ BPM every %2$@ bar, up to %3$@")
                     : String(localized: "trainer.sentence.other", defaultValue: "%1$@ BPM every %2$@ bars, up to %3$@"),
                 slots: [
-                    AnyView(MiniStepper(value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+")),
-                    AnyView(MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32)),
+                    AnyView(MiniStepper(
+                        value: $engine.speedTrainer.bpmIncrement, range: 1...20, prefix: "+", label: "BPM increase"
+                    )),
+                    AnyView(MiniStepper(value: $engine.speedTrainer.measuresPerStep, range: 1...32, label: "Bars per step")),
                     AnyView(MiniStepper(
                         value: $engine.speedTrainer.targetBPM,
-                        range: Int(bpmRange.lowerBound) + 1...Int(bpmRange.upperBound), step: 5
+                        range: Int(bpmRange.lowerBound) + 1...Int(bpmRange.upperBound), step: 5, label: "Target tempo"
                     )),
                 ]
             )
@@ -114,8 +116,8 @@ struct GapTrainerSection: View {
                     ? String(localized: "gap.sentence.one", defaultValue: "Play %1$@ bar, then %2$@ silent")
                     : String(localized: "gap.sentence.other", defaultValue: "Play %1$@ bars, then %2$@ silent"),
                 slots: [
-                    AnyView(MiniStepper(value: $engine.gapTrainer.playBars, range: 1...16)),
-                    AnyView(MiniStepper(value: $engine.gapTrainer.muteBars, range: 1...16)),
+                    AnyView(MiniStepper(value: $engine.gapTrainer.playBars, range: 1...16, label: "Bars to play")),
+                    AnyView(MiniStepper(value: $engine.gapTrainer.muteBars, range: 1...16, label: "Bars to mute")),
                 ]
             )
         }
@@ -146,6 +148,8 @@ struct MiniStepper: View {
     let range: ClosedRange<Int>
     var step: Int = 1
     var prefix: String = ""
+    /// VoiceOver で読み上げる名前（何の値か）。矢印ボタンの名前だけでは何を変えるのか分からないため
+    var label: LocalizedStringKey = ""
 
     var body: some View {
         HStack(spacing: 0) {
@@ -160,6 +164,17 @@ struct MiniStepper: View {
         .padding(.horizontal, 2)
         .padding(.vertical, 2)
         .background(RoundedRectangle(cornerRadius: 4).fill(Color.secondary.opacity(0.12)))
+        // VoiceOver では 1 つの調整可能な要素として扱い、上下スワイプで増減する
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(verbatim: "\(prefix)\(value)"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: value = (value + step).clamped(to: range)
+            case .decrement: value = (value - step).clamped(to: range)
+            @unknown default: break
+            }
+        }
     }
 
     private func stepButton(_ symbol: String, delta: Int) -> some View {

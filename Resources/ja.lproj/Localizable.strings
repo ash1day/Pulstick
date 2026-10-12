@@ -125,3 +125,10 @@
 "%lld BPM" = "%lld BPM";
 "%@ · BPM" = "%@ · BPM";
 "%@ · %@" = "%1$@ · %2$@";
+
+/* Stepper names for VoiceOver */
+"BPM increase" = "BPM の増やし幅";
+"Bars per step" = "テンポを上げる間隔（小節）";
+"Target tempo" = "目標テンポ";
+"Bars to play" = "鳴らす小節数";
+"Bars to mute" = "休む小節数";
