@@ -88,7 +88,9 @@ struct SpeedTrainerSection: View {
                     .foregroundColor(loops ? .accentColor : .secondary)
                     .padding(.horizontal, 6)
                     .frame(height: 18)
-                    .background(Capsule().fill(loops ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.1)))
+                    // 切ったときは塗らずに枠だけにし、下の段の数値の欄と見分けられるようにする
+                    .background(Capsule().fill(loops ? Color.accentColor.opacity(0.15) : Color.clear))
+                    .overlay(Capsule().strokeBorder(loops ? Color.clear : Color.secondary.opacity(0.35), lineWidth: 1))
                     .contrastOutline(Capsule())
                     .help("Repeat: after the target tempo, start again from the first tempo")
                     .accessibleToggle($engine.speedTrainer.loops, label: Text("Repeat"))

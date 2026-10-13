@@ -323,8 +323,8 @@ private struct TempoStepCountdown: View {
 
     var body: some View {
         if let bars = clock.barsUntilTempoStep, !clock.isCountingIn {
-            // 次の小節で変わるときは色を付けて目に留まるようにする
-            (Text(verbatim: " · ") + label(bars).foregroundColor(bars == 1 ? .accentColor : .secondary))
+            // 練習中にいちばん見たい情報なので、灰色の小見出しより一段濃くし、次の小節で変わるときは色を付ける
+            (Text(verbatim: " · ") + label(bars).fontWeight(.medium).foregroundColor(bars == 1 ? .accentColor : .primary))
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()

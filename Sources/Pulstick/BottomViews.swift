@@ -135,10 +135,15 @@ struct VolumeRow: View {
     private func volumeSlider(value: Binding<Double>, accent: Bool) -> some View {
         let name = accent ? Text("Accent volume") : Text("Beat volume")
         return HStack(spacing: 5) {
-            (accent ? Text("Accent") : Text("Normal"))
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
-                .fixedSize()
+            // 長いほうのラベルの幅を両方で確保し、言語によらず 2 本のスライダーを同じ長さにする
+            ZStack(alignment: .leading) {
+                Text("Accent").hidden()
+                Text("Normal").hidden()
+                accent ? Text("Accent") : Text("Normal")
+            }
+            .font(.system(size: 10, weight: .medium))
+            .foregroundColor(.secondary)
+            .fixedSize()
             CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .accentColor : .gray, accessibilityStep: 0.05)
                 .frame(height: 16)
                 .accessibilityLabel(name)
