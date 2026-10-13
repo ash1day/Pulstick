@@ -51,8 +51,9 @@ struct WelcomeView: View {
                 Spacer()
                 // メニューバーの方向（右上）を指して、アイコンの場所を示す
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.accentColor)
+                    // 押せるボタンに見えないよう、色を付けず控えめにする
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.secondary)
             }
             .frame(height: 10)
 
@@ -75,7 +76,7 @@ struct WelcomeView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 tip("metronome", Text("Click the icon to set the tempo and press Space to play."))
-                tip("command", Text("Press ⌃⌥M in any app to start or stop."))
+                tip("keyboard", Text("Press ⌃⌥M in any app to start or stop."))
                 tip("power", Text("Turn on “Launch at Login” at the bottom to keep it handy."))
             }
             .padding(14)

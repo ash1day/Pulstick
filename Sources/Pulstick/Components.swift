@@ -195,12 +195,15 @@ struct PopoverIconButton<Content: View>: View {
 private struct SelectedRowStyle: ViewModifier {
     let selected: Bool
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
-        content
+        // ダークでは同じ濃さだと背景に沈むので、少し濃くする
+        let opacity = contrast == .increased ? 0.3 : colorScheme == .dark ? 0.25 : 0.15
+        return content
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(selected ? Color.accentColor.opacity(contrast == .increased ? 0.3 : 0.15) : Color.clear)
+                    .fill(selected ? Color.accentColor.opacity(opacity) : Color.clear)
             )
             .contentShape(Rectangle())
             .pointingHandCursor()

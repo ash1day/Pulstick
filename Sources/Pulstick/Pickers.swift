@@ -20,8 +20,8 @@ struct PresetPicker: View {
         let selected = engine.matchesCurrentPattern(preset)
         // 拍数が多いプリセットはボタン幅に収まるよう○を小さくする
         let dense = preset.beats > 6
-        let accentSize: CGFloat = dense ? 5 : 7
-        let normalSize: CGFloat = dense ? 3.5 : 5
+        let accentSize: CGFloat = dense ? 6 : 8
+        let normalSize: CGFloat = dense ? 4.5 : 6
         return HStack(spacing: dense ? 1.5 : 2) {
             ForEach(0..<preset.beats, id: \.self) { i in
                 let isAccent = preset.accents.contains(i)
@@ -30,8 +30,9 @@ struct PresetPicker: View {
                     .fill(
                         isRest ? Color.clear
                             : isAccent
-                            ? (selected ? Color.accentColor : Color.secondary.opacity(0.55))
-                            : (selected ? Color.secondary.opacity(0.45) : Color.secondary.opacity(0.22))
+                            ? (selected ? Color.accentColor : Color.secondary.opacity(0.8))
+                            // 選ばれていない区画でもパターンの形が読み取れる濃さにする
+                            : (selected ? Color.secondary.opacity(0.5) : Color.secondary.opacity(0.4))
                     )
                     // 休符は輪郭だけの小さな○
                     .overlay(Circle().stroke(isRest ? Color.secondary.opacity(selected ? 0.5 : 0.3) : .clear, lineWidth: 0.8))

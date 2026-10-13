@@ -80,10 +80,16 @@ struct SpeedTrainerSection: View {
             }
             if engine.speedTrainerEnabled {
                 // 目標に達したら開始テンポに戻って繰り返す「テンポの梯子」
-                Image(systemName: "repeat")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(engine.speedTrainer.loops ? .accentColor : .secondary.opacity(0.6))
-                    .frame(width: 20, height: 16)
+                // アイコンだけでは何のスイッチか読めないので、言葉を添えた小さなトグルにする
+                let loops = engine.speedTrainer.loops
+                Label("Repeat", systemImage: "repeat")
+                    .labelStyle(.titleAndIcon)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(loops ? .accentColor : .secondary)
+                    .padding(.horizontal, 6)
+                    .frame(height: 18)
+                    .background(Capsule().fill(loops ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.1)))
+                    .contrastOutline(Capsule())
                     .help("Repeat: after the target tempo, start again from the first tempo")
                     .accessibleToggle($engine.speedTrainer.loops, label: Text("Repeat"))
             }

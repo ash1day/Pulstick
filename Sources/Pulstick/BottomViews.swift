@@ -131,19 +131,21 @@ struct VolumeRow: View {
         }
     }
 
-    /// 拍インジケータと同じ ●（強）／○（弱）の記号で、どちらの音量かを示す
+    /// 拍のメニューと同じ「強」「弱」の言葉で、どちらの音量かを示す（記号だけだと再生中の拍の表示と紛れる）
     private func volumeSlider(value: Binding<Double>, accent: Bool) -> some View {
         let name = accent ? Text("Accent volume") : Text("Beat volume")
-        return HStack(spacing: 4) {
-            Circle()
-                .fill(accent ? Color.accentColor.opacity(0.8) : Color.clear)
-                .overlay(Circle().stroke(accent ? Color.clear : Color.secondary.opacity(0.5), lineWidth: 1.2))
-                .frame(width: 7, height: 7)
+        return HStack(spacing: 5) {
+            (accent ? Text("Accent") : Text("Normal"))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
+                .fixedSize()
             CustomSlider(value: value, range: 0...1, step: 0.01, tint: accent ? .accentColor : .gray, accessibilityStep: 0.05)
                 .frame(height: 16)
                 .accessibilityLabel(name)
                 .accessibilityValue(Text("\(Int(value.wrappedValue * 100))%"))
         }
+        // ラベルの長さが違っても 2 本のスライダーの幅を等しくする
+        .frame(maxWidth: .infinity)
         .help(name)
     }
 }
@@ -226,8 +228,8 @@ struct FooterRow: View {
     }
 }
 
-/// 直近 7 日の練習時間の小さな棒グラフ。量を表す単一系列なので単色の濃淡だけで描き、
-/// 今日の棒だけを濃くする。練習しなかった日は基線上の小さな点で「0」を示す
+/// 直近 7 日の練習時間の小さな棒グラフ。量は棒の高さだけで表し、
+/// 今日の棒だけをアクセントカラーにする。練習しなかった日は基線上の小さな点で「0」を示す
 struct WeekBars: View {
     /// 古い日から順に 7 日分（秒）
     let seconds: [Double]
@@ -245,7 +247,8 @@ struct WeekBars: View {
                 Group {
                     if value > 0 {
                         UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2)
-                            .fill(Color.accentColor.opacity(isToday ? 1 : 0.45))
+                            // 色の違いを「今日かどうか」だけに使い、ほかの日は灰色にして濃淡の意味を迷わせない
+                            .fill(isToday ? Color.accentColor : Color.secondary.opacity(0.45))
                             .frame(width: barWidth, height: max(2, height * CGFloat(value / peak)))
                     } else {
                         Capsule()
