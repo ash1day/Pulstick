@@ -18,6 +18,7 @@
 "Quarter notes (no subdivision)" = "4分音符（刻みなし）";
 "Eighth notes" = "8分音符";
 "Triplets" = "3連符";
+"Swing" = "スイング";
 "Sixteenth notes" = "16分音符";
 
 /* Speed trainer. %1$@ = BPM increment, %2$@ = bars, %3$@ = target BPM (steppers are inserted there) */

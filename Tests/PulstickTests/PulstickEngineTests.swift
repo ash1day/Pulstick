@@ -1158,6 +1158,14 @@ struct BeatSequencerSubdivisionTests {
         let clicks = (0..<3).map { _ in seq.advance().click }
         #expect(clicks == [.subdivision, .subdivision, .normal])
     }
+
+    /// スイングは 3 連符の真ん中を抜いた「タータ・タータ」。3 連の刻みで進み、2 つ目だけ鳴らさない
+    @Test func swingSkipsTheMiddleOfTheTriplet() {
+        var seq = BeatSequencer(beatsPerMeasure: 2, accents: [0], subdivision: .swing)
+        #expect(seq.advance() == Tick(beat: 0, click: .subdivision, startsMeasure: false, isRest: true))
+        #expect(seq.advance() == Tick(beat: 0, click: .subdivision, startsMeasure: false))
+        #expect(seq.advance() == Tick(beat: 1, click: .normal, startsMeasure: false))
+    }
 }
 
 @Suite("BeatSequencer: リセット")

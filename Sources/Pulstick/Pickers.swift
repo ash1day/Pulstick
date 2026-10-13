@@ -95,7 +95,7 @@ struct SegmentedPicker<Item: Hashable, Content: View>: View {
     }
 }
 
-/// 細分の記号。3 連符は 8 分音符 3 つと見分けられるよう、譜面と同じく小さな「3」を添える
+/// 細分の記号。3 連符とスイングは 8 分音符と見分けられるよう、譜面と同じく小さな「3」を添える
 struct SubdivisionGlyph: View {
     let subdivision: Subdivision
 
@@ -103,7 +103,7 @@ struct SubdivisionGlyph: View {
         Text(subdivision.symbol)
             .tracking(-2)
             .overlay(alignment: .top) {
-                if subdivision == .triplet {
+                if subdivision == .triplet || subdivision == .swing {
                     Text(verbatim: "3")
                         .font(.system(size: 8, weight: .semibold, design: .rounded))
                         .offset(y: -7)
@@ -119,6 +119,8 @@ extension Subdivision {
         case .eighth: "♪♪"
         case .triplet: "♪♪♪"
         case .sixteenth: "♪♪♪♪"
+        // 譜面でスイングを示すときの「3 連の 4 分 + 8 分」
+        case .swing: "♩♪"
         }
     }
 
@@ -128,6 +130,7 @@ extension Subdivision {
         case .eighth: Text("Eighth notes")
         case .triplet: Text("Triplets")
         case .sixteenth: Text("Sixteenth notes")
+        case .swing: Text("Swing")
         }
     }
 }

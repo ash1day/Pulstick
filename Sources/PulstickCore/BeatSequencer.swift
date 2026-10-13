@@ -3,7 +3,20 @@ public enum Subdivision: Int, CaseIterable, Codable, Sendable {
     case quarter = 1
     case eighth = 2
     case triplet = 3
+    /// 3 連符の真ん中を抜いた跳ねるリズム。選択肢では 3 連符の隣に並べる。
+    /// rawValue は保存用の識別子なので、刻みの数は stepsPerBeat を使う
+    case swing = 6
     case sixteenth = 4
+
+    /// 1 拍を何個の等しい刻みに分けて進むか
+    public var stepsPerBeat: Int {
+        self == .swing ? 3 : rawValue
+    }
+
+    /// 拍の中の step 番目（0 が拍頭）の刻みを鳴らすか。スイングは 3 連の真ん中を抜く
+    public func soundsStep(_ step: Int) -> Bool {
+        !(self == .swing && step == 1)
+    }
 }
 
 public enum ClickKind: Equatable, Sendable {
@@ -47,9 +60,10 @@ public struct BeatSequencer {
 
     public mutating func advance() -> Tick {
         step += 1
-        if step < subdivision.rawValue {
+        if step < subdivision.stepsPerBeat {
             // 休符にした拍は、その拍の中の細分音も鳴らさない
-            return Tick(beat: beat, click: .subdivision, startsMeasure: false, isRest: rests.contains(beat))
+            let isRest = rests.contains(beat) || !subdivision.soundsStep(step)
+            return Tick(beat: beat, click: .subdivision, startsMeasure: false, isRest: isRest)
         }
         step = 0
         // 再生中に拍数が減って beat が範囲外になっていたら、小節頭に戻る（2 拍目などへ飛ばさない）

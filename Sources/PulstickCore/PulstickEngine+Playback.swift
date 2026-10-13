@@ -101,7 +101,7 @@ extension PulstickEngine {
     }
 
     var tickInterval: Double {
-        60.0 / bpm / Double(subdivision.rawValue)
+        60.0 / bpm / Double(subdivision.stepsPerBeat)
     }
 
     /// テンポや細分が変わったとき、タイマーを作り直さず次の発火時刻だけ組み直す。
