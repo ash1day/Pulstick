@@ -5,7 +5,7 @@
 ### Practice
 - **Speed trainer**: raise the tempo by N BPM every M bars up to a target, with a one-click return to the starting tempo and an optional repeat mode. While it runs, the line under the BPM counts down the bars to the next step ("+2 in 3 bars").
 - **Silent bars**: play N bars, then mute M bars while the beat display keeps going, to check you hold the tempo on your own.
-- **Subdivisions**: eighths, triplets and sixteenths with a softer click.
+- **Subdivisions**: eighths, triplets, swing and sixteenths with a softer click.
 - **Rest beats**: click a beat to cycle normal → accent → rest, or right-click it to pick one, e.g. a click only on 2 and 4.
 - **Songs**: save tempo, beat pattern and subdivision under a name, keep them in setlist order, step through them with `[` and `]` (Pulstick remembers where you were), and see how long you have practised each one and the fastest tempo you reached. Right-click a song to practise it at 70–90 % of its tempo, or to ramp it up from 70 % to full tempo with the speed trainer. Copy the setlist and paste it on a bandmate's Mac to share it (practice records stay private). The current song's name appears under the BPM.
 - **Practice log**: today's minutes and a 7-day chart. Right-click it to reset the history.
@@ -31,7 +31,8 @@
 ### Look
 - The popover follows the system accent colour and fits in with macOS: presets, subdivisions and sounds sit in segmented tracks, and the tempo number, slider and song button form one block.
 - Song names are no longer cut short; the beat count moved to the second line, and the delete button appears on hover. Right-click a song to update it with the current settings or delete it.
-- The triplet button shows a small 3, as in sheet music.
+- The triplet and swing buttons show a small 3, as in sheet music.
+- Volume, click sound and Launch at Login moved behind the gear button at the bottom, so the popover opens on just tempo, pattern and practice controls. Mute stays one click away at the bottom left.
 
 ### Fixes
 - The volume sliders only produced 0 % or 100 %.

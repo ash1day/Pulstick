@@ -110,25 +110,18 @@ struct TransportRow: View {
     }
 }
 
+/// 強拍・弱拍の音量。一度決めたらほとんど触らないので、設定のポップオーバーに置く
 struct VolumeRow: View {
     @ObservedObject var engine: PulstickEngine
 
     var body: some View {
         HStack(spacing: 10) {
-            // 録音に合わせるときや音を出せない場所では、音だけ止めて拍の表示で練習できる
-            Image(systemName: engine.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                .font(.system(size: 11))
-                .foregroundColor(engine.isMuted ? .accentColor : .secondary)
-                .frame(width: 16)
-                .help(engine.isMuted ? "Unmute (M)" : "Mute the click (M) · the beat display keeps going")
-                .accessibleToggle($engine.isMuted, label: Text("Mute"))
-            Group {
-                volumeSlider(value: $engine.accentVolume, accent: true)
-                volumeSlider(value: $engine.normalVolume, accent: false)
-            }
-            .saturation(engine.isMuted ? 0 : 1)
-            .opacity(engine.isMuted ? 0.6 : 1)
+            volumeSlider(value: $engine.accentVolume, accent: true)
+            volumeSlider(value: $engine.normalVolume, accent: false)
         }
+        // ミュート中は音量を動かしても鳴らないことが分かるよう、色を抜く
+        .saturation(engine.isMuted ? 0 : 1)
+        .opacity(engine.isMuted ? 0.6 : 1)
     }
 
     /// 拍のメニューと同じ「強」「弱」の言葉で、どちらの音量かを示す（記号だけだと再生中の拍の表示と紛れる）
@@ -188,18 +181,79 @@ struct PracticeSummary: View {
     }
 }
 
+/// いちばん下の行。ミュートは録音前などにすぐ切り替えたいので外に残し、
+/// 音量・音色・ログイン時の起動のように一度決めたら触らない設定は歯車の中にしまう
 struct FooterRow: View {
     @ObservedObject var engine: PulstickEngine
     let hotKeys: GlobalHotKeys?
     @State private var isShowingShortcuts = false
+    @State private var isShowingSettings = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            // 録音に合わせるときや音を出せない場所では、音だけ止めて拍の表示で練習できる
+            Button {
+                engine.isMuted.toggle()
+            } label: {
+                Image(systemName: engine.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(engine.isMuted ? .accentColor : .secondary)
+                    .frame(width: 24, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(GlyphButtonStyle())
+            .help(engine.isMuted ? "Unmute (M)" : "Mute the click (M) · the beat display keeps going")
+            .accessibilityLabel(Text("Mute"))
+            .accessibilityValue(engine.isMuted ? Text("On") : Text("Off"))
+            .pointingHandCursor()
+            Spacer()
+            PopoverIconButton(
+                systemName: "keyboard", help: "Keyboard shortcuts", isPresented: $isShowingShortcuts
+            ) {
+                ShortcutHelp(hotKeys: hotKeys, presetCount: engine.presets.count)
+            }
+            PopoverIconButton(
+                systemName: "gearshape", size: 12, help: "Volume, click sound and Launch at Login",
+                label: Text("Settings"), isPresented: $isShowingSettings
+            ) {
+                SettingsPanel(engine: engine)
+            }
+            Button("Quit") {
+                NSApplication.shared.terminate(nil)
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.secondary)
+            .font(.system(size: 11))
+            .keyboardShortcut("q")
+            .pointingHandCursor()
+            .padding(.leading, 4)
+        }
+    }
+}
+
+/// 歯車から開く設定。音量と音色は試しながら決めるので、音色を選ぶと 1 回だけ鳴らして確かめられる
+struct SettingsPanel: View {
+    @ObservedObject var engine: PulstickEngine
     /// SMAppService への問い合わせはプロセス間通信なので、表示時に一度だけ行う
     @State private var launchAtLogin = false
 
     var body: some View {
-        HStack {
-            CheckBox(title: "Launch at Login", isOn: $launchAtLogin)
-                .font(.system(size: 11))
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Sound")
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.secondary)
+            VolumeRow(engine: engine)
+            SegmentedPicker(Text("Click sound"), items: ClickSound.allCases, selection: engine.clickSound, label: \.name) { sound in
+                sound.name
+                    .font(.system(size: 11, weight: .medium))
+            } onSelect: { sound in
+                engine.clickSound = sound
+                engine.previewClick()
+            }
+            Divider()
+                .padding(.vertical, 2)
+            CheckBox(title: "Launch at Login", isOn: $launchAtLogin)
+                .font(.system(size: 12))
                 .onChange(of: launchAtLogin) {
                     guard launchAtLogin != (SMAppService.mainApp.status == .enabled) else { return }
                     do {
@@ -212,21 +266,9 @@ struct FooterRow: View {
                         launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
                 }
-            Spacer()
-            PopoverIconButton(
-                systemName: "keyboard", help: "Keyboard shortcuts", isPresented: $isShowingShortcuts
-            ) {
-                ShortcutHelp(hotKeys: hotKeys, presetCount: engine.presets.count)
-            }
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(.secondary)
-            .font(.system(size: 11))
-            .keyboardShortcut("q")
-            .pointingHandCursor()
         }
+        .padding(14)
+        .frame(width: 260)
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }

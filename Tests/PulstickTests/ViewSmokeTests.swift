@@ -64,6 +64,10 @@ struct ViewSmokeTests {
         #expect(render(SongList(engine: filled) {}) != nil)
     }
 
+    @Test func settingsPanelRendersMuted() {
+        #expect(render(SettingsPanel(engine: engine { $0.isMuted = true })) != nil)
+    }
+
     @Test func welcomeRenders() {
         #expect(render(WelcomeView {}) != nil)
     }

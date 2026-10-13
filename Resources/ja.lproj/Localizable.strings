@@ -114,7 +114,7 @@
 "Click the metronome icon at the top right of the screen to open it." = "画面右上のメトロノームのアイコンから開けます。";
 "Click the icon to set the tempo and press Space to play." = "アイコンを開いてテンポを決め、スペースキーで再生します。";
 "Press ⌃⌥M in any app to start or stop." = "どのアプリを使っていても、⌃⌥M で再生・停止できます。";
-"Turn on “Launch at Login” at the bottom to keep it handy." = "開いた画面の下にある「ログイン時に起動」をオンにしておくと、いつでも使えます。";
+"Turn on “Launch at Login” under the gear at the bottom to keep it handy." = "開いた画面の下の歯車から「ログイン時に起動」をオンにしておくと、いつでも使えます。";
 "Got It" = "はじめる";
 "Rest" = "休み";
 "Practised %@" = "練習 %@";
@@ -193,3 +193,6 @@
 "Normal" = "弱";
 "Accent" = "強";
 "Choose normal, accent or rest" = "弱・強・休みを選ぶ";
+"Sound" = "音";
+"Settings" = "設定";
+"Volume, click sound and Launch at Login" = "音量・音色・ログイン時に起動";

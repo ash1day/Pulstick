@@ -45,16 +45,6 @@ struct PulstickView: View {
                 GapTrainerSection(engine: engine)
             }
             Divider()
-            VStack(spacing: 8) {
-                VolumeRow(engine: engine)
-                SegmentedPicker(Text("Click sound"), items: ClickSound.allCases, selection: engine.clickSound, label: \.name) { sound in
-                    sound.name
-                        .font(.system(size: 11, weight: .medium))
-                } onSelect: { sound in
-                    engine.clickSound = sound
-                    engine.previewClick()
-                }
-            }
             PracticeSummary(engine: engine)
             FooterRow(engine: engine, hotKeys: hotKeys)
         }

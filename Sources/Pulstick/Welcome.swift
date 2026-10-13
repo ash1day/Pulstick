@@ -77,7 +77,7 @@ struct WelcomeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 tip("metronome", Text("Click the icon to set the tempo and press Space to play."))
                 tip("keyboard", Text("Press ⌃⌥M in any app to start or stop."))
-                tip("power", Text("Turn on “Launch at Login” at the bottom to keep it handy."))
+                tip("power", Text("Turn on “Launch at Login” under the gear at the bottom to keep it handy."))
             }
             .padding(14)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
