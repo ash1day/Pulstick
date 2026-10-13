@@ -29,6 +29,9 @@ struct PulstickView: View {
                     }
                 BPMSlider(engine: engine)
             }
+            // 再生はいちばんよく押すので、トレーナーを開いても位置が動かないよう上側に置き、
+            // Tap もテンポのまとまりのすぐ下に来るようにする
+            TransportRow(engine: engine, hotKeys: hotKeys)
             // プリセットと細分はどちらも拍のパターンを決めるので、近づけて 1 つのまとまりに見せる
             VStack(spacing: 6) {
                 PresetPicker(engine: engine)
@@ -41,7 +44,6 @@ struct PulstickView: View {
                 SpeedTrainerSection(engine: engine)
                 GapTrainerSection(engine: engine)
             }
-            TransportRow(engine: engine, hotKeys: hotKeys)
             Divider()
             VStack(spacing: 8) {
                 VolumeRow(engine: engine)
